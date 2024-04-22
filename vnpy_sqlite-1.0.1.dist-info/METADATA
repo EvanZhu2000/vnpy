@@ -1,0 +1,51 @@
+Metadata-Version: 2.1
+Name: vnpy-sqlite
+Version: 1.0.1
+Summary: SQLite database adapter for VeighNa quant trading framework.
+Home-page: https://www.vnpy.com
+Author: Xiaoyou Chen
+Author-email: xiaoyou.chen@mail.vnpy.com
+License: MIT
+Keywords: quant,quantitative,investment,trading,algotrading
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Topic :: Office/Business :: Financial :: Investment
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Natural Language :: Chinese (Simplified)
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: peewee
+
+# VeighNa框架的SQLite数据库接口
+
+<p align="center">
+  <img src ="https://vnpy.oss-cn-shanghai.aliyuncs.com/vnpy-logo.png"/>
+</p>
+
+<p align="center">
+    <img src ="https://img.shields.io/badge/version-1.0.1-blueviolet.svg"/>
+    <img src ="https://img.shields.io/badge/platform-windows|linux|macos-yellow.svg"/>
+    <img src ="https://img.shields.io/badge/python-3.7|3.8|3.9|3.10-blue.svg" />
+</p>
+
+## 说明
+
+基于peewee开发的SQLite数据库接口，无需另外安装配置数据库软件，易于使用适合初学者用户。
+
+## 使用
+
+在VeighNa中使用SQLite时，需要在全局配置中填写以下字段信息：
+
+|名称|含义|必填|举例|
+|---------|----|---|---|
+|database.name|名称|是|sqlite|
+|database.database|实例|是|database.db|
+
+

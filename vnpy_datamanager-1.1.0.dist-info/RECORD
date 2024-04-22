@@ -1,0 +1,17 @@
+vnpy_datamanager-1.1.0.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
+vnpy_datamanager-1.1.0.dist-info/LICENSE,sha256=PhdGUM_j-YTyaMqZFRcSqAUQU4nVwDzC4I1584GpKvg,1109
+vnpy_datamanager-1.1.0.dist-info/METADATA,sha256=EjYV7vetcabME1VFGXIg7P6HsPt7XkArHdeBzlRd8wU,1884
+vnpy_datamanager-1.1.0.dist-info/RECORD,,
+vnpy_datamanager-1.1.0.dist-info/REQUESTED,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
+vnpy_datamanager-1.1.0.dist-info/WHEEL,sha256=2wepM1nk4DS4eFpYrW1TTqPcoGNfHhhO_i5m4cOimbo,92
+vnpy_datamanager-1.1.0.dist-info/direct_url.json,sha256=aY-s_JNnG1bG92HlogV2h7kZ70cj5-xzkNPwH5QBGgc,104
+vnpy_datamanager-1.1.0.dist-info/top_level.txt,sha256=b8KIoyI4HD71KmcvKW_r5IGzZsWpAGG0SQNyKQG55Go,17
+vnpy_datamanager/__init__.py,sha256=STMbakIgiANKPvgZP-tijYOba6dqz2t_Q8X7VT333T4,1791
+vnpy_datamanager/__pycache__/__init__.cpython-310.pyc,,
+vnpy_datamanager/__pycache__/engine.cpython-310.pyc,,
+vnpy_datamanager/engine.py,sha256=9cicjlD_EwfADarxlHgo7emAgQqv2SQhqzLDzENWYJU,7034
+vnpy_datamanager/ui/__init__.py,sha256=t6VTqXGOM4SLqn_xzZ_6zg5FZYfwezx4v27W7bJK3lA,33
+vnpy_datamanager/ui/__pycache__/__init__.cpython-310.pyc,,
+vnpy_datamanager/ui/__pycache__/widget.cpython-310.pyc,,
+vnpy_datamanager/ui/manager.ico,sha256=lCBZ3k_yRwDyrcBzvwLgMuKKreYsCjRUmLtie8xP8ig,63038
+vnpy_datamanager/ui/widget.py,sha256=PLEAFfkTjNmKbA87wDfyba0TkjCZ1GzJzpQZBD3Q-0M,21252

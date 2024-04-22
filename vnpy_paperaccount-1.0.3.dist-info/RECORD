@@ -1,0 +1,17 @@
+vnpy_paperaccount-1.0.3.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
+vnpy_paperaccount-1.0.3.dist-info/LICENSE,sha256=PhdGUM_j-YTyaMqZFRcSqAUQU4nVwDzC4I1584GpKvg,1109
+vnpy_paperaccount-1.0.3.dist-info/METADATA,sha256=toEVMNv0bh8BgxkCEYnujerXNI_EjFP801-Sey60PWc,1910
+vnpy_paperaccount-1.0.3.dist-info/RECORD,,
+vnpy_paperaccount-1.0.3.dist-info/REQUESTED,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
+vnpy_paperaccount-1.0.3.dist-info/WHEEL,sha256=2wepM1nk4DS4eFpYrW1TTqPcoGNfHhhO_i5m4cOimbo,92
+vnpy_paperaccount-1.0.3.dist-info/direct_url.json,sha256=j7QBc41jMLbZtv72PcPP4gVW_Mp-mQ1bXpnbFVW9DMM,105
+vnpy_paperaccount-1.0.3.dist-info/top_level.txt,sha256=YNTrfArDwKQTWegTsuaIN0oObDBmaZnhBrKJZia_btM,18
+vnpy_paperaccount/__init__.py,sha256=KHop9g-wKrPAe18mqvQeS6r3K0CNCBf_eoxvDEgCz1g,1780
+vnpy_paperaccount/__pycache__/__init__.cpython-310.pyc,,
+vnpy_paperaccount/__pycache__/engine.cpython-310.pyc,,
+vnpy_paperaccount/engine.py,sha256=t9jGo95JqCT1mZq6ly1TaR_zU5k5miCbFX172PiO-fw,22400
+vnpy_paperaccount/ui/__init__.py,sha256=WS47YZw_8vjyZb2LOPS9nMG16uxEpT37MvMCUkS5fEQ,34
+vnpy_paperaccount/ui/__pycache__/__init__.cpython-310.pyc,,
+vnpy_paperaccount/ui/__pycache__/widget.cpython-310.pyc,,
+vnpy_paperaccount/ui/paper.ico,sha256=bNlZAPmdVQq-clxgHPqbaT_CcDDbPKh8P6zFQ_XTjF4,67134
+vnpy_paperaccount/ui/widget.py,sha256=YqrLbybGv-0JNUPAGTzJ7OZ8cKjF352Z2fd1xxuo8zA,2305

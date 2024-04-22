@@ -1,0 +1,17 @@
+vnpy_chartwizard-1.0.4.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
+vnpy_chartwizard-1.0.4.dist-info/LICENSE,sha256=4VJliaS3oGXhJzrIX5QErBiWtKEYRlNh38Y63aImIes,1107
+vnpy_chartwizard-1.0.4.dist-info/METADATA,sha256=WAmW5-f3La4NecvD-h-f1EhH6ER3358JU0JbAsol6ZY,2094
+vnpy_chartwizard-1.0.4.dist-info/RECORD,,
+vnpy_chartwizard-1.0.4.dist-info/REQUESTED,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
+vnpy_chartwizard-1.0.4.dist-info/WHEEL,sha256=2wepM1nk4DS4eFpYrW1TTqPcoGNfHhhO_i5m4cOimbo,92
+vnpy_chartwizard-1.0.4.dist-info/direct_url.json,sha256=7ypYgrQ1jFuV9USGom4VI6Rs_jx6jIRMG9PwwGErYNQ,104
+vnpy_chartwizard-1.0.4.dist-info/top_level.txt,sha256=IRN6PS6CcerliPvvRkntqhojMzTDmVvOJGsgy0fXBww,17
+vnpy_chartwizard/__init__.py,sha256=WEvfESFiOPtp4-dfm6BccHawJX9_ShmWvmESOWHIcVE,1629
+vnpy_chartwizard/__pycache__/__init__.cpython-310.pyc,,
+vnpy_chartwizard/__pycache__/engine.cpython-310.pyc,,
+vnpy_chartwizard/engine.py,sha256=Gv2yhc3tZYB4SZzmrGIm3tFA_p46PxF7wvnFpsrDu2E,2366
+vnpy_chartwizard/ui/__init__.py,sha256=1jivgq8W1OH50BBmCuBRA05M9Jz8L2LElb60qOPKH2Y,39
+vnpy_chartwizard/ui/__pycache__/__init__.cpython-310.pyc,,
+vnpy_chartwizard/ui/__pycache__/widget.cpython-310.pyc,,
+vnpy_chartwizard/ui/cw.ico,sha256=b53iS3wsaIYTIJDx1evvvs0yWGurXJH5TlFt659dCtY,67646
+vnpy_chartwizard/ui/widget.py,sha256=zsFYcRSM_HfwTRAKc7EH9tAhpZbeDiU5i4gO7ffasV0,6845

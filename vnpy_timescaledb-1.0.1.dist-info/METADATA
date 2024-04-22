@@ -1,0 +1,58 @@
+Metadata-Version: 2.1
+Name: vnpy-timescaledb
+Version: 1.0.1
+Summary: TimescaleDB database adapter for vn.py quant trading framework.
+Home-page: https://www.vnpy.com
+Author: Xiaoyou Chen
+Author-email: xiaoyou.chen@mail.vnpy.com
+License: MIT
+Keywords: quant,quantitative,investment,trading,algotrading
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Topic :: Office/Business :: Financial :: Investment
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Natural Language :: Chinese (Simplified)
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: psycopg2
+
+# VeighNa框架的TimescaleDB数据库接口
+
+<p align="center">
+  <img src ="https://vnpy.oss-cn-shanghai.aliyuncs.com/vnpy-logo.png"/>
+</p>
+
+<p align="center">
+    <img src ="https://img.shields.io/badge/version-1.0.1-blueviolet.svg"/>
+    <img src ="https://img.shields.io/badge/platform-windows|linux-yellow.svg"/>
+    <img src ="https://img.shields.io/badge/python-3.7｜3.9｜3.9｜3.10-blue.svg" />
+</p>
+
+## 说明
+
+基于TimescaleDB 2.7.0开发的时序数据库接口，使用前需要在PostgreSQL中添加TimescaleDB扩展。
+
+## 使用
+
+在VeighNa中使用TimescaleDB时，需要在全局配置中填写以下字段信息：
+
+|名称|含义|必填|举例|
+|---------|----|---|---|
+|database.name|名称|是|timescaledb|
+|database.host|地址|是|localhost|
+|database.port|端口|是|5432|
+|database.database|实例|是|vnpy|
+|database.user|用户名|是|postgres|
+|database.password|密码|是|    |
+
+
+请注意，连接前需要在PostgreSQL中手动添加数据库实例vnpy。
+
+

@@ -1,0 +1,60 @@
+Metadata-Version: 2.1
+Name: vnpy-portfoliostrategy
+Version: 1.0.9
+Summary: Portfolio strategy application for VeighNa quant trading framework.
+Home-page: https://www.vnpy.com
+Author: Xiaoyou Chen
+Author-email: xiaoyou.chen@mail.vnpy.com
+License: MIT
+Keywords: quant,quantitative,investment,trading,algotrading
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Office/Business :: Financial :: Investment
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Natural Language :: Chinese (Simplified)
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: pandas
+Requires-Dist: plotly
+
+# VeighNa框架的投资组合策略模块
+
+<p align="center">
+  <img src ="https://vnpy.oss-cn-shanghai.aliyuncs.com/vnpy-logo.png"/>
+</p>
+
+<p align="center">
+    <img src ="https://img.shields.io/badge/version-1.0.9-blueviolet.svg"/>
+    <img src ="https://img.shields.io/badge/platform-windows|linux|macos-yellow.svg"/>
+    <img src ="https://img.shields.io/badge/python-3.10|3.11|3.12-blue.svg" />
+    <img src ="https://img.shields.io/github/license/vnpy/vnpy.svg?color=orange"/>
+</p>
+
+## 说明
+
+针对多合约组合策略实盘的功能模块，用于实现策略历史回测、参数优化和实盘交易等任务。
+
+## 安装
+
+安装环境推荐基于3.9.0版本以上的【[**VeighNa Studio**](https://www.vnpy.com)】。
+
+直接使用pip命令：
+
+```
+pip install vnpy_portfoliostrategy
+```
+
+
+或者下载源代码后，解压后在cmd中运行：
+
+```
+pip install .
+```
