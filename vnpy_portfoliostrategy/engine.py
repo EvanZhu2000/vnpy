@@ -152,6 +152,61 @@ class StrategyEngine(BaseEngine):
 
         self.call_strategy_func(strategy, strategy.update_trade, trade)
 
+    def send_order_FAK(
+        self,
+        strategy: StrategyTemplate,
+        vt_symbol: str,
+        direction: Direction,
+        offset: Offset,
+        price: float,
+        volume: float,
+        lock: bool,
+        net: bool,
+    ) -> list:
+        """发送委托"""
+        contract: Optional[ContractData] = self.main_engine.get_contract(vt_symbol)
+        if not contract:
+            self.write_log(f"委托失败，找不到合约：{vt_symbol}", strategy)
+            return ""
+
+        price: float = round_to(price, contract.pricetick)
+        volume: float = round_to(volume, contract.min_volume)
+
+        original_req: OrderRequest = OrderRequest(
+            symbol=contract.symbol,
+            exchange=contract.exchange,
+            direction=direction,
+            offset=offset,
+            type=OrderType.FAK,
+            price=price,
+            volume=volume,
+            reference=f"{APP_NAME}_{strategy.strategy_name}"
+        )
+
+        req_list: list[OrderRequest] = self.main_engine.convert_order_request(
+            original_req,
+            contract.gateway_name,
+            lock,
+            net
+        )
+
+        vt_orderids: list = []
+
+        for req in req_list:
+            vt_orderid: str = self.main_engine.send_order(
+                req, contract.gateway_name)
+
+            if not vt_orderid:
+                continue
+
+            vt_orderids.append(vt_orderid)
+
+            self.main_engine.update_order_request(req, vt_orderid, contract.gateway_name)
+
+            self.orderid_strategy_map[vt_orderid] = strategy
+
+        return vt_orderids
+    
     def send_order(
         self,
         strategy: StrategyTemplate,
