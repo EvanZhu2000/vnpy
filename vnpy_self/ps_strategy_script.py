@@ -4,10 +4,9 @@ from vnpy.event import EventEngine
 from vnpy.trader.setting import SETTINGS
 from vnpy.trader.engine import MainEngine
 
-from vnpy_datarecorder.engine import RecorderEngine, EVENT_RECORDER_LOG
-from vnpy_scripttrader.engine import ScriptEngine
 from vnpy_ctp import CtpGateway
-from vnpy.trader.constant import Product
+from vnpy_portfoliostrategy import PortfolioStrategyApp
+from vnpy_portfoliostrategy.base import EVENT_PORTFOLIO_LOG
 
 from datetime import datetime, time
 import sys
@@ -57,38 +56,31 @@ def check_trading_period():
 
 
 def run():
-    """
-    Running in the child process.
-    """
     SETTINGS["log.file"] = True
 
     event_engine = EventEngine()
     main_engine = MainEngine(event_engine)
     main_engine.init_engines()
     main_engine.add_gateway(CtpGateway)
-    s_engine = main_engine.add_engine(ScriptEngine)
+    ps_engine = main_engine.add_app(PortfolioStrategyApp)   #  add portfolio strategy app
     main_engine.write_log("主引擎创建成功")
 
     log_engine = main_engine.get_engine("log")
-    event_engine.register(EVENT_RECORDER_LOG, log_engine.process_log_event)
+    event_engine.register(EVENT_PORTFOLIO_LOG, log_engine.process_log_event)
     main_engine.write_log("注册日志事件监听")
 
     main_engine.connect(ctp_setting, "CTP")
     main_engine.write_log("连接CTP接口")
 
-    recorder=RecorderEngine(main_engine,event_engine)
-
-    sleep(60)
-    contract_df = s_engine.get_all_contracts(use_df=True)
-    contract_list = contract_df.loc[(contract_df['product'] == Product.FUTURES) & (contract_df['symbol'].str.startswith('I'))]['vt_symbol'].values #获取中金所所有数据
-
-    for contract in contract_list:
-        print(f"Adding contract {contract}")
-        recorder.add_bar_recording(contract)
-        
-    print(f"recorder.bar_recordings {recorder.bar_recordings}")
-        
-        
+    ps_engine.init_engine()
+    main_engine.write_log("ps策略初始化完成")
+    ps_engine.add_strategy('SimpleBuyStrategy','A',['IH2406.CFFEX','IF2406.CFFEX'],{})
+    
+    ps_engine.init_strategy('test1')
+    main_engine.write_log("ps策略全部初始化")
+    ps_engine.start_strategy('test1')
+    main_engine.write_log("ps策略全部启动")
+            
     while True:
         sleep(10)
 
