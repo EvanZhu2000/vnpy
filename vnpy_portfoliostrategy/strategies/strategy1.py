@@ -15,16 +15,16 @@ from vnpy.trader.constant import Direction, Status
 from vnpy_portfoliostrategy import StrategyTemplate, StrategyEngine
 from vnpy_portfoliostrategy.utility import PortfolioBarGenerator
 
-# From the log we can see it is using only 1 order id
 class Strategy1(StrategyTemplate):
     """配对交易策略"""
     
     tick_add = 0
     fixed_size = 1
     buf=None
+    bar_counter = 0
+    bar_freq = 240
     
     boll_dev = 2
-    current_spread = 0.0
     boll_mid = 0.0
     boll_down = 0.0
     boll_up = 0.0
@@ -54,13 +54,15 @@ class Strategy1(StrategyTemplate):
         self.ams: dict[str, ArrayManager] = {}
         for vt_symbol in self.vt_symbols:
             self.bgs[vt_symbol] = BarGenerator(on_bar)
-            self.ams[vt_symbol] = ArrayManager(size=30)  #TODO change this
+            self.ams[vt_symbol] = ArrayManager(size=10)  #TODO change this
+        
+        self.pbg = PortfolioBarGenerator(self.on_bars)
 
     def on_init(self) -> None:
         """策略初始化回调"""
         self.write_log("策略初始化")
 
-        self.load_bars(10) #TODO change this
+        self.load_bars(20) #TODO change this
 
     def on_start(self) -> None:
         """策略启动回调"""
@@ -84,7 +86,6 @@ class Strategy1(StrategyTemplate):
             self.rebalance(order.vt_symbol, self.last_tick_dict[order.vt_symbol])
         
     def update_trade(self, trade: TradeData) -> None:
-        """成交数据更新"""
         if trade.direction == Direction.LONG:
             self.pos_data[trade.vt_symbol] += trade.volume
         else:
@@ -94,86 +95,74 @@ class Strategy1(StrategyTemplate):
             self.rebalance(trade.vt_symbol,self.last_tick_dict[trade.vt_symbol])
             
     def on_tick(self, tick: TickData) -> None:
-        """行情推送回调"""
-        if (
-            self.last_tick_time
-            and self.last_tick_time.minute != tick.datetime.minute
-        ):
-            bars = {}
-            for vt_symbol, bg in self.bgs.items():
-                bars[vt_symbol] = bg.generate()
-            self.on_bars(bars)
-
-        bg: BarGenerator = self.bgs[tick.vt_symbol]
-        bg.update_tick(tick)
-
+        self.pbg.update_tick(tick)
+        
         self.last_tick_time = tick.datetime
         self.last_tick_dict[tick.vt_symbol] = tick
 
+    # Only for 1 minute bar
     def on_bars(self, bars: dict[str, BarData]) -> None:
-        def check_timestamp_at_freq(dt:datetime) -> bool:
-            if dt.hour == 14 and dt.minute == 59:
-                return True
-            else:
-                return False
-                
-        leg1_bar = bars.get(self.leg1_symbol, None)
-        leg2_bar = bars.get(self.leg2_symbol, None)
-        if not leg1_bar or not leg2_bar:
-            return
+        # self.pbg.update_bars(bars)
         
-        for vt_symbol, bar in bars.items():
-            am: ArrayManager = self.ams[vt_symbol]
-            am.update_bar(bar)   # TODO probably don't need this at all
-            # if not am.inited:   # TODO start when X bars has passed, need this
-            #     return
-            
-            if not self.buf:
-                for c in am.close:
-                    if check_timestamp_at_freq(datetime.fromtimestamp(c)):  # TODO bad practive
-                        self.samp_am[vt_symbol].append(c)
-            else:
-                if check_timestamp_at_freq(bar.datetime):
-                     self.samp_am[vt_symbol][:-1] = self.samp_am[vt_symbol][1:]
-                     self.samp_am[vt_symbol][-1] = bar.close_price
-                      
-        if (not self.buf) and self.samp_am[self.leg1_symbol] and self.samp_am[self.leg2_symbol]:
-            self.buf = np.array(self.samp_am[self.leg1_symbol]) - np.array(self.samp_am[self.leg2_symbol])  #TODO double check this logic
-        elif self.buf and self.samp_am[self.leg1_symbol] and self.samp_am[self.leg2_symbol]: 
-            self.buf[:-1] = self.buf[1:]
-            self.buf[-1] = self.samp_am[self.leg1_symbol][-1] - self.samp_am[self.leg2_symbol][-1]
-                
         ## TODO what if the market data disconnect
-        if self.buf:
-            std = self.buf.std()
-            self.boll_mid = self.buf.mean()
-            self.boll_up = self.boll_mid + self.boll_dev * std
-            self.boll_down = self.boll_mid - self.boll_dev * std
+        if self.buf is not None:
+            leg1_bar = bars.get(self.leg1_symbol, None)
+            leg2_bar = bars.get(self.leg2_symbol, None)
+            if not leg1_bar or not leg2_bar:
+                return
 
             current_spread = leg1_bar.close_price- leg2_bar.close_price
             self.cal_target_pos(current_spread, bars)
             # not sure whether necessary
             self.put_event()
+        
+        self.bar_counter += 1
+        if self.bar_counter % self.bar_freq == 0:
+            self.bar_counter = 0
+            self.on_win_bars(bars)
+
+    def on_win_bars(self, bars: dict[str, BarData]) -> None:
+        for vt_symbol, bar in bars.items():
+            am: ArrayManager = self.ams[vt_symbol]
+            am.update_bar(bar)
+
+        am1 = self.ams[self.leg1_symbol]
+        am2 = self.ams[self.leg2_symbol]
+        if (not am1.inited) or (not am2.inited):
+            return
+        
+        self.buf = am1.close - am2.close
+        
+        std = self.buf.std()
+        self.boll_mid = self.buf.mean()
+        self.boll_up = self.boll_mid + self.boll_dev * std
+        self.boll_down = self.boll_mid - self.boll_dev * std
+                
+    def need_to_rebalance(self, tar1, tar2, bars) -> None: 
+        if self.get_target(self.leg1_symbol)!=tar1 or self.get_target(self.leg2_symbol)!=tar2:
+            self.set_target(self.leg1_symbol, tar1)
+            self.set_target(self.leg2_symbol, tar2)
+            self.rebalance_portfolio_FAK(bars)
     
     # TODO ideally should be in tick
     def cal_target_pos(self, current_spread:float, bars) -> None:
         leg1_pos = self.get_pos(self.leg1_symbol)
         if not leg1_pos:
             if current_spread >= self.boll_up:
-                self.set_target(self.leg1_symbol, -self.fixed_size)
-                self.set_target(self.leg2_symbol, self.fixed_size)
-            elif self.current_spread <= self.boll_down:
-                self.set_target(self.leg1_symbol, self.fixed_size)
-                self.set_target(self.leg2_symbol, -self.fixed_size)
+                tar1,tar2 = -self.fixed_size,self.fixed_size
+                self.need_to_rebalance(tar1, tar2, bars)
+            elif current_spread <= self.boll_down:
+                tar1,tar2 = self.fixed_size, -self.fixed_size
+                self.need_to_rebalance(tar1, tar2, bars)
         elif leg1_pos > 0:
             if current_spread >= self.boll_mid:
-                self.set_target(self.leg1_symbol, 0)
-                self.set_target(self.leg2_symbol, 0)
+                tar1, tar2 = 0,0
+                self.need_to_rebalance(tar1, tar2, bars)
         else:
             if current_spread <= self.boll_mid:
-                self.set_target(self.leg1_symbol, 0)
-                self.set_target(self.leg2_symbol, 0)
-        self.rebalance_portfolio_FAK(bars)
+                tar1, tar2 = 0,0
+                self.need_to_rebalance(tar1, tar2, bars)
+                
         
     def calculate_price(self, vt_symbol: str, direction: Direction, reference: float) -> float:
         """计算调仓委托价格（支持按需重载实现）"""

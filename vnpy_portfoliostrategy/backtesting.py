@@ -1,11 +1,13 @@
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from typing import Optional
+import pandas as pd
 from functools import lru_cache, partial
 from copy import copy
 import traceback
 
 import numpy as np
+import plotly as plt
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from pandas import DataFrame
@@ -21,8 +23,9 @@ from vnpy.trader.optimize import (
     run_ga_optimization
 )
 
-from .base import EngineType
-from .template import StrategyTemplate
+from vnpy_portfoliostrategy.base import EngineType
+from vnpy_portfoliostrategy.template import StrategyTemplate
+import math
 
 
 INTERVAL_DELTA_MAP: dict[Interval, timedelta] = {
@@ -455,7 +458,7 @@ class BacktestingEngine:
         self.output("策略统计指标计算完成")
         return statistics
 
-    def show_chart(self, df: DataFrame = None) -> None:
+    def show_chart(self, df: DataFrame = None, offline = True) -> None:
         """显示图表"""
         if df is None:
             df: DataFrame = self.daily_df
@@ -493,7 +496,7 @@ class BacktestingEngine:
         fig.add_trace(pnl_histogram, row=4, col=1)
 
         fig.update_layout(height=1000, width=1000)
-        fig.show()
+        fig.show() if not offline else plt.offline.plot(fig)
 
     def run_bf_optimization(
         self,
@@ -708,6 +711,42 @@ class BacktestingEngine:
         self.limit_orders[order.vt_orderid] = order
 
         return [order.vt_orderid]
+    
+    def send_order_FAK(
+        self,
+        strategy: StrategyTemplate,
+        vt_symbol: str,
+        direction: Direction,
+        offset: Offset,
+        price: float,
+        volume: float,
+        lock: bool,
+        net: bool
+    ) -> list[str]:
+        """发送委托"""
+        price: float = round_to(price, self.priceticks[vt_symbol])
+        symbol, exchange = extract_vt_symbol(vt_symbol)
+
+        self.limit_order_count += 1
+        FAK_price = math.inf if direction == Direction.LONG else -math.inf
+        order: OrderData = OrderData(
+            symbol=symbol,
+            exchange=exchange,
+            orderid=str(self.limit_order_count),
+            direction=direction,
+            offset=offset,
+            price=FAK_price,
+            volume=volume,
+            status=Status.SUBMITTING,
+            datetime=self.datetime,
+            gateway_name=self.gateway_name,
+        )
+
+        self.active_limit_orders[order.vt_orderid] = order
+        self.limit_orders[order.vt_orderid] = order
+
+        return [order.vt_orderid]
+
 
     def cancel_order(self, strategy: StrategyTemplate, vt_orderid: str) -> None:
         """委托撤单"""
@@ -751,9 +790,15 @@ class BacktestingEngine:
         """输出回测引擎信息"""
         print(f"{datetime.now()}\t{msg}")
 
-    def get_all_trades(self) -> list[TradeData]:
+    def get_all_trades(self, use_df=False) -> list[TradeData]:
         """获取所有成交信息"""
-        return list(self.trades.values())
+        if not use_df:
+            return list(self.trades.values())
+        else:
+            res = pd.DataFrame()
+            for k in self.trades.keys():
+                res = pd.concat([res,pd.DataFrame([self.trades[k].__dict__])])
+            return res
 
     def get_all_orders(self) -> list[OrderData]:
         """获取所有委托信息"""
