@@ -334,7 +334,10 @@ class LogEngine(BaseEngine):
         Process log event.
         """
         log: LogData = event.data
-        self.logger.log(log.level, log.msg)
+        if type(log) == str:
+            self.logger.log(20, log)
+        else:
+            self.logger.log(log.level, log.msg)
 
 
 class OmsEngine(BaseEngine):

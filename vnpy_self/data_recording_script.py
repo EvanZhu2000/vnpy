@@ -80,6 +80,7 @@ def run():
 
     sleep(60)
     contract_df = s_engine.get_all_contracts(use_df=True)
+    # contract_list = contract_df.loc[(contract_df['product'] == Product.FUTURES) & (contract_df['symbol'].str.startswith('IF2406'))]['vt_symbol'].values #example test
     contract_list = contract_df.loc[(contract_df['product'] == Product.FUTURES) & (contract_df['symbol'].str.startswith('I'))]['vt_symbol'].values #获取中金所所有数据
 
     for contract in contract_list:
