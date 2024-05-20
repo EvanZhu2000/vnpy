@@ -13,7 +13,6 @@ from datetime import datetime, time, timedelta
 import sys
 from time import sleep
 import pandas as pd
-import numpy as np
 import akshare as ak
 
 
@@ -42,47 +41,21 @@ DAY_END = time(15, 0)
 NIGHT_START = time(20, 45)
 NIGHT_END = time(2, 45)
 
-def determine_rollover_strategy1(strategy_symbol, rollover_days=7) -> bool:
-    '''
-    return whether strategy1 needs rollover, available to run before trading start
-    '''
-    futures_contract_info_cffex_df = None
-    for i in range(0,15):
-        try_this_date = (datetime.today() - timedelta(days = i)).strftime('%Y%m%d')
-        try:
-            futures_contract_info_cffex_df = ak.futures_contract_info_cffex(date=try_this_date)
-            break
-        except:
+def determine_rollover_strategy1():
+    result_df = pd.DataFrame(columns = ['symb_title', 'pre_roll', 'post_roll'])
+    trading_instrument_dict = pd.read_excel(r'C:\\veighna_studio\\Lib\\site-packages\\vnpy_self\\strategy1_schedule.xlsx', sheet_name=None)
+    pre_roll, post_roll = '',''
+    for r in trading_instrument_dict['IH'][::-1].iterrows():  # assuming trading dates are sorted
+        if datetime.strftime(datetime.today(),'%Y-%m-%d') < r[1]['date']:
             continue
-        
-    if futures_contract_info_cffex_df is None:
-        raise Exception('Cannot query future data')
-    else:
-        print(f"Query this date - {futures_contract_info_cffex_df['查询交易日'].loc[0].strftime('%Y%m%d')}")
-        
-    
-    # Gets quarterly contracts info
-    suitable_df = futures_contract_info_cffex_df.loc[(futures_contract_info_cffex_df['合约代码'].str.startswith(strategy_symbol)) & (futures_contract_info_cffex_df['合约月份'].astype(int) % 3 == 0)].sort_values(by=['最后交易日'])
-    should_trade_series = suitable_df.loc[pd.to_datetime(suitable_df['最后交易日'])>datetime.today() + timedelta(days = rollover_days)].iloc[:2]['合约代码'].reset_index().drop(['index'],axis=1).squeeze()
-
-    trading_instrument_df = pd.read_csv(r'C:\\veighna_studio\\Lib\\site-packages\\vnpy_self\\trading_instrument_list.csv')
-    trading_series = pd.Series(trading_instrument_df.loc[trading_instrument_df['strategy_name'] == 'Strategy1']['instrument'].values[0].split(','), name='合约代码')
-    
-    rollover_flag = False
-    if not trading_series.equals(should_trade_series):
-        if should_trade_series.shape[0] == 2:
-            if (should_trade_series.str.extract('(\d+)') <= trading_series.str.extract('(\d+)')).sum()[0] == 0:
-                rollover_flag = True
-            else:
-                raise Exception('The rollover targer is earlier than the current contract')
+        elif datetime.strftime(datetime.today(),'%Y-%m-%d') == r[1]['date']:
+            # needs to rollover
+            post_roll = r[1]['instrument']
         else:
-            raise Exception('Do not have future data???')
-    
-    if rollover_flag:
-        trading_instrument_df_copy = trading_instrument_df.copy()
-        trading_instrument_df_copy.loc[trading_instrument_df_copy.loc[trading_instrument_df_copy['strategy_name'] == 'Strategy1'].index,'instrument'] = ','.join(should_trade_series.tolist())
-        trading_instrument_df_copy.to_csv(r'C:\\veighna_studio\\Lib\\site-packages\\vnpy_self\\trading_instrument_list.csv')
-    return rollover_flag, trading_series, should_trade_series
+            pre_roll = r[1]['instrument']
+            break
+        
+    result_df.loc[result_df.shape[0]] = ['IH',pre_roll,post_roll]
 
 def check_trading_period():
     """"""
