@@ -8,6 +8,7 @@ from vnpy_datarecorder.engine import RecorderEngine, EVENT_RECORDER_LOG
 from vnpy_scripttrader.engine import ScriptEngine
 from vnpy_ctp import CtpGateway
 from vnpy.trader.constant import Product
+from vnpy_self.ctp_setting import ctp_setting
 
 from datetime import datetime, time
 import sys
@@ -17,19 +18,6 @@ from time import sleep
 SETTINGS["log.active"] = True
 SETTINGS["log.level"] = INFO
 SETTINGS["log.console"] = True
-
-
-ctp_setting = {
-    "用户名": "224829",
-    "密码": "evan@2024",
-    "经纪商代码": "9999",
-    "交易服务器": "tcp://180.168.146.187:10202",
-    "行情服务器": "tcp://180.168.146.187:10212",
-    "产品名称": "simnow_client_test",
-    "授权编码": "0000000000000000",
-    "产品信息": ""
-}
-
 
 
 # Chinese futures market trading period (day/night)

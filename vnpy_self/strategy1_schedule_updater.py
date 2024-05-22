@@ -29,6 +29,9 @@ def update_strategy1_schedule(strategy_symbol, rollover_days=5) -> None:
     # Gets quarterly contracts info
     suitable_df = futures_contract_info_cffex_df.loc[(futures_contract_info_cffex_df['合约代码'].str.startswith(strategy_symbol)) & (futures_contract_info_cffex_df['合约月份'].astype(int) % 3 == 0)].sort_values(by=['最后交易日'])
     should_trade_series = suitable_df.loc[pd.to_datetime(suitable_df['最后交易日'])>datetime.today() + timedelta(days = rollover_days)].iloc[:2]['合约代码'].reset_index().drop(['index'],axis=1).squeeze()
+    futures_fees_info_df = ak.futures_fees_info()
+    should_trade_series = futures_fees_info_df.loc[futures_fees_info_df["合约"].isin(should_trade_series)][["合约","交易所"]].agg('.'.join, axis=1).reset_index().drop('index',axis=1).squeeze()
+    
     trading_instrument_dict = pd.read_excel(r'C:\\veighna_studio\\Lib\\site-packages\\vnpy_self\\strategy1_schedule.xlsx', sheet_name=None)
     trading_series = pd.Series(trading_instrument_dict['IH']['instrument'].values[-1].split(','), name='合约代码')  # the last trading instrument
         
@@ -46,3 +49,7 @@ def update_strategy1_schedule(strategy_symbol, rollover_days=5) -> None:
         trading_instrument_dict['IH'].loc[trading_instrument_dict['IH'].shape[0]] = [datetime.strftime(datetime.today(),'%Y-%m-%d') , ','.join(should_trade_series.tolist())]
         with pd.ExcelWriter(r'C:\\veighna_studio\\Lib\\site-packages\\vnpy_self\\strategy1_schedule.xlsx', mode="a", engine="openpyxl", if_sheet_exists='replace') as writer:
             trading_instrument_dict['IH'].set_index('date').to_excel(writer, sheet_name="IH")  
+            
+            
+if __name__ == "__main__":
+    update_strategy1_schedule('IH')

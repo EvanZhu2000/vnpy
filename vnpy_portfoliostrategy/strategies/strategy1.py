@@ -62,7 +62,7 @@ class Strategy1(StrategyTemplate):
         """策略初始化回调"""
         self.write_log("策略初始化")
 
-        self.load_bars(20) #TODO change this
+        self.load_bars(10) #TODO change this
 
     def on_start(self) -> None:
         """策略启动回调"""
