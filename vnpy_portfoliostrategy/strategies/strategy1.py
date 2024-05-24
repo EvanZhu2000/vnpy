@@ -137,6 +137,7 @@ class Strategy1(StrategyTemplate):
         self.boll_mid = self.buf.mean()
         self.boll_up = self.boll_mid + self.boll_dev * std
         self.boll_down = self.boll_mid - self.boll_dev * std
+        self.write_log(f"Strategy1 running for {self.leg1_symbol}, {self.leg2_symbol}")
                 
     def need_to_rebalance(self, tar1, tar2, bars) -> None: 
         if self.get_target(self.leg1_symbol)!=tar1 or self.get_target(self.leg2_symbol)!=tar2:

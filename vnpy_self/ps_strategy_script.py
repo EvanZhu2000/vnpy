@@ -115,6 +115,7 @@ def run():
                 rt.roll_all()
                 
         if not check_trading_period():
+            main_engine.write_log("ps策略全部close")
             ps_engine.stop_all_strategies()
             main_engine.close()
             sys.exit(0)

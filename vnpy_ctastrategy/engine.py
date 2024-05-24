@@ -41,7 +41,7 @@ from vnpy.trader.utility import load_json, save_json, extract_vt_symbol, round_t
 from vnpy.trader.database import BaseDatabase, get_database, DB_TZ
 from vnpy.trader.datafeed import BaseDatafeed, get_datafeed
 
-from .base import (
+from vnpy_ctastrategy.base import (
     APP_NAME,
     EVENT_CTA_LOG,
     EVENT_CTA_STRATEGY,
@@ -51,7 +51,7 @@ from .base import (
     StopOrderStatus,
     STOPORDER_PREFIX
 )
-from .template import CtaTemplate, TargetPosTemplate
+from vnpy_ctastrategy.template import CtaTemplate, TargetPosTemplate
 
 
 # 停止单状态映射
