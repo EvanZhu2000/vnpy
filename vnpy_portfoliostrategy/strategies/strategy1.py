@@ -62,11 +62,12 @@ class Strategy1(StrategyTemplate):
         """策略初始化回调"""
         self.write_log("策略初始化")
 
-        self.load_bars(10) #TODO change this
+        self.load_bars(30) # this is number of natural days in real life and number of trading days in backtesting, need to be large
 
     def on_start(self) -> None:
         """策略启动回调"""
         self.write_log("策略启动")
+        self.write_log(f"ams close {self.ams[self.vt_symbols[0]].close}")
 
     def on_stop(self) -> None:
         """策略停止回调"""
@@ -113,6 +114,7 @@ class Strategy1(StrategyTemplate):
 
             current_spread = leg1_bar.close_price- leg2_bar.close_price
             self.cal_target_pos(current_spread, bars)
+            # self.write_log(f'self.boll_mid {self.boll_mid}, self.boll_up {self.boll_up}, self.boll_down {self.boll_down}, current spread {current_spread}')
             # not sure whether necessary
             self.put_event()
         
@@ -137,10 +139,10 @@ class Strategy1(StrategyTemplate):
         self.boll_mid = self.buf.mean()
         self.boll_up = self.boll_mid + self.boll_dev * std
         self.boll_down = self.boll_mid - self.boll_dev * std
-        self.write_log(f"Strategy1 running for {self.leg1_symbol}, {self.leg2_symbol}")
                 
     def need_to_rebalance(self, tar1, tar2, bars) -> None: 
-        if self.get_target(self.leg1_symbol)!=tar1 or self.get_target(self.leg2_symbol)!=tar2:
+        # self.write_log(f"Need to rebalance {tar1}, {tar2}, {self.get_target(self.leg1_symbol)}, {self.get_target(self.leg2_symbol)},{self.get_pos(self.leg1_symbol)}, {self.get_pos(self.leg2_symbol)}")
+        if self.get_pos(self.leg1_symbol)!=tar1 or self.get_pos(self.leg2_symbol)!=tar2:
             self.set_target(self.leg1_symbol, tar1)
             self.set_target(self.leg2_symbol, tar2)
             self.rebalance_portfolio_FAK(bars)

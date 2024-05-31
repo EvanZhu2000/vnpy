@@ -10,27 +10,28 @@ from vnpy_portfoliostrategy.strategies.strategy1 import Strategy1
 
 
 # if __name__ == "__main__":
+vt_symbols=["IH2406.CFFEX", "IH2409.CFFEX"]
 engine = BacktestingEngine()
 engine.set_parameters(
-    vt_symbols=["IH2403.CFFEX", "IH2406.CFFEX"],
+    vt_symbols=vt_symbols,
     interval=Interval.MINUTE,
-    start=datetime(2024, 1, 2),
-    end=datetime(2024, 3, 12),
+    start=datetime(2024, 5, 7),
+    end=datetime(2024, 5, 28),
     rates={
-        "IH2403.CFFEX": 2/10000,
-        "IH2406.CFFEX": 2/10000
+        vt_symbols[0]: 2/10000,
+        vt_symbols[1]: 2/10000
     },
     slippages={
-        "IH2403.CFFEX": 0,
-        "IH2406.CFFEX": 0
+        vt_symbols[0]: 0,
+        vt_symbols[1]: 0
     },
     sizes={
-        "IH2403.CFFEX": 300,
-        "IH2406.CFFEX": 300
+        vt_symbols[0]: 300,
+        vt_symbols[1]: 300
     },
     priceticks={
-        "IH2403.CFFEX": 0.2,
-        "IH2406.CFFEX": 0.2
+        vt_symbols[0]: 0.2,
+        vt_symbols[1]: 0.2
     },
     capital=2000000,
 )
