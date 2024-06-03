@@ -1,0 +1,11 @@
+1. Install miniconda based on
+https://docs.anaconda.com/free/miniconda/  
+
+then add to env variable 
+export PATH=~/anaconda3/bin:$PATH
+and re-open the terminal
+
+2.Install vnpy based on 
+https://www.vnpy.com/docs/cn/community/install/ubuntu_install.html 
+https://www.vnpy.com/forum/topic/30172-zui-xiang-xi-ubuntushang-vnpy3-0an-zhuang-zhi-nan-jie-he-guan-fang-wen-dang-ji-zi-ji-cai-guo-de-keng-xi-wang-dui-da-jia-you-bang-zhu
+
