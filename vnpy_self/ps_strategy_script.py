@@ -95,7 +95,7 @@ def run():
     for r in trading_df.iterrows():
         pre_roll,post_roll,strategy_title = parse_strategy(r[1], 'Strategy1')
         if strategy_title not in ps_engine.strategies.keys():
-            ps_engine.add_strategy('Strategy1',strategy_title,pre_roll,{})
+            ps_engine.add_strategy('Strategy1',strategy_title,pre_roll,{"window": 10,"dev": 2})
         ps_engine.init_strategy(strategy_title)
         main_engine.write_log("ps策略全部初始化")
         sleep(10)

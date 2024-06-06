@@ -130,6 +130,8 @@ class BacktestingEngine:
         self.strategy = strategy_class(
             self, strategy_class.__name__, copy(self.vt_symbols), setting
         )
+        self.strategy.inited = True
+        self.strategy.trading = True
 
     def load_data(self) -> None:
         """加载历史数据"""

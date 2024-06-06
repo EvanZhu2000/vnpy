@@ -22,9 +22,9 @@ class Strategy1(StrategyTemplate):
     fixed_size = 1
     buf=None
     bar_counter = 0
-    bar_freq = 240
+    bar_freq = 240 #@TODO need a trading hour table
     
-    boll_dev = 2
+    
     boll_mid = 0.0
     boll_down = 0.0
     boll_up = 0.0
@@ -46,6 +46,7 @@ class Strategy1(StrategyTemplate):
         self.last_tick_dict = {key: None for key in vt_symbols}
         self.symbol_to_order_dict = {self.leg1_symbol:[], self.leg2_symbol:[]}
         self.samp_am = {self.leg1_symbol:[], self.leg2_symbol:[]}
+        self.boll_dev = setting['dev']
 
         def on_bar(bar: BarData):
             """"""
@@ -54,9 +55,8 @@ class Strategy1(StrategyTemplate):
         self.ams: dict[str, ArrayManager] = {}
         for vt_symbol in self.vt_symbols:
             self.bgs[vt_symbol] = BarGenerator(on_bar)
-            self.ams[vt_symbol] = ArrayManager(size=10)  #TODO change this
+            self.ams[vt_symbol] = ArrayManager(size=setting['window'])  #TODO change this
         
-        self.pbg = PortfolioBarGenerator(self.on_bars)
 
     def on_init(self) -> None:
         """策略初始化回调"""
@@ -96,14 +96,12 @@ class Strategy1(StrategyTemplate):
             self.rebalance(trade.vt_symbol,self.last_tick_dict[trade.vt_symbol])
             
     def on_tick(self, tick: TickData) -> None:
-        self.pbg.update_tick(tick)
         
         self.last_tick_time = tick.datetime
         self.last_tick_dict[tick.vt_symbol] = tick
 
     # Only for 1 minute bar
     def on_bars(self, bars: dict[str, BarData]) -> None:
-        # self.pbg.update_bars(bars)
         
         ## TODO what if the market data disconnect
         if self.buf is not None:
@@ -241,4 +239,5 @@ class Strategy1(StrategyTemplate):
             if short_volume:
                 result_list = self.short(vt_symbol, order_price, short_volume, isFAK=True)
         
-        self.symbol_to_order_dict[vt_symbol].append(result_list[-1])
+        if len(result_list) != 0:
+            self.symbol_to_order_dict[vt_symbol].append(result_list[-1])

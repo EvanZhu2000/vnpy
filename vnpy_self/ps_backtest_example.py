@@ -16,7 +16,7 @@ engine.set_parameters(
     vt_symbols=vt_symbols,
     interval=Interval.MINUTE,
     start=datetime(2024, 5, 7),
-    end=datetime(2024, 5, 28),
+    end=datetime(2024, 6, 1),
     rates={
         vt_symbols[0]: 2/10000,
         vt_symbols[1]: 2/10000
@@ -35,11 +35,10 @@ engine.set_parameters(
     },
     capital=2000000,
 )
-# setting = {
-#     "boll_window": 20,
-#     "boll_dev": 1,
-# }
-setting = {}
+setting = {
+    "window": 10,
+    "dev": 2,
+}
 engine.add_strategy(Strategy1, setting)
 engine.load_data()
 engine.run_backtesting()
