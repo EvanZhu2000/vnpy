@@ -9,3 +9,19 @@ and re-open the terminal
 https://www.vnpy.com/docs/cn/community/install/ubuntu_install.html 
 https://www.vnpy.com/forum/topic/30172-zui-xiang-xi-ubuntushang-vnpy3-0an-zhuang-zhi-nan-jie-he-guan-fang-wen-dang-ji-zi-ji-cai-guo-de-keng-xi-wang-dui-da-jia-you-bang-zhu
 
+
+3. install crontab, NTP synchronzation
+
+4. (Install and ) Configure Database （C:\Users\Chris\.vntrader\vt_setting.json）
+===== For SQLite ====
+database.name <str> SQLite
+database.database <str> database.db
+database.port <str> 0
+
+===== For MySQL =====
+"database.name": "mysql",
+"database.database": "vnpy",
+"database.host": "localhost",
+"database.port": 3306,
+"database.user": "root",
+"database.password": "evan@cash1q2"

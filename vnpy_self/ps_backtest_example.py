@@ -36,8 +36,8 @@ engine.set_parameters(
     capital=2000000,
 )
 setting = {
-    "window": 10,
-    "dev": 2,
+    "boll_window": 10,
+    "boll_dev": 2,
 }
 engine.add_strategy(Strategy1, setting)
 engine.load_data()

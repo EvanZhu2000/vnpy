@@ -28,6 +28,14 @@ class Strategy1(StrategyTemplate):
     boll_mid = 0.0
     boll_down = 0.0
     boll_up = 0.0
+    
+    boll_window =  10
+    boll_dev = 2
+
+    parameters = [
+        "boll_window",
+        "boll_dev",
+    ]
 
     
     def __init__(
@@ -46,7 +54,8 @@ class Strategy1(StrategyTemplate):
         self.last_tick_dict = {key: None for key in vt_symbols}
         self.symbol_to_order_dict = {self.leg1_symbol:[], self.leg2_symbol:[]}
         self.samp_am = {self.leg1_symbol:[], self.leg2_symbol:[]}
-        self.boll_dev = setting['dev']
+        # self.boll_dev = 2
+        # self.boll_dev = setting['dev']
 
         def on_bar(bar: BarData):
             """"""
@@ -55,7 +64,8 @@ class Strategy1(StrategyTemplate):
         self.ams: dict[str, ArrayManager] = {}
         for vt_symbol in self.vt_symbols:
             self.bgs[vt_symbol] = BarGenerator(on_bar)
-            self.ams[vt_symbol] = ArrayManager(size=setting['window'])  #TODO change this
+            self.ams[vt_symbol] = ArrayManager(size=self.boll_window)  #TODO change this
+            # self.ams[vt_symbol] = ArrayManager(size=setting['window'])  #TODO change this
         
 
     def on_init(self) -> None:
@@ -102,24 +112,22 @@ class Strategy1(StrategyTemplate):
 
     # Only for 1 minute bar
     def on_bars(self, bars: dict[str, BarData]) -> None:
+        leg1_bar = bars.get(self.leg1_symbol, None)
+        leg2_bar = bars.get(self.leg2_symbol, None)
+        if not leg1_bar or not leg2_bar:
+            return
         
         ## TODO what if the market data disconnect
         if self.buf is not None:
-            leg1_bar = bars.get(self.leg1_symbol, None)
-            leg2_bar = bars.get(self.leg2_symbol, None)
-            if not leg1_bar or not leg2_bar:
-                return
-
             current_spread = leg1_bar.close_price- leg2_bar.close_price
             self.cal_target_pos(current_spread, bars)
             # self.write_log(f'self.boll_mid {self.boll_mid}, self.boll_up {self.boll_up}, self.boll_down {self.boll_down}, current spread {current_spread}')
             # not sure whether necessary
             self.put_event()
         
-        self.bar_counter += 1
-        if self.bar_counter % self.bar_freq == 0:
-            self.bar_counter = 0
+        if leg1_bar.datetime.hour == 14 and leg1_bar.datetime.minute == 59:
             self.on_win_bars(bars)
+            
 
     def on_win_bars(self, bars: dict[str, BarData]) -> None:
         for vt_symbol, bar in bars.items():
