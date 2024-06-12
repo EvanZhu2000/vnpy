@@ -1,9 +1,11 @@
 # only include files starting with vnpy
 /*
-!/vnpy/*
-!/vnpy_self/*
-!/vnpy_ctastrategy/*
-!/vnpy_portfoliostrategy/*
+!vnpy*/*
+#*
+#!vnpy/** 
+#!vnpy_self/** 
+#!vnpy_ctastrategy/** 
+#!vnpy_portfoliostrategy/**
 
 led / optimized / DLL files
 __pycache__/

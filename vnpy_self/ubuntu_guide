@@ -10,9 +10,17 @@ https://www.vnpy.com/docs/cn/community/install/ubuntu_install.html
 https://www.vnpy.com/forum/topic/30172-zui-xiang-xi-ubuntushang-vnpy3-0an-zhuang-zhi-nan-jie-he-guan-fang-wen-dang-ji-zi-ji-cai-guo-de-keng-xi-wang-dui-da-jia-you-bang-zhu
 
 
-3. install crontab, NTP synchronzation
+3. install crontab (remember to use root crontab instead of user crontab!), NTP synchronzation
+cron would need separate timezone change other than the system time change, try to do possibly these 
+"sudo service cron restart
+sudo systemctl restart crond
+sudo systemctl restart rsyslog"
+
+cron might also need user permission, check /etc/cron.d/cron.allow and relevant usage
+
 
 4. (Install and ) Configure Database （C:\Users\Chris\.vntrader\vt_setting.json）
+(1)
 ===== For SQLite ====
 database.name <str> SQLite
 database.database <str> database.db
@@ -25,3 +33,12 @@ database.port <str> 0
 "database.port": 3306,
 "database.user": "root",
 "database.password": "evan@cash1q2"
+
+(2)
+follow vnpy_self/create_database to setup the database
+
+(3)
+pip install mysql-connector-python (maybe with version 8.4.0)
+
+5. To merge git (https://github.com/EvanZhu2000/vnpy)
+key step looks something like git merge origin/master --strategy-option=theirs --allow-unrelated-histories

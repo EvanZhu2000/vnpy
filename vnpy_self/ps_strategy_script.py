@@ -9,13 +9,20 @@ from vnpy_portfoliostrategy import PortfolioStrategyApp
 from vnpy_portfoliostrategy.base import EVENT_PORTFOLIO_LOG
 from vnpy_portfoliostrategy.portfolio_rollover import RolloverTool
 from vnpy_self.ctp_setting import ctp_setting
+from vnpy_self.db_setting import db_setting
 
 from datetime import datetime, time, timedelta
 import sys
 from time import sleep
 import pandas as pd
 import akshare as ak
-
+import mysql.connector
+mydb = mysql.connector.connect(
+  host= db_setting['host'],
+  user= db_setting['user'],
+  password= db_setting['password']
+)
+mycursor = mydb.cursor()
 
 SETTINGS["log.active"] = True
 SETTINGS["log.level"] = INFO
@@ -28,11 +35,13 @@ DAY_END = time(15, 0)
 NIGHT_START = time(20, 45)
 NIGHT_END = time(2, 45)
 
-def init_strategy1():
+def init_strategy1(sc_symbol):
     trading_df = pd.DataFrame(columns = ['symb_title', 'pre_roll', 'post_roll'])
-    trading_instrument_dict = pd.read_excel(r'C:\\veighna_studio\\Lib\\site-packages\\vnpy_self\\strategy1_schedule.xlsx', sheet_name=None)
+    trading_symbol_df = pd.read_sql_query(f"SELECT * FROM vnpy.trading_schedule where strategy = 'strategy1' and sc_symbol='{sc_symbol}' order by date desc", mydb)
     pre_roll, post_roll = '',''
-    for r in trading_instrument_dict['IH'][::-1].iterrows():  # assuming trading dates are sorted
+    if trading_symbol_df.shape[0] == 0:
+        return trading_df
+    for r in trading_symbol_df.iterrows():  # assuming trading dates are sorted
         if datetime.strftime(datetime.today(),'%Y-%m-%d') < r[1]['date']:
             continue
         elif datetime.strftime(datetime.today(),'%Y-%m-%d') == r[1]['date']:
@@ -41,8 +50,12 @@ def init_strategy1():
         else:
             pre_roll = r[1]['instrument']
             break
-        
-    trading_df.loc[trading_df.shape[0]] = ['IH',pre_roll,post_roll]
+    
+    if pre_roll == '' and post_roll != '':
+        pre_roll = post_roll  # This aims to make sure that pre_roll always points to current trading instrument (or first day trading instrument)
+    trading_df.loc[trading_df.shape[0]] = [str(" ".join(re.findall("[a-zA-Z]+", sc_symbol))),pre_roll,post_roll]
+    mycursor.close()
+    mydb.close()
     return trading_df
 
 def check_trading_period():
@@ -72,7 +85,10 @@ def parse_strategy(excel_data, strategy_default_name):
 
 def run():
     SETTINGS["log.file"] = True
-    trading_df = init_strategy1()
+    trading_df = init_strategy1('IH_2')
+    if trading_df.shape[0] == 0:
+        print('dont have target instrument!!')
+        return
     rollover_df = trading_df.loc[trading_df['post_roll']!='']
 
     event_engine = EventEngine()
