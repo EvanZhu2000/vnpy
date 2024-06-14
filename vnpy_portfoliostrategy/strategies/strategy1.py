@@ -11,9 +11,7 @@ from vnpy.trader.object import (
     OrderType
 )
 from vnpy.trader.constant import Direction, Status
-
 from vnpy_portfoliostrategy import StrategyTemplate, StrategyEngine
-from vnpy_portfoliostrategy.utility import PortfolioBarGenerator
 
 class Strategy1(StrategyTemplate):
     """配对交易策略"""
@@ -73,11 +71,13 @@ class Strategy1(StrategyTemplate):
         self.write_log("策略初始化")
 
         self.load_bars(30) # this is number of natural days in real life and number of trading days in backtesting, need to be large
+        self.put_event()  # this is to update GUI
 
     def on_start(self) -> None:
         """策略启动回调"""
         self.write_log("策略启动")
         self.write_log(f"ams close {self.ams[self.vt_symbols[0]].close}")
+        self.put_event()
 
     def on_stop(self) -> None:
         """策略停止回调"""
@@ -106,12 +106,24 @@ class Strategy1(StrategyTemplate):
             self.rebalance(trade.vt_symbol,self.last_tick_dict[trade.vt_symbol])
             
     def on_tick(self, tick: TickData) -> None:
-        
+        """行情推送回调"""
+        if (
+            self.last_tick_time
+            and self.last_tick_time.minute != tick.datetime.minute
+        ):
+            bars = {}
+            for vt_symbol, bg in self.bgs.items():
+                bars[vt_symbol] = bg.generate()
+            self.on_bars(bars)
+
+        bg: BarGenerator = self.bgs[tick.vt_symbol]
+        bg.update_tick(tick)
+
         self.last_tick_time = tick.datetime
-        self.last_tick_dict[tick.vt_symbol] = tick
 
     # Only for 1 minute bar
     def on_bars(self, bars: dict[str, BarData]) -> None:
+        self.put_event()
         leg1_bar = bars.get(self.leg1_symbol, None)
         leg2_bar = bars.get(self.leg2_symbol, None)
         if not leg1_bar or not leg2_bar:
@@ -122,8 +134,7 @@ class Strategy1(StrategyTemplate):
             current_spread = leg1_bar.close_price- leg2_bar.close_price
             self.cal_target_pos(current_spread, bars)
             # self.write_log(f'self.boll_mid {self.boll_mid}, self.boll_up {self.boll_up}, self.boll_down {self.boll_down}, current spread {current_spread}')
-            # not sure whether necessary
-            self.put_event()
+
         
         if leg1_bar.datetime.hour == 14 and leg1_bar.datetime.minute == 59:
             self.on_win_bars(bars)

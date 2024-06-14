@@ -3,7 +3,6 @@ from logging import INFO
 from vnpy.event import EventEngine
 from vnpy.trader.setting import SETTINGS
 from vnpy.trader.engine import MainEngine
-
 from vnpy_ctp import CtpGateway
 from vnpy_portfoliostrategy import PortfolioStrategyApp
 from vnpy_portfoliostrategy.base import EVENT_PORTFOLIO_LOG
@@ -11,7 +10,8 @@ from vnpy_portfoliostrategy.portfolio_rollover import RolloverTool
 from vnpy_self.ctp_setting import ctp_setting
 from vnpy_self.db_setting import db_setting
 
-from datetime import datetime, time, timedelta
+import re
+from datetime import datetime, time, date
 import sys
 from time import sleep
 import pandas as pd
@@ -42,17 +42,18 @@ def init_strategy1(sc_symbol):
     if trading_symbol_df.shape[0] == 0:
         return trading_df
     for r in trading_symbol_df.iterrows():  # assuming trading dates are sorted
-        if datetime.strftime(datetime.today(),'%Y-%m-%d') < r[1]['date']:
+        if date.today() < r[1]['date']:
             continue
-        elif datetime.strftime(datetime.today(),'%Y-%m-%d') == r[1]['date']:
+        elif date.today() == r[1]['date']:
             # needs to rollover
-            post_roll = r[1]['instrument']
+            post_roll = r[1]['symbol']
         else:
-            pre_roll = r[1]['instrument']
+            pre_roll = r[1]['symbol']
             break
     
     if pre_roll == '' and post_roll != '':
-        pre_roll = post_roll  # This aims to make sure that pre_roll always points to current trading instrument (or first day trading instrument)
+        pre_roll = post_roll  
+        post_roll = '' # This aims to make sure that pre_roll always points to current trading symbol (or first day trading symbol)
     trading_df.loc[trading_df.shape[0]] = [str(" ".join(re.findall("[a-zA-Z]+", sc_symbol))),pre_roll,post_roll]
     mycursor.close()
     mydb.close()
@@ -76,10 +77,10 @@ def check_rollover_period():
     current_time = datetime.now().time()
     return current_time>=time(14, 50)
 
-def parse_strategy(excel_data, strategy_default_name):
-    symb_title = excel_data['symb_title']
-    pre_roll = excel_data['pre_roll'].split(',')
-    post_roll = excel_data['post_roll'].split(',')
+def parse_strategy(data, strategy_default_name):
+    symb_title = data['symb_title']
+    pre_roll = data['pre_roll'].split(',')
+    post_roll = data['post_roll'].split(',')
     strategy_title = strategy_default_name + '_' + symb_title
     return pre_roll,post_roll,strategy_title
 
@@ -87,7 +88,7 @@ def run():
     SETTINGS["log.file"] = True
     trading_df = init_strategy1('IH_2')
     if trading_df.shape[0] == 0:
-        print('dont have target instrument!!')
+        print('dont have target symbol!!')
         return
     rollover_df = trading_df.loc[trading_df['post_roll']!='']
 

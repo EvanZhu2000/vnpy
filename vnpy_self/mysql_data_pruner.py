@@ -12,7 +12,7 @@ mydb = mysql.connector.connect(
 mycursor = mydb.cursor()
 
 if __name__ == "__main__":
-    mycursor.execute(f"DELETE FROM 'dbbardata' WHERE datetime < '{(datetime.now() - relativedelta(months=1)).strftime('%Y-%m-%d %H:%M:%S')}'")
+    mycursor.execute(f"DELETE FROM vnpy.dbbardata WHERE datetime < '{(datetime.now() - relativedelta(months=1)).strftime('%Y-%m-%d %H:%M:%S')}'")
     mydb.commit()
     mycursor.close()
     mydb.close()

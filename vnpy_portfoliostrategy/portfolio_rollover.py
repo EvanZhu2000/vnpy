@@ -7,7 +7,6 @@ from vnpy.trader.engine import MainEngine
 from vnpy.trader.constant import OrderType
 from vnpy.trader.object import ContractData, OrderRequest, SubscribeRequest, TickData
 from vnpy.trader.object import Direction, Offset
-from vnpy.trader.ui import QtWidgets
 from vnpy.trader.converter import OffsetConverter, PositionHolding
 
 from vnpy_portfoliostrategy.engine import StrategyEngine, APP_NAME

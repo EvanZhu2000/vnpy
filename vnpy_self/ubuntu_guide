@@ -42,3 +42,6 @@ pip install mysql-connector-python (maybe with version 8.4.0)
 
 5. To merge git (https://github.com/EvanZhu2000/vnpy)
 key step looks something like git merge origin/master --strategy-option=theirs --allow-unrelated-histories
+
+6. Install MISC
+akshare
