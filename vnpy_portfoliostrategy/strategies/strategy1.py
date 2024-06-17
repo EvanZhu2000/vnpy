@@ -94,7 +94,7 @@ class Strategy1(StrategyTemplate):
             self.active_orderids.remove(order.vt_orderid)
         
         ##@TODO need multiple rejection counter
-        if pre_order_type and pre_order_status and pre_order_type == OrderType.FAK and pre_order_status == Status.SUBMITTING and order.status == Status.CANCELLED:
+        if pre_order_type and pre_order_status and pre_order_type == OrderType.FAK and pre_order_status == Status.SUBMITTING and order.status == Status.CANCELLED and (self.last_tick_dict[trade.vt_symbol]):
             self.rebalance(order.vt_symbol, self.last_tick_dict[order.vt_symbol])
         
     def update_trade(self, trade: TradeData) -> None:
@@ -159,7 +159,7 @@ class Strategy1(StrategyTemplate):
         self.boll_down = self.boll_mid - self.boll_dev * std
                 
     def need_to_rebalance(self, tar1, tar2, bars) -> None: 
-        self.write_log(f"Need to rebalance {tar1}, {tar2}, {self.get_target(self.leg1_symbol)}, {self.get_target(self.leg2_symbol)},{self.get_pos(self.leg1_symbol)}, {self.get_pos(self.leg2_symbol)}")
+        self.write_log(f"Need to rebalance {tar1}, {tar2}, {self.get_pos(self.leg1_symbol)}, {self.get_pos(self.leg2_symbol)}")
         if self.get_pos(self.leg1_symbol)!=tar1 or self.get_pos(self.leg2_symbol)!=tar2:
             self.set_target(self.leg1_symbol, tar1)
             self.set_target(self.leg2_symbol, tar2)
