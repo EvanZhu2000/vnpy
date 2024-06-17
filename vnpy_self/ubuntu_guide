@@ -39,9 +39,13 @@ follow vnpy_self/create_database to setup the database
 
 (3)
 pip install mysql-connector-python (maybe with version 8.4.0)
+pip install pymysql (for peewee connection)
 
 5. To merge git (https://github.com/EvanZhu2000/vnpy)
 key step looks something like git merge origin/master --strategy-option=theirs --allow-unrelated-histories
 
 6. Install MISC
 akshare
+
+7. For service file
+need to add User= to specify user

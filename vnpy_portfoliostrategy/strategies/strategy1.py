@@ -76,6 +76,7 @@ class Strategy1(StrategyTemplate):
     def on_start(self) -> None:
         """策略启动回调"""
         self.write_log("策略启动")
+        self.write_log(f"trading instruments - {self.vt_symbols[0]},{self.vt_symbols[1]}")
         self.write_log(f"ams close {self.ams[self.vt_symbols[0]].close}")
         self.put_event()
 
@@ -133,7 +134,7 @@ class Strategy1(StrategyTemplate):
         if self.buf is not None:
             current_spread = leg1_bar.close_price- leg2_bar.close_price
             self.cal_target_pos(current_spread, bars)
-            # self.write_log(f'self.boll_mid {self.boll_mid}, self.boll_up {self.boll_up}, self.boll_down {self.boll_down}, current spread {current_spread}')
+            self.write_log(f'self.boll_mid {self.boll_mid}, self.boll_up {self.boll_up}, self.boll_down {self.boll_down}, current spread {current_spread}')
 
         
         if leg1_bar.datetime.hour == 14 and leg1_bar.datetime.minute == 59:
@@ -158,7 +159,7 @@ class Strategy1(StrategyTemplate):
         self.boll_down = self.boll_mid - self.boll_dev * std
                 
     def need_to_rebalance(self, tar1, tar2, bars) -> None: 
-        # self.write_log(f"Need to rebalance {tar1}, {tar2}, {self.get_target(self.leg1_symbol)}, {self.get_target(self.leg2_symbol)},{self.get_pos(self.leg1_symbol)}, {self.get_pos(self.leg2_symbol)}")
+        self.write_log(f"Need to rebalance {tar1}, {tar2}, {self.get_target(self.leg1_symbol)}, {self.get_target(self.leg2_symbol)},{self.get_pos(self.leg1_symbol)}, {self.get_pos(self.leg2_symbol)}")
         if self.get_pos(self.leg1_symbol)!=tar1 or self.get_pos(self.leg2_symbol)!=tar2:
             self.set_target(self.leg1_symbol, tar1)
             self.set_target(self.leg2_symbol, tar2)
