@@ -52,8 +52,6 @@ class Strategy1(StrategyTemplate):
         self.last_tick_dict = {key: None for key in vt_symbols}
         self.symbol_to_order_dict = {self.leg1_symbol:[], self.leg2_symbol:[]}
         self.samp_am = {self.leg1_symbol:[], self.leg2_symbol:[]}
-        # self.boll_dev = 2
-        # self.boll_dev = setting['dev']
 
         def on_bar(bar: BarData):
             """"""
@@ -63,7 +61,6 @@ class Strategy1(StrategyTemplate):
         for vt_symbol in self.vt_symbols:
             self.bgs[vt_symbol] = BarGenerator(on_bar)
             self.ams[vt_symbol] = ArrayManager(size=self.boll_window)  #TODO change this
-            # self.ams[vt_symbol] = ArrayManager(size=setting['window'])  #TODO change this
         
 
     def on_init(self) -> None:
@@ -94,7 +91,7 @@ class Strategy1(StrategyTemplate):
             self.active_orderids.remove(order.vt_orderid)
         
         ##@TODO need multiple rejection counter
-        if pre_order_type and pre_order_status and pre_order_type == OrderType.FAK and pre_order_status == Status.SUBMITTING and order.status == Status.CANCELLED and (self.last_tick_dict[trade.vt_symbol]):
+        if pre_order_type and pre_order_status and pre_order_type == OrderType.FAK and pre_order_status == Status.SUBMITTING and order.status == Status.CANCELLED and (self.last_tick_dict[order.vt_symbol]):
             self.rebalance(order.vt_symbol, self.last_tick_dict[order.vt_symbol])
         
     def update_trade(self, trade: TradeData) -> None:
@@ -210,14 +207,12 @@ class Strategy1(StrategyTemplate):
 
         # 多头
         if diff > 0:
-            # 计算多头委托价
             order_price: float = self.calculate_price(
                 vt_symbol,
                 Direction.LONG,
                 tick.ask_price_1
             )
 
-            # 计算买平和买开数量
             cover_volume: int = 0
             buy_volume: int = 0
 
@@ -227,7 +222,6 @@ class Strategy1(StrategyTemplate):
             else:
                 buy_volume = diff
 
-            # 发出对应委托
             if cover_volume:
                 result_list = self.cover(vt_symbol, order_price, cover_volume, isFAK=True)
 
@@ -235,14 +229,12 @@ class Strategy1(StrategyTemplate):
                 result_list = self.buy(vt_symbol, order_price, buy_volume, isFAK=True)
         # 空头
         elif diff < 0:
-            # 计算空头委托价
             order_price: float = self.calculate_price(
                 vt_symbol,
                 Direction.SHORT,
                 tick.bid_price_1
             )
 
-            # 计算卖平和卖开数量
             sell_volume: int = 0
             short_volume: int = 0
 
@@ -252,7 +244,6 @@ class Strategy1(StrategyTemplate):
             else:
                 short_volume = abs(diff)
 
-            # 发出对应委托
             if sell_volume:
                 result_list = self.sell(vt_symbol, order_price, sell_volume, isFAK=True)
 
