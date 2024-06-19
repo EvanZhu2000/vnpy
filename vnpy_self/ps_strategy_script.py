@@ -15,14 +15,6 @@ from datetime import datetime, time, date
 import sys
 from time import sleep
 import pandas as pd
-import akshare as ak
-import mysql.connector
-mydb = mysql.connector.connect(
-  host= db_setting['host'],
-  user= db_setting['user'],
-  password= db_setting['password']
-)
-mycursor = mydb.cursor()
 
 SETTINGS["log.active"] = True
 SETTINGS["log.level"] = INFO
@@ -35,9 +27,9 @@ DAY_END = time(15, 0)
 NIGHT_START = time(20, 45)
 NIGHT_END = time(2, 45)
 
-def init_strategy1(sc_symbol):
+def init_strategy1(sc_symbol, engine):
     trading_df = pd.DataFrame(columns = ['symb_title', 'pre_roll', 'post_roll'])
-    trading_symbol_df = pd.read_sql_query(f"SELECT * FROM vnpy.trading_schedule where strategy = 'strategy1' and sc_symbol='{sc_symbol}' order by date desc", mydb)
+    trading_symbol_df = pd.read_sql_query(f"SELECT * FROM vnpy.trading_schedule where strategy = 'strategy1' and sc_symbol='{sc_symbol}' order by date desc", engine.mydb)
     pre_roll, post_roll = '',''
     if trading_symbol_df.shape[0] == 0:
         return trading_df
@@ -55,8 +47,6 @@ def init_strategy1(sc_symbol):
         pre_roll = post_roll  
         post_roll = '' # This aims to make sure that pre_roll always points to current trading symbol (or first day trading symbol)
     trading_df.loc[trading_df.shape[0]] = [str(" ".join(re.findall("[a-zA-Z]+", sc_symbol))),pre_roll,post_roll]
-    mycursor.close()
-    mydb.close()
     return trading_df
 
 def check_trading_period():
@@ -86,12 +76,7 @@ def parse_strategy(data, strategy_default_name):
 
 def run():
     SETTINGS["log.file"] = True
-    trading_df = init_strategy1('IH_2')
-    if trading_df.shape[0] == 0:
-        print('dont have target symbol!!')
-        return
-    rollover_df = trading_df.loc[trading_df['post_roll']!='']
-
+    
     event_engine = EventEngine()
     main_engine = MainEngine(event_engine)
     main_engine.init_engines()
@@ -109,6 +94,15 @@ def run():
 
     ps_engine.init_engine()
     main_engine.write_log("ps策略初始化完成")
+    
+    
+    trading_df = init_strategy1('IH_2', ps_engine)
+    if trading_df.shape[0] == 0:
+        print('dont have target symbol!!')
+        return
+    rollover_df = trading_df.loc[trading_df['post_roll']!='']
+    
+    
     for r in trading_df.iterrows():
         pre_roll,post_roll,strategy_title = parse_strategy(r[1], 'Strategy1')
         if strategy_title not in ps_engine.strategies.keys():
@@ -128,6 +122,7 @@ def run():
                 ps_engine.stop_strategy(strategy_title)
                 ps_engine.remove_strategy(strategy_title)
                 rt = RolloverTool(ps_engine=ps_engine, main_engine=main_engine)
+                main_engine.write_log(f"Rolling from {pre_roll} to {post_roll}")
                 rt.init_symbols(pre_roll, post_roll)
                 rt.roll_all()
                 

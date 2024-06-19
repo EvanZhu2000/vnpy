@@ -141,7 +141,7 @@ class SimpleBuyStrategy(StrategyTemplate):
 
         self.set_target(self.leg1_symbol, -self.fixed_size)
         self.set_target(self.leg2_symbol, self.fixed_size)
-        self.rebalance_portfolio_FAK(bars)
+        self.rebalance_portfolio_FAK(bars,'simple_buy','test')
         
         ### ====================================================
         ## TODO need to make this to quote

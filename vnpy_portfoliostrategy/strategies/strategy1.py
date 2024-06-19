@@ -1,7 +1,7 @@
 from datetime import datetime
 
 import numpy as np
-
+import pandas as pd
 from vnpy.trader.utility import BarGenerator, ArrayManager, Interval
 from vnpy.trader.object import (
     TickData,
@@ -160,26 +160,38 @@ class Strategy1(StrategyTemplate):
         if self.get_pos(self.leg1_symbol)!=tar1 or self.get_pos(self.leg2_symbol)!=tar2:
             self.set_target(self.leg1_symbol, tar1)
             self.set_target(self.leg2_symbol, tar2)
-            self.rebalance_portfolio_FAK(bars)
+            self.rebalance_portfolio_FAK(bars, 'strategy1', 'boll')
     
     # TODO ideally should be in tick
     def cal_target_pos(self, current_spread:float, bars) -> None:
         leg1_pos = self.get_pos(self.leg1_symbol)
-        if not leg1_pos:
+        leg2_pos = self.get_pos(self.leg2_symbol)
+        if leg1_pos == 0 and leg2_pos == 0:
             if current_spread >= self.boll_up:
                 tar1,tar2 = -self.fixed_size,self.fixed_size
                 self.need_to_rebalance(tar1, tar2, bars)
             elif current_spread <= self.boll_down:
                 tar1,tar2 = self.fixed_size, -self.fixed_size
                 self.need_to_rebalance(tar1, tar2, bars)
-        elif leg1_pos > 0:
+        elif leg1_pos > 0 and leg2_pos < 0:
             if current_spread >= self.boll_mid:
                 tar1, tar2 = 0,0
                 self.need_to_rebalance(tar1, tar2, bars)
-        else:
+        elif leg1_pos < 0 and leg2_pos > 0:
             if current_spread <= self.boll_mid:
                 tar1, tar2 = 0,0
                 self.need_to_rebalance(tar1, tar2, bars)
+                
+        # TODO Need to sync database
+        # else:
+        # 
+        #     try:
+        #         pd.read_sql_query(f"SELECT * FROM vnpy.strategy_order where strategy = 'strategy1' and sc_symbol='{sc_symbol}' order by date desc", engine.mydb)
+        #         if current_spread >= self.boll_mid:
+        #             tar1, tar2 = 0,0
+        #             self.need_to_rebalance(tar1, tar2, bars)
+        #     except Exception as e:
+        #         self.strategy_engine.write_log(f"Exception strategy1 cal_target_pos - {e}")
                 
         
     def calculate_price(self, vt_symbol: str, direction: Direction, reference: float) -> float:

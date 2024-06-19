@@ -2,7 +2,7 @@ from abc import ABC
 from copy import copy
 from typing import TYPE_CHECKING, Optional
 from collections import defaultdict
-
+from datetime import datetime, timedelta
 from vnpy.trader.constant import Interval, Direction, Offset
 from vnpy.trader.object import BarData, TickData, OrderData, TradeData
 from vnpy.trader.utility import virtual
@@ -133,21 +133,21 @@ class StrategyTemplate(ABC):
         if not order.is_active() and order.vt_orderid in self.active_orderids:
             self.active_orderids.remove(order.vt_orderid)
 
-    def buy(self, vt_symbol: str, price: float, volume: float, lock: bool = False, net: bool = False, isFAK: bool = False) -> list[str]:
+    def buy(self, vt_symbol: str, price: float, volume: float, lock: bool = False, net: bool = False, isFAK: bool = False,strategy:str = None,intention:str = None,pos=None,tar=None) -> list[str]:
         """买入开仓"""
-        return self.send_order(vt_symbol, Direction.LONG, Offset.OPEN, price, volume, lock, net, isFAK)
+        return self.send_order(vt_symbol, Direction.LONG, Offset.OPEN, price, volume, lock, net, isFAK,strategy,intention,pos,tar)
 
-    def sell(self, vt_symbol: str, price: float, volume: float, lock: bool = False, net: bool = False, isFAK: bool = False) -> list[str]:
+    def sell(self, vt_symbol: str, price: float, volume: float, lock: bool = False, net: bool = False, isFAK: bool = False,strategy:str = None,intention:str = None,pos=None,tar=None) -> list[str]:
         """卖出平仓"""
-        return self.send_order(vt_symbol, Direction.SHORT, Offset.CLOSE, price, volume, lock, net, isFAK)
+        return self.send_order(vt_symbol, Direction.SHORT, Offset.CLOSE, price, volume, lock, net, isFAK,strategy,intention,pos,tar)
 
-    def short(self, vt_symbol: str, price: float, volume: float, lock: bool = False, net: bool = False, isFAK: bool = False) -> list[str]:
+    def short(self, vt_symbol: str, price: float, volume: float, lock: bool = False, net: bool = False, isFAK: bool = False,strategy:str = None,intention:str = None,pos=None,tar=None) -> list[str]:
         """卖出开仓"""
-        return self.send_order(vt_symbol, Direction.SHORT, Offset.OPEN, price, volume, lock, net, isFAK)
+        return self.send_order(vt_symbol, Direction.SHORT, Offset.OPEN, price, volume, lock, net, isFAK,strategy,intention,pos,tar)
 
-    def cover(self, vt_symbol: str, price: float, volume: float, lock: bool = False, net: bool = False, isFAK: bool = False) -> list[str]:
+    def cover(self, vt_symbol: str, price: float, volume: float, lock: bool = False, net: bool = False, isFAK: bool = False,strategy:str = None,intention:str = None,pos=None,tar=None) -> list[str]:
         """买入平仓"""
-        return self.send_order(vt_symbol, Direction.LONG, Offset.CLOSE, price, volume, lock, net, isFAK)
+        return self.send_order(vt_symbol, Direction.LONG, Offset.CLOSE, price, volume, lock, net, isFAK,strategy,intention,pos,tar)
 
     def send_order(
         self,
@@ -158,30 +158,47 @@ class StrategyTemplate(ABC):
         volume: float,
         lock: bool = False,
         net: bool = False,
-        isFAK: bool = False
+        isFAK: bool = False,
+        strategy:str = None,
+        intention:str = None,
+        pos=None,
+        tar=None
     ) -> list[str]:
         """发送委托"""
         if self.trading:
-            if isFAK:
-                vt_orderids: list = self.strategy_engine.send_order_FAK(
-                    self, vt_symbol, direction, offset, price, volume, lock, net
-                )
-            else:
-                vt_orderids: list = self.strategy_engine.send_order(
-                    self, vt_symbol, direction, offset, price, volume, lock, net
-                )
+            try:
+                if isFAK:
+                    vt_orderids: list = self.strategy_engine.send_order_FAK(
+                        self, vt_symbol, direction, offset, price, volume, lock, net
+                    )
+                else:
+                    vt_orderids: list = self.strategy_engine.send_order(
+                        self, vt_symbol, direction, offset, price, volume, lock, net
+                    )
 
-            for vt_orderid in vt_orderids:
-                self.active_orderids.add(vt_orderid)
+                for vt_orderid in vt_orderids:
+                    self.active_orderids.add(vt_orderid)
+                    
+                if strategy:
+                    for vt_orderid in vt_orderids:
+                        self.strategy_engine.mysql_exe(f"INSERT INTO `vnpy`.`strategy_order` (`datetime`, `vt_orderid`, `strategy`, `symbol`, `intention`, `pos`, `tar`, `tif`) VALUES ('{datetime.strftime(datetime.today(),'%Y-%m-%d %H:%M:%S')}','{vt_orderid}','{strategy}','{vt_symbol}','{intention}','{pos}','{tar}', '{'fak'if isFAK else 'day'}');")
 
-            return vt_orderids
+                return vt_orderids
+            except Exception as e:
+                self.strategy_engine.write_log(f"Exception when sending order - {e}")
+                return []
         else:
             return []
 
     def cancel_order(self, vt_orderid: str) -> None:
         """撤销委托"""
-        if self.trading:
-            self.strategy_engine.cancel_order(self, vt_orderid)
+        try:
+            if self.trading:
+                self.strategy_engine.cancel_order(self, vt_orderid)
+                self.strategy_engine.mysql_exe(f"INSERT INTO `vnpy`.`strategy_order` (`datetime`, `vt_orderid`, `intention`) VALUES ('{datetime.strftime(datetime.today(),'%Y-%m-%d %H:%M:%S')}','{vt_orderid}','cancel');")
+        
+        except Exception as e:
+            self.strategy_engine.write_log(f"Exception when sending order - {e}")
 
     def cancel_all(self) -> None:
         """全撤活动委托"""
@@ -200,7 +217,7 @@ class StrategyTemplate(ABC):
         """设置目标仓位"""
         self.target_data[vt_symbol] = target
 
-    def rebalance_portfolio_FAK(self, bars: dict[str, BarData]) -> None:
+    def rebalance_portfolio_FAK(self, bars: dict[str, BarData], strategy:str=None, intention:str=None) -> None:
         """基于目标执行调仓交易"""
         self.cancel_all()
 
@@ -232,10 +249,10 @@ class StrategyTemplate(ABC):
 
                 # 发出对应委托
                 if cover_volume:
-                    self.cover(vt_symbol, order_price, cover_volume, isFAK=True)
+                    self.cover(vt_symbol, order_price, cover_volume, isFAK=True,strategy=strategy,intention=intention,pos=pos,tar=target)
 
                 if buy_volume:
-                    self.buy(vt_symbol, order_price, buy_volume, isFAK=True)
+                    self.buy(vt_symbol, order_price, buy_volume, isFAK=True,strategy=strategy,intention=intention,pos=pos,tar=target)
             # 空头
             elif diff < 0:
                 # 计算空头委托价
@@ -257,10 +274,10 @@ class StrategyTemplate(ABC):
 
                 # 发出对应委托
                 if sell_volume:
-                    self.sell(vt_symbol, order_price, sell_volume, isFAK=True)
+                    self.sell(vt_symbol, order_price, sell_volume, isFAK=True,strategy=strategy,intention=intention,pos=pos,tar=target)
 
                 if short_volume:
-                    self.short(vt_symbol, order_price, short_volume, isFAK=True)
+                    self.short(vt_symbol, order_price, short_volume, isFAK=True,strategy=strategy,intention=intention,pos=pos,tar=target)
                     
     def rebalance_portfolio(self, bars: dict[str, BarData]) -> None:
         """基于目标执行调仓交易"""

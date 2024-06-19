@@ -43,3 +43,16 @@ CREATE TABLE `vnpy`.`trading_schedule` (
   `sc_symbol` varchar(255) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `vnpy`.`strategy_order` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `datetime` datetime NOT NULL,
+  `vt_orderid` varchar(255) NOT NULL,
+  `strategy` varchar(255) NOT NULL,
+  `symbol` varchar(255) NOT NULL,
+  `intention` varchar(255) NOT NULL,
+  `pos` double NOT NULL,
+  `tar` double NOT NULL,
+  `tif` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
