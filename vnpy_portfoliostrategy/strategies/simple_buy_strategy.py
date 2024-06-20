@@ -94,10 +94,10 @@ class SimpleBuyStrategy(StrategyTemplate):
         if not order.is_active() and order.vt_orderid in self.active_orderids:
             self.active_orderids.remove(order.vt_orderid)
         
-        self.write_log(f'pre_order_type {pre_order_type}, pre_order_status {pre_order_status}')
+        self.write_log_trading(f'pre_order_type {pre_order_type}, pre_order_status {pre_order_status}')
         ##@TODO need multiple rejection counter
         if pre_order_type and pre_order_status and pre_order_type == OrderType.FAK and pre_order_status == Status.SUBMITTING and order.status == Status.CANCELLED and (self.last_tick_dict[order.vt_symbol]):
-            self.write_log('update_order')
+            self.write_log_trading('update_order')
             last_tick = self.last_tick_dict[order.vt_symbol]
             self.rebalance(order.vt_symbol, last_tick.ask_price_1, last_tick.bid_price_1, 'simple_buy', 'test')
         
@@ -109,7 +109,7 @@ class SimpleBuyStrategy(StrategyTemplate):
             self.pos_data[trade.vt_symbol] -= trade.volume
             
         if (self.get_pos(trade.vt_symbol) != self.get_target(trade.vt_symbol)) and (self.last_tick_dict[trade.vt_symbol]):
-            self.write_log(f'update_trade, self.get_pos(trade.vt_symbol){self.get_pos(trade.vt_symbol)}, self.get_target(trade.vt_symbol){self.get_target(trade.vt_symbol)}')
+            self.write_log_trading(f'update_trade, self.get_pos(trade.vt_symbol){self.get_pos(trade.vt_symbol)}, self.get_target(trade.vt_symbol){self.get_target(trade.vt_symbol)}')
             last_tick = self.last_tick_dict[trade.vt_symbol]
             self.rebalance(trade.vt_symbol, last_tick.ask_price_1, last_tick.bid_price_1, 'simple_buy', 'test')
             
@@ -131,9 +131,6 @@ class SimpleBuyStrategy(StrategyTemplate):
         self.pbg.update_tick(tick)
         self.last_tick_dict[tick.vt_symbol] = tick
         
-
-
-
     def on_bars(self, bars: dict[str, BarData]) -> None:
         """K线切片回调"""
         leg1_bar = bars.get(self.leg1_symbol, None)
@@ -146,34 +143,6 @@ class SimpleBuyStrategy(StrategyTemplate):
         # self.rebalance_portfolio_FAK(bars,'simple_buy','test')
         self.rebalance(self.leg1_symbol, leg1_bar.close_price, leg1_bar.close_price, 'simple_buy', 'test')
         self.rebalance(self.leg2_symbol, leg2_bar.close_price, leg2_bar.close_price, 'simple_buy', 'test')
-        ### ====================================================
-        ## TODO need to make this to quote
-        # std = self.buf.std()
-        # self.boll_mid = self.buf.mean()
-        # self.boll_up = self.boll_mid + self.boll_dev * std
-        # self.boll_down = self.boll_mid - self.boll_dev * std
-        # self.current_spread = leg1_bar.close_price- leg2_bar.close_price
-
-        # # 计算目标持仓
-        # leg1_pos = self.get_pos(self.leg1_symbol)
-
-        # if not leg1_pos:
-        #     if self.current_spread >= self.boll_up:
-        #         self.set_target(self.leg1_symbol, -self.fixed_size)
-        #         self.set_target(self.leg2_symbol, self.fixed_size)
-        #     elif self.current_spread <= self.boll_down:
-        #         self.set_target(self.leg1_symbol, self.fixed_size)
-        #         self.set_target(self.leg2_symbol, -self.fixed_size)
-        # elif leg1_pos > 0:
-        #     if self.current_spread >= self.boll_mid:
-        #         self.set_target(self.leg1_symbol, 0)
-        #         self.set_target(self.leg2_symbol, 0)
-        # else:
-        #     if self.current_spread <= self.boll_mid:
-        #         self.set_target(self.leg1_symbol, 0)
-        #         self.set_target(self.leg2_symbol, 0)
-        
-        ### ====================================================
         
         # not sure whether necessary
         self.put_event()

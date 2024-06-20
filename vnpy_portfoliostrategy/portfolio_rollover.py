@@ -61,7 +61,7 @@ class RolloverTool():
         new_set:set = set(self.new_symbol_list) - set(self.old_symbol_list)
         for symb in new_set:
             self.subscribe(symb)
-            sleep(1)
+            sleep(10)
             new_tick: Optional[TickData] = self.main_engine.get_tick(symb)
             if not new_tick:
                 self.write_log(f"无法获取目标合约{symb}的盘口数据，请先订阅行情")
@@ -82,6 +82,7 @@ class RolloverTool():
         # converter: OffsetConverter = self.main_engine.get_converter(contract.gateway_name)
         # holding: PositionHolding = converter.get_position_holding(old_symbol)
         holding = strategy.get_pos(old_symbol)
+        print(f"Holding for {old_symbol} = {holding}")
 
         # Roll long position
         if holding>0:

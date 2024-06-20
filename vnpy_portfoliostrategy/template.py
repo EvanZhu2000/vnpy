@@ -371,6 +371,11 @@ class StrategyTemplate(ABC):
     def write_log(self, msg: str) -> None:
         """记录日志"""
         self.strategy_engine.write_log(msg, self)
+        
+    def write_log_trading(self, msg: str) -> None:
+        "Recording debugging logs in trading period only"
+        if self.trading:
+            self.write_log(msg=msg)
 
     def get_engine_type(self) -> EngineType:
         """查询引擎类型"""

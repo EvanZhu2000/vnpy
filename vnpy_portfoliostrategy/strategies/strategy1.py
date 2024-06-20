@@ -133,7 +133,7 @@ class Strategy1(StrategyTemplate):
         if self.buf is not None:
             current_spread = leg1_bar.close_price- leg2_bar.close_price
             self.cal_target_pos(current_spread, bars)
-            self.write_log(f'self.boll_mid {self.boll_mid}, self.boll_up {self.boll_up}, self.boll_down {self.boll_down}, current spread {current_spread}')
+            self.write_log_trading(f'self.boll_mid {self.boll_mid}, self.boll_up {self.boll_up}, self.boll_down {self.boll_down}, current spread {current_spread}')
 
         
         if leg1_bar.datetime.hour == 14 and leg1_bar.datetime.minute == 59:
@@ -158,7 +158,7 @@ class Strategy1(StrategyTemplate):
         self.boll_down = self.boll_mid - self.boll_dev * std
                 
     def need_to_rebalance(self, tar1, tar2, bars: dict[str, BarData]) -> None: 
-        self.write_log(f"Need to rebalance {tar1}, {tar2}, {self.get_pos(self.leg1_symbol)}, {self.get_pos(self.leg2_symbol)}")
+        self.write_log_trading(f"Need to rebalance {tar1}, {tar2}, {self.get_pos(self.leg1_symbol)}, {self.get_pos(self.leg2_symbol)}")
         if self.get_pos(self.leg1_symbol)!=tar1:
             self.set_target(self.leg1_symbol, tar1)
             bar = bars.get(self.leg1_symbol, None)

@@ -68,7 +68,7 @@ def check_trading_period():
 
 def check_rollover_period():
     current_time = datetime.now().time()
-    return current_time>=time(14, 50)
+    return current_time>=time(10, 50)
 
 def parse_strategy(data, strategy_default_name):
     symb_title = data['symb_title']
@@ -105,29 +105,37 @@ def run():
         return
     rollover_df = trading_df.loc[trading_df['post_roll']!='']
     
-    
+    strategy1_IH_settings = {"boll_window": 10,"boll_dev": 2}
     for r in trading_df.iterrows():
         pre_roll,post_roll,strategy_title = parse_strategy(r[1], 'Strategy1')
         if strategy_title not in ps_engine.strategies.keys():
-            ps_engine.add_strategy('Strategy1',strategy_title,pre_roll,{"boll_window": 10,"boll_dev": 2})
+            ps_engine.add_strategy('Strategy1',strategy_title,pre_roll,strategy1_IH_settings)
         ps_engine.init_strategy(strategy_title)
         main_engine.write_log("ps策略全部初始化")
-        sleep(10)
+        sleep(5)
         ps_engine.start_strategy(strategy_title)
         main_engine.write_log("ps策略全部启动")
-            
+        
+    HAVE_ROLLOVER = False
     while True:
         sleep(10)
         
-        if check_rollover_period():
+        if check_rollover_period() and not HAVE_ROLLOVER:
             for r in rollover_df.iterrows():
                 pre_roll,post_roll,strategy_title = parse_strategy(r[1], 'Strategy1')
-                ps_engine.stop_strategy(strategy_title)
-                ps_engine.remove_strategy(strategy_title)
                 rt = RolloverTool(ps_engine=ps_engine, main_engine=main_engine)
                 main_engine.write_log(f"Rolling from {pre_roll} to {post_roll}")
-                rt.init_symbols(pre_roll, post_roll)
+                rt.init(strategy_title, pre_roll, post_roll)
                 rt.roll_all()
+                
+                # then restart the strategy
+                ps_engine.stop_strategy(strategy_title)
+                ps_engine.remove_strategy(strategy_title)
+                ps_engine.add_strategy('Strategy1',strategy_title,post_roll,strategy1_IH_settings)
+                ps_engine.init_strategy(strategy_title)
+                sleep(5)
+                ps_engine.start_strategy(strategy_title)
+                HAVE_ROLLOVER = True
                 
         if not check_trading_period():
             main_engine.write_log("ps策略全部close")
