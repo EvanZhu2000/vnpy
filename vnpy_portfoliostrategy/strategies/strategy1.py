@@ -181,17 +181,7 @@ class Strategy1(StrategyTemplate):
             if current_spread <= self.boll_mid:
                 tar1, tar2 = 0,0
                 self.need_to_rebalance(tar1, tar2, bars)
-                
-        # TODO Need to sync database
-        # else:
-        # 
-        #     try:
-        #         pd.read_sql_query(f"SELECT * FROM vnpy.strategy_order where strategy = 'strategy1' and sc_symbol='{sc_symbol}' order by date desc", engine.mydb)
-        #         if current_spread >= self.boll_mid:
-        #             tar1, tar2 = 0,0
-        #             self.need_to_rebalance(tar1, tar2, bars)
-        #     except Exception as e:
-        #         self.strategy_engine.write_log(f"Exception strategy1 cal_target_pos - {e}")
+        # TODO May need to sync database if otherwise
                 
         
     def calculate_price(self, vt_symbol: str, direction: Direction, reference: float) -> float:

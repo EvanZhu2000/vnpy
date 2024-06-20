@@ -27,9 +27,12 @@ DAY_END = time(15, 0)
 NIGHT_START = time(20, 45)
 NIGHT_END = time(2, 45)
 
-def init_strategy1(sc_symbol, engine):
+def init_strategy1(sc_symbol, dbservice):
     trading_df = pd.DataFrame(columns = ['symb_title', 'pre_roll', 'post_roll'])
-    trading_symbol_df = pd.read_sql_query(f"SELECT * FROM vnpy.trading_schedule where strategy = 'strategy1' and sc_symbol='{sc_symbol}' order by date desc", engine.mydb)
+    trading_symbol_df = dbservice.select("trading_schedule", "order by date desc",
+                                         strategy = 'strategy1',
+                                         sc_symbol = sc_symbol)
+    
     pre_roll, post_roll = '',''
     if trading_symbol_df.shape[0] == 0:
         return trading_df
@@ -96,7 +99,7 @@ def run():
     main_engine.write_log("ps策略初始化完成")
     
     
-    trading_df = init_strategy1('IH_2', ps_engine)
+    trading_df = init_strategy1('IH_2', ps_engine.dbservice)
     if trading_df.shape[0] == 0:
         print('dont have target symbol!!')
         return

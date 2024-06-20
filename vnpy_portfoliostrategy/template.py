@@ -181,7 +181,16 @@ class StrategyTemplate(ABC):
                     
                 if strategy:
                     for vt_orderid in vt_orderids:
-                        self.strategy_engine.mysql_exe(f"INSERT INTO `vnpy`.`strategy_order` (`datetime`, `vt_orderid`, `strategy`, `symbol`, `intention`, `pos`, `tar`, `tif`) VALUES ('{datetime.strftime(datetime.today(),'%Y-%m-%d %H:%M:%S')}','{vt_orderid}','{strategy}','{vt_symbol}','{intention}','{pos}','{tar}', '{'fak'if isFAK else 'day'}');")
+                        self.strategy_engine.dbservice.insert('strategy_order', 
+                                                              datetime = datetime.strftime(datetime.today(),'%Y-%m-%d %H:%M:%S'),
+                                                              vt_orderid = vt_orderid,
+                                                              strategy = strategy,
+                                                              symbol = vt_symbol,
+                                                              intention = intention,
+                                                              pos = pos,
+                                                              tar = tar,
+                                                              price = price,
+                                                              tif = 'fak'if isFAK else 'day')
 
                 return vt_orderids
             except Exception as e:
@@ -195,7 +204,10 @@ class StrategyTemplate(ABC):
         try:
             if self.trading:
                 self.strategy_engine.cancel_order(self, vt_orderid)
-                self.strategy_engine.mysql_exe(f"INSERT INTO `vnpy`.`strategy_order` (`datetime`, `vt_orderid`, `intention`) VALUES ('{datetime.strftime(datetime.today(),'%Y-%m-%d %H:%M:%S')}','{vt_orderid}','cancel');")
+                self.strategy_engine.dbservice.insert('strategy_order',
+                                                      datetime = datetime.strftime(datetime.today(),'%Y-%m-%d %H:%M:%S'),
+                                                      vt_orderid = vt_orderid,
+                                                      intention = 'cancel')
         
         except Exception as e:
             self.strategy_engine.write_log(f"Exception when sending order - {e}")

@@ -37,7 +37,7 @@ from vnpy.trader.constant import (
 from vnpy.trader.utility import load_json, save_json, extract_vt_symbol, round_to
 from vnpy.trader.datafeed import BaseDatafeed, get_datafeed
 from vnpy.trader.database import BaseDatabase, get_database, DB_TZ
-
+from .mysqlservice import MysqlService
 from .base import (
     APP_NAME,
     EVENT_PORTFOLIO_LOG,
@@ -75,12 +75,7 @@ class StrategyEngine(BaseEngine):
         # 数据库和数据服务
         self.database: BaseDatabase = get_database()
         self.datafeed: BaseDatafeed = get_datafeed()
-        self.mydb = mydb = mysql.connector.connect(
-            host = SETTINGS["database.host"],
-            user = SETTINGS["database.user"],
-            password = SETTINGS["database.password"]
-            )
-        self.mycursor = mydb.cursor()
+        self.dbservice = MysqlService()
 
     def init_engine(self) -> None:
         """初始化引擎"""
@@ -90,16 +85,11 @@ class StrategyEngine(BaseEngine):
         self.load_strategy_data()
         self.register_event()
         self.write_log("组合策略引擎初始化成功")
-        
-    def mysql_exe(self, query) -> None:
-        self.mycursor.execute(query)
-        self.mydb.commit()
 
     def close(self) -> None:
         """关闭"""
         self.stop_all_strategies()
-        self.mycursor.close()
-        self.mydb.close()
+        self.dbservice.close()
 
     def register_event(self) -> None:
         """注册事件引擎"""
