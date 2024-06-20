@@ -21,6 +21,7 @@ class Strategy1(StrategyTemplate):
     buf=None
     bar_counter = 0
     bar_freq = 240 #@TODO need a trading hour table
+    sample_n = 3
     
     
     boll_mid = 0.0
@@ -57,10 +58,13 @@ class Strategy1(StrategyTemplate):
             """"""
             pass
         
-        self.ams: dict[str, ArrayManager] = {}
+        self.amss: dict[int, dict] = {}
+        ams: dict[str, ArrayManager] = {}
         for vt_symbol in self.vt_symbols:
             self.bgs[vt_symbol] = BarGenerator(on_bar)
-            self.ams[vt_symbol] = ArrayManager(size=self.boll_window)  #TODO change this
+            for i in range(self.sample_n):
+                ams[vt_symbol] = ArrayManager(size=self.boll_window) 
+                self.amss[i] = ams
         
 
     def on_init(self) -> None:
@@ -74,7 +78,7 @@ class Strategy1(StrategyTemplate):
         """策略启动回调"""
         self.write_log("策略启动")
         self.write_log(f"trading instruments - {self.vt_symbols[0]},{self.vt_symbols[1]}")
-        self.write_log(f"ams close {self.ams[self.vt_symbols[0]].close}")
+        self.write_log(f"ams close {self.amss[0][self.vt_symbols[0]].close}")
         self.put_event()
 
     def on_stop(self) -> None:
@@ -135,18 +139,17 @@ class Strategy1(StrategyTemplate):
             self.cal_target_pos(current_spread, bars)
             self.write_log_trading(f'self.boll_mid {self.boll_mid}, self.boll_up {self.boll_up}, self.boll_down {self.boll_down}, current spread {current_spread}')
 
-        
-        if leg1_bar.datetime.hour == 14 and leg1_bar.datetime.minute == 59:
-            self.on_win_bars(bars)
+        # Ideally should be the last minute
+        for i in range(self.sample_n):
+            if leg1_bar.datetime.hour == 14 and leg1_bar.datetime.minute == 59-i:
+                self.on_win_bars(bars, self.amss[i])
             
 
-    def on_win_bars(self, bars: dict[str, BarData]) -> None:
-        for vt_symbol, bar in bars.items():
-            am: ArrayManager = self.ams[vt_symbol]
-            am.update_bar(bar)
-
-        am1 = self.ams[self.leg1_symbol]
-        am2 = self.ams[self.leg2_symbol]
+    def on_win_bars(self, bars: dict[str, BarData], am: dict[str, ArrayManager]) -> None:
+        am1 = am[self.leg1_symbol]
+        am2 = am[self.leg2_symbol]
+        am1.update_bar(bars[self.leg1_symbol])
+        am2.update_bar(bars[self.leg2_symbol])
         if (not am1.inited) or (not am2.inited):
             return
         
