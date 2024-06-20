@@ -3,10 +3,9 @@ from copy import copy
 from typing import TYPE_CHECKING, Optional
 from collections import defaultdict
 from datetime import datetime, timedelta
-from vnpy.trader.constant import Interval, Direction, Offset
+from vnpy.trader.constant import Interval, Direction, Offset, Status
 from vnpy.trader.object import BarData, TickData, OrderData, TradeData
 from vnpy.trader.utility import virtual
-
 from .base import EngineType
 
 if TYPE_CHECKING:
@@ -229,68 +228,66 @@ class StrategyTemplate(ABC):
         """设置目标仓位"""
         self.target_data[vt_symbol] = target
 
-    def rebalance_portfolio_FAK(self, bars: dict[str, BarData], strategy:str=None, intention:str=None) -> None:
+    def rebalance(self, vt_symbol: str, buy_price:float, sell_price:float, strategy:str=None, intention:str=None) -> None:
         """基于目标执行调仓交易"""
-        self.cancel_all()
+        ##@TODO need partial fill logic
+        for oid in self.symbol_to_order_dict[vt_symbol]:
+            if oid in self.orders and self.orders[oid].status == Status.NOTTRADED:
+                self.cancel_order(oid)
 
-        # 只发出当前K线切片有行情的合约的委托
-        for vt_symbol, bar in bars.items():
-            # 计算仓差
-            target: int = self.get_target(vt_symbol)
-            pos: int = self.get_pos(vt_symbol)
-            diff: int = target - pos
+        result_list: list = []
+        target: int = self.get_target(vt_symbol)
+        pos: int = self.get_pos(vt_symbol)
+        diff: int = target - pos
 
-            # 多头
-            if diff > 0:
-                # 计算多头委托价
-                order_price: float = self.calculate_price(
-                    vt_symbol,
-                    Direction.LONG,
-                    bar.close_price
-                )
+        # 多头
+        if diff > 0:
+            order_price: float = self.calculate_price(
+                vt_symbol,
+                Direction.LONG,
+                buy_price
+            )
 
-                # 计算买平和买开数量
-                cover_volume: int = 0
-                buy_volume: int = 0
+            cover_volume: int = 0
+            buy_volume: int = 0
 
-                if pos < 0:
-                    cover_volume = min(diff, abs(pos))
-                    buy_volume = diff - cover_volume
-                else:
-                    buy_volume = diff
+            if pos < 0:
+                cover_volume = min(diff, abs(pos))
+                buy_volume = diff - cover_volume
+            else:
+                buy_volume = diff
 
-                # 发出对应委托
-                if cover_volume:
-                    self.cover(vt_symbol, order_price, cover_volume, isFAK=True,strategy=strategy,intention=intention,pos=pos,tar=target)
+            if cover_volume:
+                result_list = self.cover(vt_symbol, order_price, cover_volume, isFAK=True, strategy=strategy,intention=intention,pos=pos,tar=target)
 
-                if buy_volume:
-                    self.buy(vt_symbol, order_price, buy_volume, isFAK=True,strategy=strategy,intention=intention,pos=pos,tar=target)
-            # 空头
-            elif diff < 0:
-                # 计算空头委托价
-                order_price: float = self.calculate_price(
-                    vt_symbol,
-                    Direction.SHORT,
-                    bar.close_price
-                )
+            if buy_volume:
+                result_list = self.buy(vt_symbol, order_price, buy_volume, isFAK=True, strategy=strategy,intention=intention,pos=pos,tar=target)
+        # 空头
+        elif diff < 0:
+            order_price: float = self.calculate_price(
+                vt_symbol,
+                Direction.SHORT,
+                sell_price
+            )
 
-                # 计算卖平和卖开数量
-                sell_volume: int = 0
-                short_volume: int = 0
+            sell_volume: int = 0
+            short_volume: int = 0
 
-                if pos > 0:
-                    sell_volume = min(abs(diff), pos)
-                    short_volume = abs(diff) - sell_volume
-                else:
-                    short_volume = abs(diff)
+            if pos > 0:
+                sell_volume = min(abs(diff), pos)
+                short_volume = abs(diff) - sell_volume
+            else:
+                short_volume = abs(diff)
 
-                # 发出对应委托
-                if sell_volume:
-                    self.sell(vt_symbol, order_price, sell_volume, isFAK=True,strategy=strategy,intention=intention,pos=pos,tar=target)
+            if sell_volume:
+                result_list = self.sell(vt_symbol, order_price, sell_volume, isFAK=True, strategy=strategy,intention=intention,pos=pos,tar=target)
 
-                if short_volume:
-                    self.short(vt_symbol, order_price, short_volume, isFAK=True,strategy=strategy,intention=intention,pos=pos,tar=target)
-                    
+            if short_volume:
+                result_list = self.short(vt_symbol, order_price, short_volume, isFAK=True, strategy=strategy,intention=intention,pos=pos,tar=target)
+        
+        if len(result_list) != 0:
+            self.symbol_to_order_dict[vt_symbol].append(result_list[-1])
+
     def rebalance_portfolio(self, bars: dict[str, BarData]) -> None:
         """基于目标执行调仓交易"""
         self.cancel_all()

@@ -96,9 +96,10 @@ class SimpleBuyStrategy(StrategyTemplate):
         
         self.write_log(f'pre_order_type {pre_order_type}, pre_order_status {pre_order_status}')
         ##@TODO need multiple rejection counter
-        if pre_order_type and pre_order_status and pre_order_type == OrderType.FAK and pre_order_status == Status.SUBMITTING and order.status == Status.CANCELLED:
+        if pre_order_type and pre_order_status and pre_order_type == OrderType.FAK and pre_order_status == Status.SUBMITTING and order.status == Status.CANCELLED and (self.last_tick_dict[order.vt_symbol]):
             self.write_log('update_order')
-            self.rebalance(order.vt_symbol, self.last_tick_dict[order.vt_symbol])
+            last_tick = self.last_tick_dict[order.vt_symbol]
+            self.rebalance(order.vt_symbol, last_tick.ask_price_1, last_tick.bid_price_1, 'simple_buy', 'test')
         
     def update_trade(self, trade: TradeData) -> None:
         """成交数据更新"""
@@ -109,7 +110,8 @@ class SimpleBuyStrategy(StrategyTemplate):
             
         if (self.get_pos(trade.vt_symbol) != self.get_target(trade.vt_symbol)) and (self.last_tick_dict[trade.vt_symbol]):
             self.write_log(f'update_trade, self.get_pos(trade.vt_symbol){self.get_pos(trade.vt_symbol)}, self.get_target(trade.vt_symbol){self.get_target(trade.vt_symbol)}')
-            self.rebalance(trade.vt_symbol,self.last_tick_dict[trade.vt_symbol])
+            last_tick = self.last_tick_dict[trade.vt_symbol]
+            self.rebalance(trade.vt_symbol, last_tick.ask_price_1, last_tick.bid_price_1, 'simple_buy', 'test')
             
     def on_tick(self, tick: TickData) -> None:
         """行情推送回调"""
@@ -141,8 +143,9 @@ class SimpleBuyStrategy(StrategyTemplate):
 
         self.set_target(self.leg1_symbol, -self.fixed_size)
         self.set_target(self.leg2_symbol, self.fixed_size)
-        self.rebalance_portfolio_FAK(bars,'simple_buy','test')
-        
+        # self.rebalance_portfolio_FAK(bars,'simple_buy','test')
+        self.rebalance(self.leg1_symbol, leg1_bar.close_price, leg1_bar.close_price, 'simple_buy', 'test')
+        self.rebalance(self.leg2_symbol, leg2_bar.close_price, leg2_bar.close_price, 'simple_buy', 'test')
         ### ====================================================
         ## TODO need to make this to quote
         # std = self.buf.std()
@@ -186,68 +189,3 @@ class SimpleBuyStrategy(StrategyTemplate):
             price: float = reference - self.tick_add * pricetick
 
         return price
-
-    def rebalance(self, vt_symbol: str, tick:TickData) -> None:
-        """基于目标执行调仓交易"""
-        ##@TODO need partial fill logic
-        for oid in self.symbol_to_order_dict[vt_symbol]:
-            if oid in self.orders and self.orders[oid].status == Status.NOTTRADED:
-                self.cancel_order(oid)
-
-        result_list: list = []
-        target: int = self.get_target(vt_symbol)
-        pos: int = self.get_pos(vt_symbol)
-        diff: int = target - pos
-
-        # 多头
-        if diff > 0:
-            # 计算多头委托价
-            order_price: float = self.calculate_price(
-                vt_symbol,
-                Direction.LONG,
-                tick.ask_price_1
-            )
-
-            # 计算买平和买开数量
-            cover_volume: int = 0
-            buy_volume: int = 0
-
-            if pos < 0:
-                cover_volume = min(diff, abs(pos))
-                buy_volume = diff - cover_volume
-            else:
-                buy_volume = diff
-
-            # 发出对应委托
-            if cover_volume:
-                result_list = self.cover(vt_symbol, order_price, cover_volume, isFAK=True)
-
-            if buy_volume:
-                result_list = self.buy(vt_symbol, order_price, buy_volume, isFAK=True)
-        # 空头
-        elif diff < 0:
-            # 计算空头委托价
-            order_price: float = self.calculate_price(
-                vt_symbol,
-                Direction.SHORT,
-                tick.bid_price_1
-            )
-
-            # 计算卖平和卖开数量
-            sell_volume: int = 0
-            short_volume: int = 0
-
-            if pos > 0:
-                sell_volume = min(abs(diff), pos)
-                short_volume = abs(diff) - sell_volume
-            else:
-                short_volume = abs(diff)
-
-            # 发出对应委托
-            if sell_volume:
-                result_list = self.sell(vt_symbol, order_price, sell_volume, isFAK=True)
-
-            if short_volume:
-                result_list = self.short(vt_symbol, order_price, short_volume, isFAK=True)
-        
-        self.symbol_to_order_dict[vt_symbol].append(result_list[-1])

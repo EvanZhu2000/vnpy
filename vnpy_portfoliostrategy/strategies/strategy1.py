@@ -92,7 +92,8 @@ class Strategy1(StrategyTemplate):
         
         ##@TODO need multiple rejection counter
         if pre_order_type and pre_order_status and pre_order_type == OrderType.FAK and pre_order_status == Status.SUBMITTING and order.status == Status.CANCELLED and (self.last_tick_dict[order.vt_symbol]):
-            self.rebalance(order.vt_symbol, self.last_tick_dict[order.vt_symbol])
+            last_tick = self.last_tick_dict[order.vt_symbol]
+            self.rebalance(order.vt_symbol, last_tick.ask_price_1,last_tick.bid_price_1,'strategy1', 'boll')
         
     def update_trade(self, trade: TradeData) -> None:
         if trade.direction == Direction.LONG:
@@ -101,7 +102,8 @@ class Strategy1(StrategyTemplate):
             self.pos_data[trade.vt_symbol] -= trade.volume
             
         if (self.get_pos(trade.vt_symbol) != self.get_target(trade.vt_symbol)) and (self.last_tick_dict[trade.vt_symbol]):
-            self.rebalance(trade.vt_symbol,self.last_tick_dict[trade.vt_symbol])
+            last_tick = self.last_tick_dict[trade.vt_symbol]
+            self.rebalance(trade.vt_symbol,last_tick.ask_price_1,last_tick.bid_price_1, 'strategy1', 'boll')
             
     def on_tick(self, tick: TickData) -> None:
         """行情推送回调"""
@@ -155,15 +157,20 @@ class Strategy1(StrategyTemplate):
         self.boll_up = self.boll_mid + self.boll_dev * std
         self.boll_down = self.boll_mid - self.boll_dev * std
                 
-    def need_to_rebalance(self, tar1, tar2, bars) -> None: 
+    def need_to_rebalance(self, tar1, tar2, bars: dict[str, BarData]) -> None: 
         self.write_log(f"Need to rebalance {tar1}, {tar2}, {self.get_pos(self.leg1_symbol)}, {self.get_pos(self.leg2_symbol)}")
-        if self.get_pos(self.leg1_symbol)!=tar1 or self.get_pos(self.leg2_symbol)!=tar2:
+        if self.get_pos(self.leg1_symbol)!=tar1:
             self.set_target(self.leg1_symbol, tar1)
+            bar = bars.get(self.leg1_symbol, None)
+            self.rebalance(self.leg1_symbol, bar.close_price, bar.close_price, 'strategy1', 'boll')
+            
+        if self.get_pos(self.leg2_symbol)!=tar2:
             self.set_target(self.leg2_symbol, tar2)
-            self.rebalance_portfolio_FAK(bars, 'strategy1', 'boll')
+            bar = bars.get(self.leg2_symbol, None)
+            self.rebalance(self.leg2_symbol, bar.close_price, bar.close_price, 'strategy1', 'boll')
     
     # TODO ideally should be in tick
-    def cal_target_pos(self, current_spread:float, bars) -> None:
+    def cal_target_pos(self, current_spread:float, bars: dict[str, BarData]) -> None:
         leg1_pos = self.get_pos(self.leg1_symbol)
         leg2_pos = self.get_pos(self.leg2_symbol)
         if leg1_pos == 0 and leg2_pos == 0:
@@ -195,62 +202,4 @@ class Strategy1(StrategyTemplate):
 
         return price
 
-    def rebalance(self, vt_symbol: str, tick:TickData) -> None:
-        """基于目标执行调仓交易"""
-        ##@TODO need partial fill logic
-        for oid in self.symbol_to_order_dict[vt_symbol]:
-            if oid in self.orders and self.orders[oid].status == Status.NOTTRADED:
-                self.cancel_order(oid)
-
-        result_list: list = []
-        target: int = self.get_target(vt_symbol)
-        pos: int = self.get_pos(vt_symbol)
-        diff: int = target - pos
-
-        # 多头
-        if diff > 0:
-            order_price: float = self.calculate_price(
-                vt_symbol,
-                Direction.LONG,
-                tick.ask_price_1
-            )
-
-            cover_volume: int = 0
-            buy_volume: int = 0
-
-            if pos < 0:
-                cover_volume = min(diff, abs(pos))
-                buy_volume = diff - cover_volume
-            else:
-                buy_volume = diff
-
-            if cover_volume:
-                result_list = self.cover(vt_symbol, order_price, cover_volume, isFAK=True)
-
-            if buy_volume:
-                result_list = self.buy(vt_symbol, order_price, buy_volume, isFAK=True)
-        # 空头
-        elif diff < 0:
-            order_price: float = self.calculate_price(
-                vt_symbol,
-                Direction.SHORT,
-                tick.bid_price_1
-            )
-
-            sell_volume: int = 0
-            short_volume: int = 0
-
-            if pos > 0:
-                sell_volume = min(abs(diff), pos)
-                short_volume = abs(diff) - sell_volume
-            else:
-                short_volume = abs(diff)
-
-            if sell_volume:
-                result_list = self.sell(vt_symbol, order_price, sell_volume, isFAK=True)
-
-            if short_volume:
-                result_list = self.short(vt_symbol, order_price, short_volume, isFAK=True)
-        
-        if len(result_list) != 0:
-            self.symbol_to_order_dict[vt_symbol].append(result_list[-1])
+    
