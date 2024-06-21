@@ -85,21 +85,6 @@ class SimpleBuyStrategy(StrategyTemplate):
         """策略停止回调"""
         self.write_log("策略停止")
     
-    def exe_FAK(self, tick:TickData, order:OrderData = None) -> tuple:
-        '''return (buy_price, sell_price) tuple'''
-        if order:
-            rej_count = order.rejection_count 
-        else:
-            rej_count = 0
-            
-        if rej_count >=3:
-            raise Exception("FAK seems not able to work")
-        
-        min_tick:float = self.get_pricetick(tick.vt_symbol)
-        bp = tick.ask_price_1 + (rej_count // 2) * min_tick
-        sp = tick.bid_price_1 - (rej_count // 2) * min_tick
-        return (bp,sp)
-        
     def update_order(self, order: OrderData) -> None:
         pre_order_type,pre_order_status = None,None
         if order.vt_orderid in self.orders:
@@ -169,8 +154,7 @@ class SimpleBuyStrategy(StrategyTemplate):
         else:
             self.rebalance(self.leg1_symbol, leg1_bar.close_price, leg1_bar.close_price, 'simple_buy', 'test')
             self.rebalance(self.leg2_symbol, leg2_bar.close_price, leg2_bar.close_price, 'simple_buy', 'test')
-        
-        # not sure whether necessary
+
         self.put_event()
         
 

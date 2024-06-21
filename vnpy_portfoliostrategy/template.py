@@ -228,6 +228,22 @@ class StrategyTemplate(ABC):
         """设置目标仓位"""
         self.target_data[vt_symbol] = target
 
+    def exe_FAK(self, tick:TickData, order:OrderData = None) -> tuple:
+        '''return (buy_price, sell_price) tuple'''
+        if order:
+            rej_count = order.rejection_count 
+        else:
+            rej_count = 0
+            
+        if rej_count >=3:
+            raise Exception("FAK seems not able to work")
+            # In this case it would wait for the next on_bar to send orders
+        
+        min_tick:float = self.get_pricetick(tick.vt_symbol)
+        bp = tick.ask_price_1 + (rej_count // 2) * min_tick
+        sp = tick.bid_price_1 - (rej_count // 2) * min_tick
+        return (bp,sp)
+
     def rebalance(self, vt_symbol: str, buy_price:float, sell_price:float, strategy:str=None, intention:str=None) -> None:
         """基于目标执行调仓交易"""
         ##@TODO need partial fill logic
