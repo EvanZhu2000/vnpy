@@ -125,6 +125,7 @@ class OrderData(BaseData):
     status: Status = Status.SUBMITTING
     datetime: datetime = None
     reference: str = ""
+    rejection_count = 0
 
     def __post_init__(self) -> None:
         """"""

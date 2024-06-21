@@ -84,7 +84,22 @@ class SimpleBuyStrategy(StrategyTemplate):
     def on_stop(self) -> None:
         """策略停止回调"""
         self.write_log("策略停止")
-                    
+    
+    def exe_FAK(self, tick:TickData, order:OrderData = None) -> tuple:
+        '''return (buy_price, sell_price) tuple'''
+        if order:
+            rej_count = order.rejection_count 
+        else:
+            rej_count = 0
+            
+        if rej_count >=3:
+            raise Exception("FAK seems not able to work")
+        
+        min_tick:float = self.get_pricetick(tick.vt_symbol)
+        bp = tick.ask_price_1 + (rej_count // 2) * min_tick
+        sp = tick.bid_price_1 - (rej_count // 2) * min_tick
+        return (bp,sp)
+        
     def update_order(self, order: OrderData) -> None:
         pre_order_type,pre_order_status = None,None
         if order.vt_orderid in self.orders:
@@ -94,20 +109,23 @@ class SimpleBuyStrategy(StrategyTemplate):
         if not order.is_active() and order.vt_orderid in self.active_orderids:
             self.active_orderids.remove(order.vt_orderid)
         
-        self.write_log_trading(f'pre_order_type {pre_order_type}, pre_order_status {pre_order_status}')
-        ##@TODO need multiple rejection counter
         if pre_order_type and pre_order_status and pre_order_type == OrderType.FAK and pre_order_status == Status.SUBMITTING and order.status == Status.CANCELLED and (self.last_tick_dict[order.vt_symbol]):
-            self.write_log_trading('update_order')
             last_tick = self.last_tick_dict[order.vt_symbol]
-            self.rebalance(order.vt_symbol, last_tick.ask_price_1, last_tick.bid_price_1, 'simple_buy', 'test')
+            order.rejection_count += 1
+            try:
+                bp,sp = self.exe_FAK(last_tick, order)
+                self.write_log_trading(f'update_order {last_tick.bid_price_1},{last_tick.ask_price_1},{order.rejection_count}')
+                self.rebalance(order.vt_symbol, bp, sp, 'simple_buy', 'test')
+            except Exception as e:
+                print(e)
         
     def update_trade(self, trade: TradeData) -> None:
-        """成交数据更新"""
         if trade.direction == Direction.LONG:
             self.pos_data[trade.vt_symbol] += trade.volume
         else:
             self.pos_data[trade.vt_symbol] -= trade.volume
-            
+        
+        #TODO this is for partial fill logic
         if (self.get_pos(trade.vt_symbol) != self.get_target(trade.vt_symbol)) and (self.last_tick_dict[trade.vt_symbol]):
             self.write_log_trading(f'update_trade, self.get_pos(trade.vt_symbol){self.get_pos(trade.vt_symbol)}, self.get_target(trade.vt_symbol){self.get_target(trade.vt_symbol)}')
             last_tick = self.last_tick_dict[trade.vt_symbol]
@@ -115,6 +133,7 @@ class SimpleBuyStrategy(StrategyTemplate):
             
     def on_tick(self, tick: TickData) -> None:
         """行情推送回调"""
+        
         if (
             self.last_tick_time
             and self.last_tick_time.minute != tick.datetime.minute
@@ -123,13 +142,14 @@ class SimpleBuyStrategy(StrategyTemplate):
             for vt_symbol, bg in self.bgs.items():
                 bars[vt_symbol] = bg.generate()
             self.on_bars(bars)
+            
+        self.last_tick_time = tick.datetime
+        self.last_tick_dict[tick.vt_symbol] = tick
 
         bg: BarGenerator = self.bgs[tick.vt_symbol]
         bg.update_tick(tick)
 
-        self.last_tick_time = tick.datetime
-        self.pbg.update_tick(tick)
-        self.last_tick_dict[tick.vt_symbol] = tick
+
         
     def on_bars(self, bars: dict[str, BarData]) -> None:
         """K线切片回调"""
@@ -140,21 +160,19 @@ class SimpleBuyStrategy(StrategyTemplate):
 
         self.set_target(self.leg1_symbol, -self.fixed_size)
         self.set_target(self.leg2_symbol, self.fixed_size)
-        # self.rebalance_portfolio_FAK(bars,'simple_buy','test')
-        self.rebalance(self.leg1_symbol, leg1_bar.close_price, leg1_bar.close_price, 'simple_buy', 'test')
-        self.rebalance(self.leg2_symbol, leg2_bar.close_price, leg2_bar.close_price, 'simple_buy', 'test')
+        if self.last_tick_dict[self.leg1_symbol] and self.last_tick_dict[self.leg2_symbol]:
+            self.write_log_trading(f'on_bars {self.last_tick_dict[self.leg1_symbol].bid_price_1},{self.last_tick_dict[self.leg1_symbol].ask_price_1},{leg1_bar.close_price},{self.last_tick_dict[self.leg2_symbol].bid_price_1},{self.last_tick_dict[self.leg2_symbol].ask_price_1},{leg2_bar.close_price}')
+            bp,sp = self.exe_FAK(self.last_tick_dict[self.leg1_symbol])
+            self.rebalance(self.leg1_symbol,bp,sp, 'simple_buy', 'test')
+            bp,sp = self.exe_FAK(self.last_tick_dict[self.leg2_symbol])
+            self.rebalance(self.leg2_symbol,bp,sp, 'simple_buy', 'test')
+        else:
+            self.rebalance(self.leg1_symbol, leg1_bar.close_price, leg1_bar.close_price, 'simple_buy', 'test')
+            self.rebalance(self.leg2_symbol, leg2_bar.close_price, leg2_bar.close_price, 'simple_buy', 'test')
         
         # not sure whether necessary
         self.put_event()
         
 
     def calculate_price(self, vt_symbol: str, direction: Direction, reference: float) -> float:
-        """计算调仓委托价格（支持按需重载实现）"""
-        pricetick: float = self.get_pricetick(vt_symbol)
-
-        if direction == Direction.LONG:
-            price: float = reference + self.tick_add * pricetick
-        else:
-            price: float = reference - self.tick_add * pricetick
-
-        return price
+        return reference
