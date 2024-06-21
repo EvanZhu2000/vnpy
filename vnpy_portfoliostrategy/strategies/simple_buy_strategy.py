@@ -93,7 +93,10 @@ class SimpleBuyStrategy(StrategyTemplate):
 
         if not order.is_active() and order.vt_orderid in self.active_orderids:
             self.active_orderids.remove(order.vt_orderid)
-        
+            
+        if (type(self.strategy_engine) == StrategyEngine):
+            self.strategy_engine.dbservice.update_order_status(order.vt_orderid, order.status)
+             
         if pre_order_type and pre_order_status and pre_order_type == OrderType.FAK and pre_order_status == Status.SUBMITTING and order.status == Status.CANCELLED and (self.last_tick_dict[order.vt_symbol]):
             last_tick = self.last_tick_dict[order.vt_symbol]
             order.rejection_count += 1

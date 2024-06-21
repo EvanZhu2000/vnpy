@@ -16,6 +16,12 @@ class MysqlService():
         self.mycursor.close()
         self.mydb.close()
     
+    def dict_to_string(self,d):
+        result = ""
+        for key, value in d.items():
+            result += f"{key} = '{value}' and "
+        return result.rstrip(" and ")
+        
     def insert(self,table,**kwargs) -> None:
         self.mycursor.execute(f"INSERT INTO `vnpy`.`{table}` "+\
                 "(`" + "`, `".join(kwargs.keys()) + "`)" + \
@@ -23,9 +29,8 @@ class MysqlService():
         self.mydb.commit()
         
     def select(self,table,additional_query,**where) -> pd.DataFrame:
-        def dict_to_string(d):
-            result = ""
-            for key, value in d.items():
-                result += f"{key} = '{value}' and "
-            return result.rstrip(" and ")
-        return pd.read_sql_query(f"SELECT * FROM `vnpy`.`{table}` where {dict_to_string(where)}" + additional_query, self.mydb)
+        return pd.read_sql_query(f"SELECT * FROM `vnpy`.`{table}` where {self.dict_to_string(where)}" + additional_query, self.mydb)
+    
+    def update_order_status(self, vt_orderid, order_status) -> pd.DataFrame:
+        self.mycursor.execute(f"UPDATE`vnpy`.`strategy_order` SET order_status = '{order_status}' where vt_orderid = '{vt_orderid}';")
+        self.mydb.commit()

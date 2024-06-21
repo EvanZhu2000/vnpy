@@ -189,7 +189,8 @@ class StrategyTemplate(ABC):
                                                               pos = pos,
                                                               tar = tar,
                                                               price = price,
-                                                              tif = 'fak'if isFAK else 'day')
+                                                              tif = 'fak'if isFAK else 'day',
+                                                              order_status = Status.SUBMITTING)
 
                 return vt_orderids
             except Exception as e:
@@ -206,7 +207,8 @@ class StrategyTemplate(ABC):
                 self.strategy_engine.dbservice.insert('strategy_order',
                                                       datetime = datetime.strftime(datetime.today(),'%Y-%m-%d %H:%M:%S'),
                                                       vt_orderid = vt_orderid,
-                                                      intention = 'cancel')
+                                                      intention = 'cancel',
+                                                      order_status = Status.SUBMITTING)
         
         except Exception as e:
             self.strategy_engine.write_log(f"Exception when sending order - {e}")
