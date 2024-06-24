@@ -52,17 +52,20 @@ class Strategy1(StrategyTemplate):
         self.leg1_symbol, self.leg2_symbol = vt_symbols
         self.last_tick_dict = {key: None for key in vt_symbols}
         self.symbol_to_order_dict = {self.leg1_symbol:[], self.leg2_symbol:[]}
-        self.samp_am = {self.leg1_symbol:[], self.leg2_symbol:[]}
-
+        self.res_am = np.array([0.0]*self.boll_window)
+        
         def on_bar(bar: BarData):
             """"""
             pass
         
-        self.amss: dict[int, dict] = {}
-        ams: dict[str, ArrayManager] = {}
+        
         for vt_symbol in self.vt_symbols:
             self.bgs[vt_symbol] = BarGenerator(on_bar)
-            for i in range(self.sample_n):
+        
+        self.amss: dict[int, dict] = {}
+        for i in range(self.sample_n):
+            ams: dict[str, ArrayManager] = {}
+            for vt_symbol in self.vt_symbols:
                 ams[vt_symbol] = ArrayManager(size=self.boll_window) 
                 self.amss[i] = ams
         
@@ -150,26 +153,28 @@ class Strategy1(StrategyTemplate):
             self.cal_target_pos(current_spread, bars)
             self.write_log_trading(f'self.boll_mid {self.boll_mid}, self.boll_up {self.boll_up}, self.boll_down {self.boll_down}, current spread {current_spread}')
 
-        # Ideally should be the last minute
         for i in range(self.sample_n):
             if leg1_bar.datetime.hour == 14 and leg1_bar.datetime.minute == 59-i:
-                self.on_win_bars(bars, self.amss[i])
+                am = self.amss[i]
+                am1 = am[self.leg1_symbol]
+                am2 = am[self.leg2_symbol]
+                am1.update_bar(bars[self.leg1_symbol])
+                am2.update_bar(bars[self.leg2_symbol])
+                if (not am1.inited) or (not am2.inited):
+                    return
+                
+                self.res_am += self.amss[i][self.leg1_symbol].close - self.amss[i][self.leg2_symbol].close
+        
+        if leg1_bar.datetime.hour == 14 and leg1_bar.datetime.minute == 59 and len(self.res_am) != 0:
             
-
-    def on_win_bars(self, bars: dict[str, BarData], am: dict[str, ArrayManager]) -> None:
-        am1 = am[self.leg1_symbol]
-        am2 = am[self.leg2_symbol]
-        am1.update_bar(bars[self.leg1_symbol])
-        am2.update_bar(bars[self.leg2_symbol])
-        if (not am1.inited) or (not am2.inited):
-            return
-        
-        self.buf = am1.close - am2.close
-        
-        std = self.buf.std()
-        self.boll_mid = self.buf.mean()
-        self.boll_up = self.boll_mid + self.boll_dev * std
-        self.boll_down = self.boll_mid - self.boll_dev * std
+            self.buf = self.res_am / self.sample_n
+            std = self.buf.std()
+            self.boll_mid = self.buf.mean()
+            self.boll_up = self.boll_mid + self.boll_dev * std
+            self.boll_down = self.boll_mid - self.boll_dev * std
+            
+            self.res_am = np.array([0.0]*self.boll_window)
+            
                 
     def need_to_rebalance(self, tar1, tar2, bars: dict[str, BarData]) -> None: 
         self.write_log_trading(f"Need to rebalance {tar1}, {tar2}, {self.get_pos(self.leg1_symbol)}, {self.get_pos(self.leg2_symbol)}")
