@@ -154,7 +154,7 @@ class Strategy1(StrategyTemplate):
             self.write_log_trading(f'self.boll_mid {self.boll_mid}, self.boll_up {self.boll_up}, self.boll_down {self.boll_down}, current spread {current_spread}')
 
         for i in range(self.sample_n):
-            if leg1_bar.datetime.hour == 14 and leg1_bar.datetime.minute == 59-i:
+            if leg1_bar.datetime.hour == 14 and leg1_bar.datetime.minute == 58-i:
                 am = self.amss[i]
                 am1 = am[self.leg1_symbol]
                 am2 = am[self.leg2_symbol]
@@ -165,7 +165,7 @@ class Strategy1(StrategyTemplate):
                 
                 self.res_am += self.amss[i][self.leg1_symbol].close - self.amss[i][self.leg2_symbol].close
         
-        if leg1_bar.datetime.hour == 14 and leg1_bar.datetime.minute == 59 and len(self.res_am) != 0:
+        if leg1_bar.datetime.hour == 14 and leg1_bar.datetime.minute == 58 and len(self.res_am) != 0:
             
             self.buf = self.res_am / self.sample_n
             std = self.buf.std()
