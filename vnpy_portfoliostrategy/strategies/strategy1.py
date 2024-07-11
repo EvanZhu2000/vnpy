@@ -218,11 +218,11 @@ class Strategy1(StrategyTemplate):
                 tar1, tar2 = 0,0
                 self.need_to_rebalance(tar1, tar2, bars)
         else: #  May need to sync database if otherwise (DANGEROUS)
-            l1 = self.strategy_engine.dbservice.select("strategy_order", "order by date desc limit 1",
+            l1 = self.strategy_engine.dbservice.select("strategy_order", "order by datetime desc limit 1",
                                                    strategy = 'strategy1',
                                                    symbol = self.leg1_symbol,
                                                    order_status = 'Status.ALLTRADED')
-            l2 = self.strategy_engine.dbservice.select("strategy_order", "order by date desc limit 1",
+            l2 = self.strategy_engine.dbservice.select("strategy_order", "order by datetime desc limit 1",
                                                    strategy = 'strategy1',
                                                    symbol = self.leg2_symbol,
                                                    order_status = 'Status.ALLTRADED')
