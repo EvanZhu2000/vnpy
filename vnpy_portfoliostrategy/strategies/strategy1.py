@@ -217,8 +217,21 @@ class Strategy1(StrategyTemplate):
             if current_spread <= self.boll_mid:
                 tar1, tar2 = 0,0
                 self.need_to_rebalance(tar1, tar2, bars)
-        # TODO May need to sync database if otherwise
-                
+        else: #  May need to sync database if otherwise (DANGEROUS)
+            l1 = self.strategy_engine.db_service.select("strategy_order", "order by date desc limit 1",
+                                                   strategy = 'strategy1',
+                                                   symbol = self.leg1_symbol,
+                                                   order_status = 'Status.ALLTRADED')
+            l2 = self.strategy_engine.db_service.select("strategy_order", "order by date desc limit 1",
+                                                   strategy = 'strategy1',
+                                                   symbol = self.leg2_symbol,
+                                                   order_status = 'Status.ALLTRADED')
+            
+            l1_suppose = 0 if l1.shape[0] == 0 else l1['tar'].iloc[0]
+            l2_suppose = 0 if l2.shape[0] == 0 else l2['tar'].iloc[0]
+            self.pos_data[self.leg1_symbol] = l1_suppose
+            self.pos_data[self.leg2_symbol] = l2_suppose  
+            
         
     def calculate_price(self, vt_symbol: str, direction: Direction, reference: float) -> float:
         return reference
