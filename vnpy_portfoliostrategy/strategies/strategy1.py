@@ -199,9 +199,9 @@ class Strategy1(StrategyTemplate):
     
     # TODO ideally should be in tick, using bid-ask instead of close price
     def cal_target_pos(self, current_spread:float, bars: dict[str, BarData]) -> None:
-        self.write_log_trading(f"leg1_pos {leg1_pos}, 'leg2_pos {leg2_pos}, bars {bars}")
         leg1_pos = self.get_pos(self.leg1_symbol)
         leg2_pos = self.get_pos(self.leg2_symbol)
+        self.write_log_trading(f"leg1_pos {leg1_pos}, 'leg2_pos {leg2_pos}, bars {bars}")
         if leg1_pos == 0 and leg2_pos == 0:
             if current_spread >= self.boll_up:
                 tar1,tar2 = -self.fixed_size,self.fixed_size
