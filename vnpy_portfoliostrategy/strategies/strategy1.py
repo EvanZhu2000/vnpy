@@ -81,7 +81,8 @@ class Strategy1(StrategyTemplate):
         """策略启动回调"""
         self.write_log("策略启动")
         self.write_log(f"trading instruments - {self.vt_symbols[0]},{self.vt_symbols[1]}")
-        self.write_log(f"ams close {self.amss[0][self.vt_symbols[0]].close}")
+        self.write_log(f"ams close for leg 1 {self.amss[0][self.vt_symbols[0]].close}")
+        self.write_log(f"ams close for leg 2 {self.amss[0][self.vt_symbols[1]].close}")
         self.put_event()
 
     def on_stop(self) -> None:
@@ -198,6 +199,7 @@ class Strategy1(StrategyTemplate):
     
     # TODO ideally should be in tick, using bid-ask instead of close price
     def cal_target_pos(self, current_spread:float, bars: dict[str, BarData]) -> None:
+        self.write_log_trading(f"leg1_pos {leg1_pos}, 'leg2_pos {leg2_pos}, bars {bars}")
         leg1_pos = self.get_pos(self.leg1_symbol)
         leg2_pos = self.get_pos(self.leg2_symbol)
         if leg1_pos == 0 and leg2_pos == 0:
