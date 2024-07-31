@@ -34,3 +34,13 @@ class MysqlService():
     def update_order_status(self, vt_orderid, order_status) -> pd.DataFrame:
         self.mycursor.execute(f"UPDATE`vnpy`.`strategy_order` SET order_status = '{order_status}' where vt_orderid = '{vt_orderid}';")
         self.mydb.commit()
+
+    def insert_datafeed(self, data):
+        query = "INSERT INTO ('symbol', 'exchange', 'datetime', 'interval', 'volume', 'turnover', 'open_interest', 'open_price', 'high_price', 'low_price', 'close_price') VALUES(%s, %s, %s, %s,%s, %s, %s, %s,%s, %s, %s)"                                                         
+
+        my_data = []
+        for r in data.iterrows():
+            my_data.append(tuple(r[1].values))
+
+        self.mycursor.executemany(query, my_data)
+        self.mydb.commit()
