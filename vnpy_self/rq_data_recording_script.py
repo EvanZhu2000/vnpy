@@ -1,5 +1,5 @@
 
-from vnpy_portfoliostrategy import MysqlService
+from vnpy_portfoliostrategy.mysqlservice import MysqlService
 from vnpy_self.ctp_setting import ctp_setting
 
 from datetime import datetime, time
@@ -43,8 +43,6 @@ def run():
     data = all_instruments(type='Future', market='cn', date=tdy_str)
 
     while True:
-        sleep(60*RECORD_INTERVAL)
-
         trading = check_trading_period()
         if not trading:
             print("Terminate data recording process")
@@ -59,6 +57,8 @@ def run():
             aaa['interval'] = RECORD_FREQ
             aaa = aaa[['symbol', 'exchange', 'datetime', 'interval', 'volume', 'turnover', 'open_interest', 'open_price', 'high_price', 'low_price', 'close_price']]
             sqlservice.insert_datafeed(aaa)
+
+        sleep(60*RECORD_INTERVAL)
 
 if __name__ == "__main__":
     run()
