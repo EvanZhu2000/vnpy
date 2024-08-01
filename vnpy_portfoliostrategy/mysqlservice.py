@@ -36,6 +36,6 @@ class MysqlService():
         self.mydb.commit()
 
     def insert_datafeed(self, data, ignore=False):
-        query = f"INSERT {"IGNORE" if ignore else ""} INTO `vnpy`.`dbbardata` (`symbol`, `exchange`, `datetime`, `interval`, `volume`, `turnover`, `open_interest`, `open_price`, `high_price`, `low_price`, `close_price`) VALUES(%s, %s, %s, %s,%s, %s, %s, %s,%s, %s, %s);"                                                         
+        query = f"INSERT {'IGNORE' if ignore else ''} INTO `vnpy`.`dbbardata` (`symbol`, `exchange`, `datetime`, `interval`, `volume`, `turnover`, `open_interest`, `open_price`, `high_price`, `low_price`, `close_price`) VALUES(%s, %s, %s, %s,%s, %s, %s, %s,%s, %s, %s);"                                                         
         self.mycursor.executemany(query, list(map(tuple, data.values)))
         self.mydb.commit()
