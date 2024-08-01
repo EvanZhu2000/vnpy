@@ -8,7 +8,6 @@ from vnpy_datarecorder.engine import  EVENT_RECORDER_LOG
 from vnpy_ctp import CtpGateway
 from vnpy_self.ctp_setting import ctp_setting
 
-from vnpy_rqdata import *
 
 from datetime import datetime, time
 import sys
