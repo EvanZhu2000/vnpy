@@ -36,11 +36,6 @@ class MysqlService():
         self.mydb.commit()
 
     def insert_datafeed(self, data):
-        query = "INSERT INTO ('symbol', 'exchange', 'datetime', 'interval', 'volume', 'turnover', 'open_interest', 'open_price', 'high_price', 'low_price', 'close_price') VALUES(%s, %s, %s, %s,%s, %s, %s, %s,%s, %s, %s)"                                                         
-
-        my_data = []
-        for r in data.iterrows():
-            my_data.append(tuple(r[1].values))
-
-        self.mycursor.executemany(query, my_data)
+        query = "INSERT IGNORE INTO (`symbol`, `exchange`, `datetime`, `interval`, `volume`, `turnover`, `open_interest`, `open_price`, `high_price`, `low_price`, `close_price`) VALUES(%s, %s, %s, %s,%s, %s, %s, %s,%s, %s, %s)"                                                         
+        self.mycursor.executemany(query, list(map(tuple, data.values)))
         self.mydb.commit()
