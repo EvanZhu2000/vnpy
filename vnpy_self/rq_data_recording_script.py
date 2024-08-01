@@ -46,6 +46,16 @@ def run():
         trading = check_trading_period()
         if not trading:
             print("Terminate data recording process")
+            info = get_price(data['order_book_id'].loc[(data['order_book_id'].str.contains('99') == False) &
+                    (data['order_book_id'].str.contains('88') == False)].dropna().unique().tolist(), 
+                    start_date = tdy_str, 
+                    end_date   = tdy_str, 
+                    frequency=RECORD_FREQ)
+            aaa = info.reset_index().set_index('order_book_id').join(data[['order_book_id', 'exchange','trading_code']].set_index('order_book_id')).reset_index().drop(['order_book_id'],axis=1).rename(columns={"total_turnover": "turnover", "open":"open_price","low":"low_price","high":"high_price","close":"close_price","trading_code":"symbol"})
+            aaa['interval'] = RECORD_FREQ
+            aaa = aaa[['symbol', 'exchange', 'datetime', 'interval', 'volume', 'turnover', 'open_interest', 'open_price', 'high_price', 'low_price', 'close_price']]
+            sqlservice.insert_datafeed(aaa, ignore=True)
+            
             sqlservice.close()
         else:
             info = get_price(data['order_book_id'].loc[(data['order_book_id'].str.contains('99') == False) &
@@ -53,7 +63,7 @@ def run():
                     start_date = tdy_str, 
                     end_date   = tdy_str, 
                     frequency=RECORD_FREQ)
-            aaa = info.swaplevel().sort_index().loc[info.swaplevel().sort_index().index.levels[0][-(RECORD_INTERVAL*2):]].reset_index().set_index('order_book_id').join(data[['order_book_id', 'exchange','trading_code']].set_index('order_book_id')).reset_index().drop(['order_book_id'],axis=1).rename(columns={"total_turnover": "turnover", "open":"open_price","low":"low_price","high":"high_price","close":"close_price","trading_code":"symbol"})
+            aaa = info.swaplevel().sort_index().loc[info.swaplevel().sort_index().index.levels[0][-(RECORD_INTERVAL):]].reset_index().set_index('order_book_id').join(data[['order_book_id', 'exchange','trading_code']].set_index('order_book_id')).reset_index().drop(['order_book_id'],axis=1).rename(columns={"total_turnover": "turnover", "open":"open_price","low":"low_price","high":"high_price","close":"close_price","trading_code":"symbol"})
             aaa['interval'] = RECORD_FREQ
             aaa = aaa[['symbol', 'exchange', 'datetime', 'interval', 'volume', 'turnover', 'open_interest', 'open_price', 'high_price', 'low_price', 'close_price']]
             sqlservice.insert_datafeed(aaa)

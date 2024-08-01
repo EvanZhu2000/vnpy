@@ -35,7 +35,7 @@ class MysqlService():
         self.mycursor.execute(f"UPDATE`vnpy`.`strategy_order` SET order_status = '{order_status}' where vt_orderid = '{vt_orderid}';")
         self.mydb.commit()
 
-    def insert_datafeed(self, data):
-        query = "INSERT IGNORE INTO `vnpy`.`dbbardata` (`symbol`, `exchange`, `datetime`, `interval`, `volume`, `turnover`, `open_interest`, `open_price`, `high_price`, `low_price`, `close_price`) VALUES(%s, %s, %s, %s,%s, %s, %s, %s,%s, %s, %s);"                                                         
+    def insert_datafeed(self, data, ignore=False):
+        query = f"INSERT {"IGNORE" if ignore else ""} INTO `vnpy`.`dbbardata` (`symbol`, `exchange`, `datetime`, `interval`, `volume`, `turnover`, `open_interest`, `open_price`, `high_price`, `low_price`, `close_price`) VALUES(%s, %s, %s, %s,%s, %s, %s, %s,%s, %s, %s);"                                                         
         self.mycursor.executemany(query, list(map(tuple, data.values)))
         self.mydb.commit()
