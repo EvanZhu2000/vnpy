@@ -31,6 +31,10 @@ class Strategy1(StrategyTemplate):
     boll_window =  10
     boll_dev = 2
 
+    # very stupid to be honest
+    hour_end = 14
+    minute_end = 59
+
     parameters = [
         "boll_window",
         "boll_dev",
@@ -83,6 +87,9 @@ class Strategy1(StrategyTemplate):
         self.write_log(f"trading instruments - {self.vt_symbols[0]},{self.vt_symbols[1]}")
         self.write_log(f"ams close for leg 1 {self.amss[0][self.vt_symbols[0]].close}")
         self.write_log(f"ams close for leg 2 {self.amss[0][self.vt_symbols[1]].close}")
+        if (0 in self.amss[0][self.vt_symbols[0]].close) or (0 in self.amss[0][self.vt_symbols[0]].close):
+            self.write_log('strategy stop because cannot load enough data to start the strategy')
+            self.on_stop()
         self.put_event()
 
     def on_stop(self) -> None:
@@ -155,7 +162,7 @@ class Strategy1(StrategyTemplate):
             self.write_log_trading(f'self.boll_mid {self.boll_mid}, self.boll_up {self.boll_up}, self.boll_down {self.boll_down}, current spread {current_spread}')
 
         for i in range(self.sample_n):
-            if leg1_bar.datetime.hour == 14 and leg1_bar.datetime.minute == 58-i:
+            if leg1_bar.datetime.hour == self.hour_end and leg1_bar.datetime.minute == self.minute_end-i:
                 am = self.amss[i]
                 am1 = am[self.leg1_symbol]
                 am2 = am[self.leg2_symbol]
@@ -166,7 +173,7 @@ class Strategy1(StrategyTemplate):
                 
                 self.res_am += self.amss[i][self.leg1_symbol].close - self.amss[i][self.leg2_symbol].close
         
-        if leg1_bar.datetime.hour == 14 and leg1_bar.datetime.minute == 58 and len(self.res_am) != 0:
+        if leg1_bar.datetime.hour == self.hour_end and leg1_bar.datetime.minute == self.minute_end and len(self.res_am) != 0:
             
             self.buf = self.res_am / self.sample_n
             std = self.buf.std()
