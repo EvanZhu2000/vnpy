@@ -1,5 +1,5 @@
 db_setting = {
-    'host':"127.0.0.1",
-    'user': "root",
-    'password': "evan@cash1q2"
+    'host':"192.168.91.124",
+    'user': "evan",
+    'password': "Evan@cash1q2"
 }

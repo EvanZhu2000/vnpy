@@ -58,3 +58,57 @@ CREATE TABLE `vnpy`.`strategy_order` (
   `order_status` varchar(255) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+
+CREATE TABLE `vnpy`.`trading_hours` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `date` date NOT NULL,
+  `rqsymbol` varchar(255) NOT NULL,
+  `symbol` varchar(255) NOT NULL,
+  `trading_hours` varchar(255) DEFAULT '',
+  `timezone` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+
+CREATE TABLE `vnpy`.`universe` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `date` date NOT NULL,
+  `root_symbol` varchar(255) NOT NULL,
+  `multiplier` double NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+
+-- This is for self-maintanance
+-- CREATE TABLE `vnpy`.`exchange_times` (
+--   `id` int NOT NULL AUTO_INCREMENT,
+--   `exchange` varchar(255) NOT NULL,
+--   `symbol` varchar(255) NOT NULL,
+--   `mon_open_auctions` varchar(255) DEFAULT '',
+--   `mon_cont_trading` varchar(255)  DEFAULT '',
+--   `tue_open_auctions` varchar(255) DEFAULT '',
+--   `tue_cont_trading` varchar(255)  DEFAULT '',
+--   `wed_open_auctions` varchar(255) DEFAULT '',
+--   `wed_cont_trading` varchar(255)  DEFAULT '',
+--   `thu_open_auctions` varchar(255) DEFAULT '',
+--   `thu_cont_trading` varchar(255)  DEFAULT '',
+--   `fri_open_auctions` varchar(255) DEFAULT '',
+--   `fri_cont_trading` varchar(255)  DEFAULT '',
+--   `sat_open_auctions` varchar(255) DEFAULT '',
+--   `sat_cont_trading` varchar(255)  DEFAULT '',
+--   `sun_open_auctions` varchar(255) DEFAULT '',
+--   `sun_cont_trading` varchar(255)  DEFAULT '',
+--   `timezone` varchar(255) NOT NULL,
+--   PRIMARY KEY (`id`)
+-- ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+
+-- This is for self-maintanance
+-- CREATE TABLE `vnpy`.`holiday` (
+--   `id` int NOT NULL AUTO_INCREMENT,
+--   `exchange` varchar(255) NOT NULL,
+--   `symbol` varchar(255) NOT NULL,
+--   `pause_types` varchar(255) NOT NULL,
+--   PRIMARY KEY (`id`)
+-- ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
