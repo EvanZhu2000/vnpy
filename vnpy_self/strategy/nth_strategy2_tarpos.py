@@ -10,9 +10,47 @@ mysqlservice = MysqlService()
 today_date = datetime.today()
 
 def retrieve_price(trading_list):
+    def get_clean_day_data(df,total_turnover_thres = 1e+8, open_interest_thres = 1000, volume_thres = 1000):
+        df = df.copy()
+        data = df.query(f"total_turnover>{total_turnover_thres} & open_interest>{open_interest_thres} & volume>{volume_thres}").reindex(df.index)
+
+        data = data.unstack().stack(dropna=False)
+
+        data_close = data['close'].unstack().T
+
+        data_close = data_close.where(data_close[::-1].isna().cumsum()==0, np.nan)
+
+        data.loc[data_close.T.stack(dropna=False).isna()] = np.nan
+
+        data.dropna(inplace=True)
+        data = data.sort_index()
+
+        # calculation changes after 20200101 for some instruments
+        if 'total_turnover' in data.columns:
+            data.loc[(list(set(data.index.get_level_values(0).unique())-set(['IF','IH','IC','IM','T','TS','TF','TL'])),
+                slice(df.index.get_level_values(1).min(),pd.Timestamp('20200101'))),
+                ['volume','total_turnover','open_interest']] /= 2
+        else:
+            data.loc[(list(set(data.index.get_level_values(0).unique())-set(['IF','IH','IC','IM','T','TS','TF','TL'])),
+                slice(df.index.get_level_values(1).min(),pd.Timestamp('20200101'))),
+                ['volume','open_interest']] /= 2
+        
+        return data
+    
     _start = price_start
     _end = today_date.strftime('%Y%m%d')
-    pr = get_price(trading_list, _start, _end, '1d')
+
+    data_raw = get_price((pd.Series(trading_list) + '888').tolist(), _start, _end, '1d')
+    data_raw.set_index([data_raw.reset_index()['order_book_id'].str[:-3],data_raw.reset_index()['date']], inplace=True)
+    data_1d = get_clean_day_data(data_raw)
+
+    data_raw = get_price((pd.Series(trading_list) + '88').tolist(), _start, _end, '1d')
+    data_raw.set_index([data_raw.reset_index()['order_book_id'].str[:-3],data_raw.reset_index()['date']], inplace=True)
+    data_1d_ori = get_clean_day_data(data_raw)
+
+    pro = data_1d['open'].unstack().T
+    pr88 = data_1d_ori['close'].unstack().T
+    return pro, pr88
 
 
 def get_stats(trading_list, lookback_win_days):
@@ -124,13 +162,10 @@ if __name__ == "__main__":
 
     lookback_win_days = 60
     price_start = pd.Timestamp('20240601')
-
-    # 1. get potential trading list
-    set1 = {'IF','IH','IC','IM','T','TS','TF','TL'}
-    set2 = {'AG','AU','SC','EC','CU'}
-    to_drop_list = list(set1|set2)
-    potential_trading_list = []
-    trading_list = potential_trading_list.drop(to_drop_list)
+    initial_capital = float(mysqlservice.select('strategies','order by date desc',strategy = 'strategy2').iloc[0]['cash'])
+    mul_mappings = mysqlservice.select('universe')
+    trading_list = (pd.Series(mysqlservice.select('trading_schedule', '', 
+                                                  date = today_date.strftime('%Y-%m-%d'), strateg='strategy2').iloc[0]['symbol'].split(',')).str[:-4]).tolist()
 
     # 2. get stats
     l_df_everyday,s_df_everyday,l_df_delta_everyday,s_df_delta_everyday,l_dom_everyday,s_dom_everyday,l_dom_delta_everyday,\
@@ -164,11 +199,15 @@ if __name__ == "__main__":
                             pro, 
                             pr88, 
                             mul_mappings,
+                            initial_capital,
                             mul_method = (price_start,pd.Timestamp('20240701')),
                             exec_delay=1,toRound=True))
     balancing_list = result_list[0][0].iloc[-1]
 
     # 4. insert balancing_list into database
+    mysqlservice.insert("daily_rebalance_target", date=get_next_trading_date(today_date),
+        symbol = trading_list, target = ','.join(balancing_list))
+    mysqlservice.close()
 
 
 

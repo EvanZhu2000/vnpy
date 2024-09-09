@@ -73,11 +73,30 @@ CREATE TABLE `vnpy`.`trading_hours` (
 
 CREATE TABLE `vnpy`.`universe` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `date` date NOT NULL,
   `root_symbol` varchar(255) NOT NULL,
   `multiplier` double NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `vnpy`.`daily_rebalance_target` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `date` date NOT NULL,
+  `symbol` varchar(255) NOT NULL,
+  `target` double NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+
+CREATE TABLE `vnpy`.`strategies` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `date` date NOT NULL,
+  `strategy` varchar(255) NOT NULL,
+  `cash` double NOT NULL,
+  `leverage` double NOT NULL,
+  `status` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 
 
 -- This is for self-maintanance
@@ -112,3 +131,90 @@ CREATE TABLE `vnpy`.`universe` (
 --   `pause_types` varchar(255) NOT NULL,
 --   PRIMARY KEY (`id`)
 -- ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+
+
+-------------------------
+----- Now the insert part
+-------------------------
+
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('A', '10');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('AG', '15.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('AL', '5.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('AO', '20.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('AP', '10.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('AU', '1000.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('B', '10.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('BB', '500.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('BC', '5.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('BR', '5.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('BU', '10.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('C', '10.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('CF', '5.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('CJ', '5.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('CS', '10.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('CU', '5.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('CY', '5.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('EB', '5.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('EC', '50.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('EG', '10.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('FB', '10.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('FG', '20.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('FU', '10.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('HC', '10.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('I', '100.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('IC', '200.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('IF', '300.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('IH', '300.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('IM', '200.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('J', '100.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('JD', '10.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('JM', '60.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('JR', '20.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('L', '5.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('LC', '1.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('LH', '16.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('LR', '20.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('LU', '10.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('M', '10.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('MA', '10.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('NI', '1.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('NR', '10.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('OI', '10.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('P', '10.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('PB', '5.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('PF', '5.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('PG', '20.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('PK', '5.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('PM', '50.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('PP', '5.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('PR', '15.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('PX', '5.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('RB', '10.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('RI', '20.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('RM', '10.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('RR', '10.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('RS', '10.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('RU', '10.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('SA', '20.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('SC', '1000.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('SF', '5.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('SH', '30.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('SI', '5.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('SM', '5.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('SN', '1.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('SP', '10.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('SR', '10.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('SS', '5.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('T', '10000.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('TA', '5.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('TF', '10000.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('TL', '10000.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('TS', '20000.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('UR', '20.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('V', '5.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('WH', '20.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('WR', '10.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('Y', '10.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('ZC', '100.0');
+INSERT INTO `vnpy`.`universe` (`root_symbol`, `multiplier`) VALUES ('ZN', '5.0');
