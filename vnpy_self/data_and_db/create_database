@@ -38,7 +38,7 @@ CREATE TABLE `vnpy`.`dbbaroverview` (
 CREATE TABLE `vnpy`.`trading_schedule` (
   `id` int NOT NULL AUTO_INCREMENT,
   `date` date NOT NULL,
-  `symbol` varchar(255) NOT NULL,
+  `symbol` varchar(2047) NOT NULL,
   `strategy` varchar(255) NOT NULL,
   `sc_symbol` varchar(255) NOT NULL,
   PRIMARY KEY (`id`)
