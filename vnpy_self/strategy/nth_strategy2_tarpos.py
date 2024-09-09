@@ -165,7 +165,7 @@ if __name__ == "__main__":
     initial_capital = float(mysqlservice.select('strategies','order by date desc',strategy = 'strategy2').iloc[0]['cash'])
     mul_mappings = mysqlservice.select('universe')
     trading_list = (pd.Series(mysqlservice.select('trading_schedule', '', 
-                                                  date = today_date.strftime('%Y-%m-%d'), strateg='strategy2').iloc[0]['symbol'].split(','))).tolist()
+                                                  date = today_date.strftime('%Y-%m-%d'), strateg='strategy2').iloc[0]['symbol'].split(',')).str[:-4]).tolist()
 
     # 2. get stats
     l_df_everyday,s_df_everyday,l_df_delta_everyday,s_df_delta_everyday,l_dom_everyday,s_dom_everyday,l_dom_delta_everyday,\
