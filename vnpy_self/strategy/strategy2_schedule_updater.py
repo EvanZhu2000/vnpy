@@ -18,5 +18,5 @@ if __name__ == "__main__":
     df = mysqlservice.select('trading_schedule', 'order by date desc', strategy='dom').iloc[0]
     potential_trading_series = pd.Series(df['symbol'].split(',')).str.split('.').str[0]
     trading_list = potential_trading_series.loc[~potential_trading_series.str[:-4].isin(to_drop_list)].values
-    mysqlservice.insert('trading_schedule',date = df['date'], symbol = ','.join(trading_list), strategy='strategy2', sc_symbol='dom')
+    mysqlservice.insert('trading_schedule',ignore=True,date = df['date'], symbol = ','.join(trading_list), strategy='strategy2', sc_symbol='dom')
     mysqlservice.close()

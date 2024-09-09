@@ -22,8 +22,8 @@ class MysqlService():
             result += f"{key} = '{value}' and "
         return result.rstrip(" and ")
         
-    def insert(self,table,**kwargs) -> None:
-        self.mycursor.execute(f"INSERT INTO `vnpy`.`{table}` "+\
+    def insert(self,table,ignore=False,**kwargs) -> None:
+        self.mycursor.execute(f"INSERT {'IGNORE' if ignore else ''} INTO `vnpy`.`{table}` "+\
                 "(`" + "`, `".join(kwargs.keys()) + "`)" + \
                 "VALUES" + "('"+ "', '".join(map(str,kwargs.values())) + "');")
         self.mydb.commit()
