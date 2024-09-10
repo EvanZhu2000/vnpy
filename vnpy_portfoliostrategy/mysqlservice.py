@@ -28,7 +28,7 @@ class MysqlService():
                 "VALUES" + "('"+ "', '".join(map(str,kwargs.values())) + "');")
         self.mydb.commit()
         
-    def select(self,table,additional_query,**where) -> pd.DataFrame:
+    def select(self,table,additional_query='',**where) -> pd.DataFrame:
         return pd.read_sql_query(f"SELECT * FROM `vnpy`.`{table}` where {self.dict_to_string(where)}" + additional_query, self.mydb)
     
     def update_order_status(self, vt_orderid, order_status) -> pd.DataFrame:

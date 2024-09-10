@@ -49,5 +49,9 @@ git merge origin/master --strategy-option=theirs --allow-unrelated-histories
 6. Install MISC
 akshare
 
+Also those within pt_tools
+statsmodels
+scikit-learn
+
 7. For service file
 need to add User= to specify user

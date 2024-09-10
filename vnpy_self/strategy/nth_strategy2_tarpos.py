@@ -163,9 +163,10 @@ if __name__ == "__main__":
 
     lookback_win_days = 60
     price_start = pd.Timestamp('20240601')
-    initial_capital = float(mysqlservice.select('strategies','order by date desc',strategy = 'strategy2').iloc[0]['cash'])
+    tmp = mysqlservice.select('strategies','order by date desc',strategy = 'strategy2',status='on').iloc[0]
+    initial_capital = float(tmp['cash']) * float(tmp['leverage'])
     mul_mappings = mysqlservice.select('universe')
-    trading_list = (pd.Series(mysqlservice.select('trading_schedule', '', 
+    trading_list = (pd.Series(mysqlservice.select('trading_schedule', 
                                                   date = today_date.strftime('%Y-%m-%d'), strateg='strategy2').iloc[0]['symbol'].split(',')).str[:-4]).tolist()
 
     # 2. get stats
