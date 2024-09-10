@@ -29,7 +29,7 @@ class MysqlService():
         self.mydb.commit()
         
     def select(self,table,additional_query='',**where) -> pd.DataFrame:
-        return pd.read_sql_query(f"SELECT * FROM `vnpy`.`{table}` where {self.dict_to_string(where)}" + additional_query, self.mydb)
+        return pd.read_sql_query(f"SELECT * FROM `vnpy`.`{table}` {'where' if len(where)>0 else ''} {self.dict_to_string(where)}" + additional_query, self.mydb)
     
     def update_order_status(self, vt_orderid, order_status) -> pd.DataFrame:
         self.mycursor.execute(f"UPDATE`vnpy`.`strategy_order` SET order_status = '{order_status}' where vt_orderid = '{vt_orderid}';")
