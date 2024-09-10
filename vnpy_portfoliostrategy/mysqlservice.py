@@ -1,14 +1,14 @@
 import pandas as pd
 import mysql.connector
-from vnpy.trader.setting import SETTINGS
+from vnpy_self.data_and_db.db_setting import db_setting
 
 class MysqlService():
     
     def __init__(self) -> None:
         self.mydb = mydb = mysql.connector.connect(
-            host = SETTINGS["database.host"],
-            user = SETTINGS["database.user"],
-            password = SETTINGS["database.password"]
+                host= db_setting['host'],
+                user= db_setting['user'],
+                password= db_setting['password']
             )
         self.mycursor = mydb.cursor()
         
