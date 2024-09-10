@@ -163,11 +163,19 @@ if __name__ == "__main__":
 
     lookback_win_days = 60
     price_start = pd.Timestamp('20240601')
-    tmp = mysqlservice.select('strategies','order by date desc',strategy = 'strategy2',status='on').iloc[0]
-    initial_capital = float(tmp['cash']) * float(tmp['leverage'])
     mul_mappings = mysqlservice.select('universe')
-    trading_list = (pd.Series(mysqlservice.select('trading_schedule', 
-                                                  date = today_date.strftime('%Y-%m-%d'), strategy='strategy2').iloc[0]['symbol'].split(',')).str[:-4]).tolist()
+
+    tmp1 = mysqlservice.select('strategies','order by date desc',strategy = 'strategy2',status='on')
+    if tmp1.shape[0]!=1:
+        raise Exception('Wrong vnpy.strategies table for today!')
+    initial_capital = float(tmp1['cash']) * float(tmp1['leverage'])
+
+    tmp2 = mysqlservice.select('trading_schedule', today = today_date.strftime('%Y-%m-%d'), strategy='strategy2')
+    if tmp2.shape[0]!=1:
+        raise Exception('Wrong vnpy.trading_schedule table for today!')
+    if tmp1['date']!=tmp2['date']:
+        raise Exception('Unmatching dates for vnpy.strategies & vnpy.trading_schedule')
+    trading_list = (pd.Series(tmp2['symbol'].split(',')).str[:-4]).tolist()
 
     # 2. get stats
     l_df_everyday,s_df_everyday,l_df_delta_everyday,s_df_delta_everyday,l_dom_everyday,s_dom_everyday,l_dom_delta_everyday,\

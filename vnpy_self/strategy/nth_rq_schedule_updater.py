@@ -43,8 +43,8 @@ if __name__ == "__main__":
 
     next_trading_day_dom_list = symbol_rq2vnpy(rq_next_trading_day_dom_list)
     next_trading_day_dom2_list = symbol_rq2vnpy(rq_next_trading_day_dom2_list)
-    mysqlservice.insert('trading_schedule', ignore=True, date = next_trading_day, symbol = ','.join(rq_next_trading_day_dom_list), strategy = 'dom', sc_symbol = 'rq_dom')
-    mysqlservice.insert('trading_schedule', ignore=True, date = next_trading_day, symbol = ','.join(rq_next_trading_day_dom2_list), strategy = 'dom2', sc_symbol = 'rq_dom2')
+    mysqlservice.insert('trading_schedule', ignore=True, today = today_str, date = next_trading_day, symbol = ','.join(rq_next_trading_day_dom_list), strategy = 'dom', sc_symbol = 'rq_dom')
+    mysqlservice.insert('trading_schedule', ignore=True, today = today_str, date = next_trading_day, symbol = ','.join(rq_next_trading_day_dom2_list), strategy = 'dom2', sc_symbol = 'rq_dom2')
     
     for i in range(len(next_trading_day_dom_list)):
         symb = next_trading_day_dom_list[i]
