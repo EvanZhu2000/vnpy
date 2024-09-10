@@ -58,7 +58,7 @@ def get_stats(trading_list, lookback_win_days):
     l_df_everyday,s_df_everyday,l_df_delta_everyday,s_df_delta_everyday,l_dom_everyday,s_dom_everyday,l_dom_delta_everyday,s_dom_delta_everyday,l_dom2_everyday,s_dom2_everyday,l_dom2_delta_everyday,s_dom2_delta_everyday= [pd.DataFrame()]*12
 
     for symb in tqdm(trading_list):
-        _start = (today_date-pd.Timedelta(days==lookback_win_days)).strftime('%Y%m%d')
+        _start = (today_date-pd.Timedelta(lookback_win_days,'d')).strftime('%Y%m%d')
         _end = today_date.strftime('%Y%m%d')
         pr_df = get_price(f"{symb}888", _start,_end,'1d')
 
