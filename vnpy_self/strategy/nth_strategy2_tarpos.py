@@ -7,7 +7,8 @@ from vnpy_self.pt_tools import *
 from vnpy_portfoliostrategy.mysqlservice import MysqlService
 mysqlservice = MysqlService()
 
-today_date = datetime.today()
+# today_date = datetime.today()
+today_date = datetime(2024, 9, 9)
 
 def retrieve_price(trading_list):
     def get_clean_day_data(df,total_turnover_thres = 1e+8, open_interest_thres = 1000, volume_thres = 1000):
