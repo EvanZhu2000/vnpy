@@ -168,58 +168,56 @@ if __name__ == "__main__":
     tmp1 = mysqlservice.select('strategies','order by date desc',strategy = 'strategy2',status='on')
     if tmp1.shape[0]!=1:
         raise Exception('Wrong vnpy.strategies table for today!')
-    initial_capital = float(tmp1['cash']) * float(tmp1['leverage'])
+    initial_capital = float(tmp1['cash'][0]) * float(tmp1['leverage'][0])
 
     tmp2 = mysqlservice.select('trading_schedule', today = today_date.strftime('%Y-%m-%d'), strategy='strategy2')
     if tmp2.shape[0]!=1:
         raise Exception('Wrong vnpy.trading_schedule table for today!')
-    if tmp1['date']!=tmp2['date']:
+    if tmp1['date'][0]!=tmp2['date'][0]:
         raise Exception('Unmatching dates for vnpy.strategies & vnpy.trading_schedule')
-    trading_list = (pd.Series(tmp2['symbol'].split(',')).str[:-4]).tolist()
+    trading_list = (pd.Series(tmp2['symbol'][0].split(',')).str[:-4]).tolist()
+    print(initial_capital)
+    print(mul_mappings)
+    print(trading_list)
 
-    # 2. get stats
-    l_df_everyday,s_df_everyday,l_df_delta_everyday,s_df_delta_everyday,l_dom_everyday,s_dom_everyday,l_dom_delta_everyday,\
-        s_dom_delta_everyday,l_dom2_everyday,s_dom2_everyday,l_dom2_delta_everyday,s_dom2_delta_everyday = get_stats(trading_list, lookback_win_days)
-    pro,pr88 = retrieve_price(trading_list)
+    # # 2. get stats
+    # l_df_everyday,s_df_everyday,l_df_delta_everyday,s_df_delta_everyday,l_dom_everyday,s_dom_everyday,l_dom_delta_everyday,\
+    #     s_dom_delta_everyday,l_dom2_everyday,s_dom2_everyday,l_dom2_delta_everyday,s_dom2_delta_everyday = get_stats(trading_list, lookback_win_days)
+    # pro,pr88 = retrieve_price(trading_list)
 
-    # 3. calculate signals
-    xx = {
-        '(-s_df.loc[:, symb,:]).diff().mean(1)':(1,20,5)
-        ,'(-l_df.loc[:, symb,:]).diff().mean(1)':(1.4,20,5)
-        ,'(-l_df.loc[:, symb,:]-s_df.loc[:, symb,:]).diff().mean(1)':(1.4,20,5)
-        ,'(l_df.loc[:, symb,:]-s_df.loc[:, symb,:]).mean(1)':(1,20,5)
-        ,'(l_df_delta.loc[:, symb,:]-s_df_delta.loc[:, symb,:]).mean(1)':(0.6,20,20)  
-        ,'(-s_dom.loc[:, symb,:]).diff().mean(1)':(0.6,20,5)
-        ,'(-l_dom.loc[:, symb,:]).diff().mean(1)':(1.4,5,20)
-        ,'(-l_dom.loc[:, symb,:]-s_dom.loc[:, symb,:]).diff().mean(1)':(1,5,5)  
-        ,'(l_dom.loc[:, symb,:]-s_dom.loc[:, symb,:]).mean(1)':(0.2,20,20)
-        ,'(l_dom_delta.loc[:, symb,:]-s_dom_delta.loc[:, symb,:]).mean(1)':(0.2,20,10)
-    }
+    # # 3. calculate signals
+    # xx = {
+    #     '(-s_df.loc[:, symb,:]).diff().mean(1)':(1,20,5)
+    #     ,'(-l_df.loc[:, symb,:]).diff().mean(1)':(1.4,20,5)
+    #     ,'(-l_df.loc[:, symb,:]-s_df.loc[:, symb,:]).diff().mean(1)':(1.4,20,5)
+    #     ,'(l_df.loc[:, symb,:]-s_df.loc[:, symb,:]).mean(1)':(1,20,5)
+    #     ,'(l_df_delta.loc[:, symb,:]-s_df_delta.loc[:, symb,:]).mean(1)':(0.6,20,20)  
+    #     ,'(-s_dom.loc[:, symb,:]).diff().mean(1)':(0.6,20,5)
+    #     ,'(-l_dom.loc[:, symb,:]).diff().mean(1)':(1.4,5,20)
+    #     ,'(-l_dom.loc[:, symb,:]-s_dom.loc[:, symb,:]).diff().mean(1)':(1,5,5)  
+    #     ,'(l_dom.loc[:, symb,:]-s_dom.loc[:, symb,:]).mean(1)':(0.2,20,20)
+    #     ,'(l_dom_delta.loc[:, symb,:]-s_dom_delta.loc[:, symb,:]).mean(1)':(0.2,20,10)
+    # }
 
-    stat_list, result_list = [],[]
-    for k,v in xx.items():
-        stat = pd.DataFrame()
-        for symb in tqdm(trading_list):
-            if symb in l_df_everyday.index.get_level_values('symb').unique():
-                stat = pd.concat([stat,eval(k).rename(symb)],1)   
+    # stat_list, result_list = [],[]
+    # for k,v in xx.items():
+    #     stat = pd.DataFrame()
+    #     for symb in tqdm(trading_list):
+    #         if symb in l_df_everyday.index.get_level_values('symb').unique():
+    #             stat = pd.concat([stat,eval(k).rename(symb)],1)   
 
-        stat.index = pd.to_datetime(stat.index)
-        stat_list.append(stat)
-        result_list.append( bt_all(-settings_all([bband_para(stat,*v)]),
-                            pro, 
-                            pr88, 
-                            mul_mappings,
-                            initial_capital,
-                            mul_method = (price_start,pd.Timestamp('20240701')),
-                            exec_delay=1,toRound=True))
-    balancing_list = result_list[0][0].iloc[-1]
+    #     stat.index = pd.to_datetime(stat.index)
+    #     stat_list.append(stat)
+    #     result_list.append( bt_all(-settings_all([bband_para(stat,*v)]),
+    #                         pro, 
+    #                         pr88, 
+    #                         mul_mappings,
+    #                         initial_capital,
+    #                         mul_method = (price_start,pd.Timestamp('20240701')),
+    #                         exec_delay=1,toRound=True))
+    # balancing_list = result_list[0][0].iloc[-1]
 
-    # 4. insert balancing_list into database
-    mysqlservice.insert("daily_rebalance_target", date=get_next_trading_date(today_date),
-        symbol = trading_list, target = ','.join(balancing_list))
-    mysqlservice.close()
-
-
-
-
-    
+    # # 4. insert balancing_list into database
+    # mysqlservice.insert("daily_rebalance_target", date=get_next_trading_date(today_date),
+    #     symbol = trading_list, target = ','.join(balancing_list))
+    # mysqlservice.close()
