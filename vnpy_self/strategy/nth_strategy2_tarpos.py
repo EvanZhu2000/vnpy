@@ -27,14 +27,15 @@ def retrieve_price(trading_list):
         data = data.sort_index()
 
         # calculation changes after 20200101 for some instruments
-        if 'total_turnover' in data.columns:
-            data.loc[(list(set(data.index.get_level_values(0).unique())-set(['IF','IH','IC','IM','T','TS','TF','TL'])),
-                slice(df.index.get_level_values(1).min(),pd.Timestamp('20200101'))),
-                ['volume','total_turnover','open_interest']] /= 2
-        else:
-            data.loc[(list(set(data.index.get_level_values(0).unique())-set(['IF','IH','IC','IM','T','TS','TF','TL'])),
-                slice(df.index.get_level_values(1).min(),pd.Timestamp('20200101'))),
-                ['volume','open_interest']] /= 2
+        if pd.Timestamp(df.index.get_level_values(1).min()) < pd.Timestamp('20200101'):
+            if 'total_turnover' in data.columns:
+                data.loc[(list(set(data.index.get_level_values(0).unique())-set(['IF','IH','IC','IM','T','TS','TF','TL'])),
+                    slice(pd.Timestamp(df.index.get_level_values(1).min()),pd.Timestamp('20200101'))),
+                    ['volume','total_turnover','open_interest']] /= 2
+            else:
+                data.loc[(list(set(data.index.get_level_values(0).unique())-set(['IF','IH','IC','IM','T','TS','TF','TL'])),
+                    slice(pd.Timestamp(df.index.get_level_values(1).min()),pd.Timestamp('20200101'))),
+                    ['volume','open_interest']] /= 2
         
         return data
     
@@ -46,7 +47,7 @@ def retrieve_price(trading_list):
     data_1d = get_clean_day_data(data_raw)
 
     data_raw = get_price((pd.Series(trading_list) + '88').tolist(), _start, _end, '1d')
-    data_raw.set_index([data_raw.reset_index()['order_book_id'].str[:-3],data_raw.reset_index()['date']], inplace=True)
+    data_raw.set_index([data_raw.reset_index()['order_book_id'].str[:-2],data_raw.reset_index()['date']], inplace=True)
     data_1d_ori = get_clean_day_data(data_raw)
 
     pro = data_1d['open'].unstack().T
@@ -54,13 +55,13 @@ def retrieve_price(trading_list):
     return pro, pr88
 
 
-def get_stats(trading_list, lookback_win_days):
+def get_stats(trading_list, lookback_win_days, pro):
     l_df_everyday,s_df_everyday,l_df_delta_everyday,s_df_delta_everyday,l_dom_everyday,s_dom_everyday,l_dom_delta_everyday,s_dom_delta_everyday,l_dom2_everyday,s_dom2_everyday,l_dom2_delta_everyday,s_dom2_delta_everyday= [pd.DataFrame()]*12
 
     for symb in tqdm(trading_list):
         _start = (today_date-pd.Timedelta(lookback_win_days,'d')).strftime('%Y%m%d')
         _end = today_date.strftime('%Y%m%d')
-        pr_df = get_price(f"{symb}888", _start,_end,'1d')
+        pr_df = pro[symb]
 
         df = futures.get_member_rank(symb,start_date=_start,end_date=_end, 
                                     rank_by='long')
@@ -178,9 +179,9 @@ if __name__ == "__main__":
     trading_list = (pd.Series(tmp2['symbol'][0].split(',')).str[:-4]).tolist()
 
     # 2. get stats
-    l_df_everyday,s_df_everyday,l_df_delta_everyday,s_df_delta_everyday,l_dom_everyday,s_dom_everyday,l_dom_delta_everyday,\
-        s_dom_delta_everyday,l_dom2_everyday,s_dom2_everyday,l_dom2_delta_everyday,s_dom2_delta_everyday = get_stats(trading_list, lookback_win_days)
     pro,pr88 = retrieve_price(trading_list)
+    l_df_everyday,s_df_everyday,l_df_delta_everyday,s_df_delta_everyday,l_dom_everyday,s_dom_everyday,l_dom_delta_everyday,\
+        s_dom_delta_everyday,l_dom2_everyday,s_dom2_everyday,l_dom2_delta_everyday,s_dom2_delta_everyday = get_stats(trading_list, lookback_win_days,pro)
 
     # 3. calculate signals
     xx = {
