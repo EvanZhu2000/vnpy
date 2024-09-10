@@ -71,12 +71,12 @@ def get_stats(trading_list, lookback_win_days):
         .pivot(columns='member_name', index = 'trading_date',values='volume')
         convert_df['symb'] = symb
         convert_df = convert_df.set_index([convert_df.index,'symb'])
-        l_df_everyday = pd.concat([l_df_everyday, convert_df],0)
+        l_df_everyday = pd.concat([l_df_everyday, convert_df],axis=0)
         
         convert_df = df.reset_index().pivot(columns='member_name', index = 'trading_date',values='volume_change')
         convert_df['symb'] = symb
         convert_df = convert_df.set_index([convert_df.index,'symb'])
-        l_df_delta_everyday = pd.concat([l_df_delta_everyday, convert_df],0)
+        l_df_delta_everyday = pd.concat([l_df_delta_everyday, convert_df],axis=0)
 
         df = futures.get_member_rank(symb,start_date=_start,end_date=_end, 
                                     rank_by='short')
@@ -84,20 +84,20 @@ def get_stats(trading_list, lookback_win_days):
         .pivot(columns='member_name', index = 'trading_date',values='volume')
         convert_df['symb'] = symb
         convert_df = convert_df.set_index([convert_df.index,'symb'])
-        s_df_everyday = pd.concat([s_df_everyday, convert_df],0)
+        s_df_everyday = pd.concat([s_df_everyday, convert_df],axis=0)
         
         convert_df = df.reset_index().pivot(columns='member_name', index = 'trading_date',values='volume_change')
         convert_df['symb'] = symb
         convert_df = convert_df.set_index([convert_df.index,'symb'])
-        s_df_delta_everyday = pd.concat([s_df_delta_everyday, convert_df],0)
+        s_df_delta_everyday = pd.concat([s_df_delta_everyday, convert_df],axis=0)
         
         dom_contracts = futures.get_dominant(symb, _start,_end,rule=0,rank=1)
         dom2_contracts = futures.get_dominant(symb, _start,_end,rule=0,rank=2)
         dom_contracts_schedule = pd.concat([dom_contracts.reset_index().groupby('dominant').first(),
-                                            dom_contracts.reset_index().groupby('dominant').last()],1)
+                                            dom_contracts.reset_index().groupby('dominant').last()],axis=1)
         dom_contracts_schedule.columns = ['f','l']
         dom2_contracts_schedule = pd.concat([dom2_contracts.reset_index().groupby('dominant').first(),
-                                            dom2_contracts.reset_index().groupby('dominant').last()],1)
+                                            dom2_contracts.reset_index().groupby('dominant').last()],axis=1)
         dom2_contracts_schedule.columns = ['f','l']
         
         for i in dom_contracts_schedule.iterrows():
@@ -108,12 +108,12 @@ def get_stats(trading_list, lookback_win_days):
                 convert_df = df.reset_index().pivot(columns='member_name', index = 'trading_date',values='volume')
                 convert_df['symb'] = symb
                 convert_df = convert_df.set_index([convert_df.index,'symb'])
-                l_dom_everyday = pd.concat([l_dom_everyday, convert_df],0)
+                l_dom_everyday = pd.concat([l_dom_everyday, convert_df],axis=0)
 
                 convert_df = df.reset_index().pivot(columns='member_name', index = 'trading_date',values='volume_change')
                 convert_df['symb'] = symb
                 convert_df = convert_df.set_index([convert_df.index,'symb'])
-                l_dom_delta_everyday = pd.concat([l_dom_delta_everyday, convert_df],0)
+                l_dom_delta_everyday = pd.concat([l_dom_delta_everyday, convert_df],axis=0)
 
             # ========
             df = futures.get_member_rank(i[0],start_date=i[1]['f'],end_date=i[1]['l'], 
@@ -122,12 +122,12 @@ def get_stats(trading_list, lookback_win_days):
                 convert_df = df.reset_index().pivot(columns='member_name', index = 'trading_date',values='volume')
                 convert_df['symb'] = symb
                 convert_df = convert_df.set_index([convert_df.index,'symb'])
-                s_dom_everyday = pd.concat([s_dom_everyday, convert_df],0)
+                s_dom_everyday = pd.concat([s_dom_everyday, convert_df],axis=0)
 
                 convert_df = df.reset_index().pivot(columns='member_name', index = 'trading_date',values='volume_change')
                 convert_df['symb'] = symb
                 convert_df = convert_df.set_index([convert_df.index,'symb'])
-                s_dom_delta_everyday = pd.concat([s_dom_delta_everyday, convert_df],0)
+                s_dom_delta_everyday = pd.concat([s_dom_delta_everyday, convert_df],axis=0)
         
         for i in dom2_contracts_schedule.iterrows():
             # ========
@@ -137,12 +137,12 @@ def get_stats(trading_list, lookback_win_days):
                 convert_df = df.reset_index().pivot(columns='member_name', index = 'trading_date',values='volume')
                 convert_df['symb'] = symb
                 convert_df = convert_df.set_index([convert_df.index,'symb'])
-                l_dom2_everyday = pd.concat([l_dom2_everyday, convert_df],0)
+                l_dom2_everyday = pd.concat([l_dom2_everyday, convert_df],axis=0)
 
                 convert_df = df.reset_index().pivot(columns='member_name', index = 'trading_date',values='volume_change')
                 convert_df['symb'] = symb
                 convert_df = convert_df.set_index([convert_df.index,'symb'])
-                l_dom2_delta_everyday = pd.concat([l_dom2_delta_everyday, convert_df],0)
+                l_dom2_delta_everyday = pd.concat([l_dom2_delta_everyday, convert_df],axis=0)
 
             # ========
             df = futures.get_member_rank(i[0],start_date=i[1]['f'],end_date=i[1]['l'], 
@@ -151,12 +151,12 @@ def get_stats(trading_list, lookback_win_days):
                 convert_df = df.reset_index().pivot(columns='member_name', index = 'trading_date',values='volume')
                 convert_df['symb'] = symb
                 convert_df = convert_df.set_index([convert_df.index,'symb'])
-                s_dom2_everyday = pd.concat([s_dom2_everyday, convert_df],0)
+                s_dom2_everyday = pd.concat([s_dom2_everyday, convert_df],axis=0)
 
                 convert_df = df.reset_index().pivot(columns='member_name', index = 'trading_date',values='volume_change')
                 convert_df['symb'] = symb
                 convert_df = convert_df.set_index([convert_df.index,'symb'])
-                s_dom2_delta_everyday = pd.concat([s_dom2_delta_everyday, convert_df],0)
+                s_dom2_delta_everyday = pd.concat([s_dom2_delta_everyday, convert_df],axis=0)
     return l_df_everyday,s_df_everyday,l_df_delta_everyday,s_df_delta_everyday,l_dom_everyday,s_dom_everyday,l_dom_delta_everyday,s_dom_delta_everyday,l_dom2_everyday,s_dom2_everyday,l_dom2_delta_everyday,s_dom2_delta_everyday
 
 if __name__ == "__main__":
@@ -201,7 +201,7 @@ if __name__ == "__main__":
         stat = pd.DataFrame()
         for symb in tqdm(trading_list):
             if symb in l_df_everyday.index.get_level_values('symb').unique():
-                stat = pd.concat([stat,eval(k).rename(symb)],1)   
+                stat = pd.concat([stat,eval(k).rename(symb)],axis=1)   
 
         stat.index = pd.to_datetime(stat.index)
         stat_list.append(stat)
