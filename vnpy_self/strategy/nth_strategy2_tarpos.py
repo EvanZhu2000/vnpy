@@ -186,15 +186,15 @@ if __name__ == "__main__":
     # 3. calculate signals
     xx = {
         '(-s_df_everyday.loc[:, symb,:]).diff().mean(1)':(1,20,5)
-        ,'(-l_df_everyday.loc[:, symb,:]).diff().mean(1)':(1.4,20,5)
-        ,'(-l_df_everyday.loc[:, symb,:]-s_df_everyday.loc[:, symb,:]).diff().mean(1)':(1.4,20,5)
-        ,'(l_df_everyday.loc[:, symb,:]-s_df_everyday.loc[:, symb,:]).mean(1)':(1,20,5)
-        ,'(l_df_delta_everyday.loc[:, symb,:]-s_df_delta_everyday.loc[:, symb,:]).mean(1)':(0.6,20,20)  
-        ,'(-s_dom_everyday.loc[:, symb,:]).diff().mean(1)':(0.6,20,5)
-        ,'(-l_dom_everyday.loc[:, symb,:]).diff().mean(1)':(1.4,5,20)
-        ,'(-l_dom_everyday.loc[:, symb,:]-s_dom_everyday.loc[:, symb,:]).diff().mean(1)':(1,5,5)  
-        ,'(l_dom_everyday.loc[:, symb,:]-s_dom_everyday.loc[:, symb,:]).mean(1)':(0.2,20,20)
-        ,'(l_dom_delta_everyday.loc[:, symb,:]-s_dom_delta_everyday.loc[:, symb,:]).mean(1)':(0.2,20,10)
+        # ,'(-l_df_everyday.loc[:, symb,:]).diff().mean(1)':(1.4,20,5)
+        # ,'(-l_df_everyday.loc[:, symb,:]-s_df_everyday.loc[:, symb,:]).diff().mean(1)':(1.4,20,5)
+        # ,'(l_df_everyday.loc[:, symb,:]-s_df_everyday.loc[:, symb,:]).mean(1)':(1,20,5)
+        # ,'(l_df_delta_everyday.loc[:, symb,:]-s_df_delta_everyday.loc[:, symb,:]).mean(1)':(0.6,20,20)  
+        # ,'(-s_dom_everyday.loc[:, symb,:]).diff().mean(1)':(0.6,20,5)
+        # ,'(-l_dom_everyday.loc[:, symb,:]).diff().mean(1)':(1.4,5,20)
+        # ,'(-l_dom_everyday.loc[:, symb,:]-s_dom_everyday.loc[:, symb,:]).diff().mean(1)':(1,5,5)  
+        # ,'(l_dom_everyday.loc[:, symb,:]-s_dom_everyday.loc[:, symb,:]).mean(1)':(0.2,20,20)
+        # ,'(l_dom_delta_everyday.loc[:, symb,:]-s_dom_delta_everyday.loc[:, symb,:]).mean(1)':(0.2,20,10)
     }
 
     stat_list, result_list = [],[]
@@ -206,16 +206,18 @@ if __name__ == "__main__":
 
         stat.index = pd.to_datetime(stat.index)
         stat_list.append(stat)
-        result_list.append( bt_all(-settings_all([bband_para(stat,*v)]),
-                            pro, 
-                            pr88, 
-                            mul_mappings,
-                            initial_capital,
-                            mul_method = (price_start,pd.Timestamp('20240701')),
-                            exec_delay=1,toRound=True))
-    balancing_list = result_list[0][0].iloc[-1]
+        # result_list.append( bt_all(-settings_all([bband_para(stat,*v)]),
+        #                     pro, 
+        #                     pr88, 
+        #                     mul_mappings,
+        #                     initial_capital,
+        #                     mul_method = (price_start,pd.Timestamp('20240701')),
+        #                     exec_delay=1,toRound=True))
+    balancing_list = (-settings_all([bband_para(stat_list[0].sort_index(),1,20,5)]).iloc[-1])
 
     # 4. insert balancing_list into database
-    mysqlservice.insert("daily_rebalance_target", date=get_next_trading_date(today_date),
+    if next_trading_date != balancing_list.name:
+        raise Exception('Wrong tar pos date!')
+    mysqlservice.insert("daily_rebalance_target", date=next_trading_date,
         symbol = balancing_list.index, target = balancing_list.values)
     mysqlservice.close()
