@@ -154,6 +154,9 @@ def bt_all(g_df, ins_price, ins_price_to_cal_fee, mul_map, initial_capital=10000
     mulprice_fee = (mul_series * ins_price_to_cal_fee).abs()
     recent_start, recent_end = mulprice_fee.index[-1] - pd.Timedelta(days=60), mulprice_fee.index[-1]
     
+    print(g_df)
+    print(c_df)
+    print(recent_start, recent_end)
     # calculate equal turnover portfolio
     if mul_method:
         if mul_method == 'mean':
@@ -179,6 +182,7 @@ def bt_all(g_df, ins_price, ins_price_to_cal_fee, mul_map, initial_capital=10000
         
     # statistics after equal-weighting
     max_divisor = g_df.abs().stack().replace(0,np.nan).dropna().describe().loc['25%']
+    print((c_df.abs().sum(1).loc[recent_start:recent_end]))
     min_cash_needed = (c_df.abs().sum(1).loc[recent_start:recent_end]).mean()/max_divisor
     ttl_capacity = 0
     if to is not None:
