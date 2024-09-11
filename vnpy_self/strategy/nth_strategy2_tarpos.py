@@ -219,5 +219,6 @@ if __name__ == "__main__":
     if today_date != balancing_list.name:
         raise Exception(f'Wrong tar pos date! {today_date}, {balancing_list.name}')
     mysqlservice.insert("daily_rebalance_target", date=next_trading_date,
-        symbol = balancing_list.index, target = balancing_list.values)
+        symbol = ','.join(balancing_list.astype(int).astype(str).index), 
+        target = ','.join(balancing_list.astype(int).astype(str).values))
     mysqlservice.close()
