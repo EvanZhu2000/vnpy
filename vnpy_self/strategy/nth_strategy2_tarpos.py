@@ -9,6 +9,7 @@ mysqlservice = MysqlService()
 
 # today_date = datetime.today()
 today_date = datetime(2024, 9, 9)
+next_trading_date = get_next_trading_date(today_date)
 
 def retrieve_price(trading_list):
     def get_clean_day_data(df,total_turnover_thres = 1e+8, open_interest_thres = 1000, volume_thres = 1000):
@@ -61,11 +62,10 @@ def get_stats(trading_list, lookback_win_days, pro):
     for symb in tqdm(trading_list):
         _start = (today_date-pd.Timedelta(lookback_win_days,'d')).strftime('%Y%m%d')
         _end = today_date.strftime('%Y%m%d')
-        pr_df = pro[symb]
 
         df = futures.get_member_rank(symb,start_date=_start,end_date=_end, 
                                     rank_by='long')
-        if df is None or pr_df is None:
+        if df is None or symb not in pro.columns or pro[symb] is None:
             continue
             
         convert_df = df.reset_index()\
@@ -166,7 +166,7 @@ if __name__ == "__main__":
     price_start = pd.Timestamp('20240601')
     mul_mappings = mysqlservice.select('universe').set_index('root_symbol').to_dict()['multiplier']
 
-    tmp1 = mysqlservice.select('strategies','order by date desc',strategy = 'strategy2',status='on')
+    tmp1 = mysqlservice.select('strategies',date=next_trading_date,strategy = 'strategy2',status='on')
     if tmp1.shape[0]!=1:
         raise Exception('Wrong vnpy.strategies table for today!')
     initial_capital = float(tmp1['cash'][0]) * float(tmp1['leverage'][0])
