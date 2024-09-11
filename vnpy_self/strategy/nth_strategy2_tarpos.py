@@ -185,16 +185,16 @@ if __name__ == "__main__":
 
     # 3. calculate signals
     xx = {
-        '(-s_df.loc[:, symb,:]).diff().mean(1)':(1,20,5)
-        ,'(-l_df.loc[:, symb,:]).diff().mean(1)':(1.4,20,5)
-        ,'(-l_df.loc[:, symb,:]-s_df.loc[:, symb,:]).diff().mean(1)':(1.4,20,5)
-        ,'(l_df.loc[:, symb,:]-s_df.loc[:, symb,:]).mean(1)':(1,20,5)
-        ,'(l_df_delta.loc[:, symb,:]-s_df_delta.loc[:, symb,:]).mean(1)':(0.6,20,20)  
-        ,'(-s_dom.loc[:, symb,:]).diff().mean(1)':(0.6,20,5)
-        ,'(-l_dom.loc[:, symb,:]).diff().mean(1)':(1.4,5,20)
-        ,'(-l_dom.loc[:, symb,:]-s_dom.loc[:, symb,:]).diff().mean(1)':(1,5,5)  
-        ,'(l_dom.loc[:, symb,:]-s_dom.loc[:, symb,:]).mean(1)':(0.2,20,20)
-        ,'(l_dom_delta.loc[:, symb,:]-s_dom_delta.loc[:, symb,:]).mean(1)':(0.2,20,10)
+        '(-s_df_everyday.loc[:, symb,:]).diff().mean(1)':(1,20,5)
+        ,'(-l_df_everyday.loc[:, symb,:]).diff().mean(1)':(1.4,20,5)
+        ,'(-l_df_everyday.loc[:, symb,:]-s_df_everyday.loc[:, symb,:]).diff().mean(1)':(1.4,20,5)
+        ,'(l_df_everyday.loc[:, symb,:]-s_df_everyday.loc[:, symb,:]).mean(1)':(1,20,5)
+        ,'(l_df_delta_everyday.loc[:, symb,:]-s_df_delta_everyday.loc[:, symb,:]).mean(1)':(0.6,20,20)  
+        ,'(-s_dom_everyday.loc[:, symb,:]).diff().mean(1)':(0.6,20,5)
+        ,'(-l_dom_everyday.loc[:, symb,:]).diff().mean(1)':(1.4,5,20)
+        ,'(-l_dom_everyday.loc[:, symb,:]-s_dom_everyday.loc[:, symb,:]).diff().mean(1)':(1,5,5)  
+        ,'(l_dom_everyday.loc[:, symb,:]-s_dom_everyday.loc[:, symb,:]).mean(1)':(0.2,20,20)
+        ,'(l_dom_delta_everyday.loc[:, symb,:]-s_dom_delta_everyday.loc[:, symb,:]).mean(1)':(0.2,20,10)
     }
 
     stat_list, result_list = [],[]
