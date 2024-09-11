@@ -28,13 +28,10 @@ import itertools
 import re
 from datetime import datetime
 from sklearn.preprocessing import KBinsDiscretizer
+from sklearn.model_selection._split import _BaseKFold, indexable, _num_samples
+from sklearn.utils.validation import _deprecate_positional_args
 import warnings
 warnings.filterwarnings("ignore")
-
-
-# could have some problems
-from ds_tools import *
-from constants import *
 
 def format_number(n):
     return re.sub(r"(\d)(?=(\d{4})+(?!\d))", r"\1,", str(n))
@@ -1114,7 +1111,7 @@ def sensitivity(func, *args, tqdm_use=True, **kwargs):
     return result
 
 # determine secondary contract
-def get_dom2(symb):
+def get_dom2_myself(symb):
     s = symb[:-4]
     y = int(symb[-4:-2])
     m = symb[-2:]
@@ -1125,3 +1122,218 @@ def get_dom2(symb):
         m = sche[m]
         y += y_add
     return res
+
+
+# modified code for group gaps; source
+# https://github.com/getgaurav2/scikit-learn/blob/d4a3af5cc9da3a76f0266932644b884c99724c57/sklearn/model_selection/_split.py#L2243
+class PurgedGroupTimeSeriesSplit(_BaseKFold):
+    """Time Series cross-validator variant with non-overlapping groups.
+    Allows for a gap in groups to avoid potentially leaking info from
+    train into test if the model has windowed or lag features.
+    Provides train/test indices to split time series data samples
+    that are observed at fixed time intervals according to a
+    third-party provided group.
+    In each split, test indices must be higher than before, and thus shuffling
+    in cross validator is inappropriate.
+    This cross-validation object is a variation of :class:`KFold`.
+    In the kth split, it returns first k folds as train set and the
+    (k+1)th fold as test set.
+    The same group will not appear in two different folds (the number of
+    distinct groups has to be at least equal to the number of folds).
+    Note that unlike standard cross-validation methods, successive
+    training sets are supersets of those that come before them.
+    Read more in the :ref:`User Guide <cross_validation>`.
+    Parameters
+    ----------
+    n_splits : int, default=5
+        Number of splits. Must be at least 2.
+    max_train_group_size : int, default=Inf
+        Maximum group size for a single training set.
+    group_gap : int, default=None
+        Gap between train and test
+    max_test_group_size : int, default=Inf
+        We discard this number of groups from the end of each train split
+    """
+
+    @_deprecate_positional_args
+    def __init__(self,
+                 n_splits=5,
+                 *,
+                 max_train_group_size=np.inf,
+                 max_test_group_size=np.inf,
+                 group_gap=None,
+                 verbose=False
+                 ):
+        super().__init__(n_splits, shuffle=False, random_state=None)
+        self.max_train_group_size = max_train_group_size
+        self.group_gap = group_gap
+        self.max_test_group_size = max_test_group_size
+        self.verbose = verbose
+
+    def split(self, X, y=None, groups=None):
+        """Generate indices to split data into training and test set.
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Training data, where n_samples is the number of samples
+            and n_features is the number of features.
+        y : array-like of shape (n_samples,)
+            Always ignored, exists for compatibility.
+        groups : array-like of shape (n_samples,)
+            Group labels for the samples used while splitting the dataset into
+            train/test set.
+        Yields
+        ------
+        train : ndarray
+            The training set indices for that split.
+        test : ndarray
+            The testing set indices for that split.
+        """
+        if groups is None:
+            raise ValueError(
+                "The 'groups' parameter should not be None")
+        X, y, groups = indexable(X, y, groups)
+        n_samples = _num_samples(X)
+        n_splits = self.n_splits
+        group_gap = self.group_gap
+        max_test_group_size = self.max_test_group_size
+        max_train_group_size = self.max_train_group_size
+        n_folds = n_splits + 1
+        group_dict = {}
+        u, ind = np.unique(groups, return_index=True)
+        unique_groups = u[np.argsort(ind)]
+        n_samples = _num_samples(X)
+        n_groups = _num_samples(unique_groups)
+        for idx in np.arange(n_samples):
+            if (groups[idx] in group_dict):
+                group_dict[groups[idx]].append(idx)
+            else:
+                group_dict[groups[idx]] = [idx]
+        if n_folds > n_groups:
+            raise ValueError(
+                ("Cannot have number of folds={0} greater than"
+                 " the number of groups={1}").format(n_folds,
+                                                     n_groups))
+
+        group_test_size = min(n_groups // n_folds, max_test_group_size)
+        group_test_starts = range(n_groups - n_splits * group_test_size,
+                                  n_groups, group_test_size)
+        for group_test_start in group_test_starts:
+            train_array = []
+            test_array = []
+
+            group_st = max(0, group_test_start - group_gap - max_train_group_size)
+            for train_group_idx in unique_groups[group_st:(group_test_start - group_gap)]:
+                train_array_tmp = group_dict[train_group_idx]
+
+                train_array = np.sort(np.unique(
+                    np.concatenate((train_array,
+                                    train_array_tmp)),
+                    axis=None), axis=None)
+
+            train_end = train_array.size
+
+            for test_group_idx in unique_groups[group_test_start:
+            group_test_start +
+            group_test_size]:
+                test_array_tmp = group_dict[test_group_idx]
+                test_array = np.sort(np.unique(
+                    np.concatenate((test_array,
+                                    test_array_tmp)),
+                    axis=None), axis=None)
+
+            test_array = test_array[group_gap:]
+
+            if self.verbose > 0:
+                pass
+
+            yield [int(i) for i in train_array], [int(i) for i in test_array]
+
+
+SCHEDULE1 = {'01':'02','02':'03','03':'04','04':'05','05':'06','06':'07','07':'08','08':'09','09':'10','10':'11','11':'12','12':'01'}
+SCHEDULE2 = {'01':'03','02':'03','03':'06','04':'06','05':'06','06':'09','07':'09','08':'09','09':'12','10':'12','11':'12','12':'03'}
+SCHEDULE3 = {'01':'05','02':'05','03':'05','04':'05','05':'09','06':'09','07':'09','08':'09','09':'01','10':'01','11':'01','12':'01'}
+SCHEDULE4 = {'01':'05','02':'05','03':'05','04':'05','05':'10','06':'10','07':'10','08':'10','09':'10','10':'01','11':'01','12':'01'}
+SCHEDULE5 = {'01':'03','02':'03','03':'05','04':'05','05':'07','06':'07','07':'09','08':'09','09':'11','10':'11','11':'01','12':'01'}
+SCHEDULE6 = {'01':'02','02':'04','03':'04','04':'06','05':'06','06':'08','07':'08','08':'10','09':'10','10':'12','11':'12','12':'02'}
+ROLLOVER_SCHEDULE = {
+    'A' :[],
+    'AG':[SCHEDULE6],
+    'AL':[SCHEDULE1,SCHEDULE1],
+    'AO':[SCHEDULE1],
+    'AP':[],
+    'AU':[SCHEDULE6],
+    'B' :[SCHEDULE1],
+    'BB':[],
+    'BC':[],
+    'BR':[],
+    'BU':[SCHEDULE1],
+    'C' :[SCHEDULE5,SCHEDULE5],
+    'CF':[SCHEDULE4],
+    'CJ':[],
+    'CS':[SCHEDULE5],
+    'CU':[SCHEDULE1,SCHEDULE1],
+    'CY':[],
+    'EB':[SCHEDULE1,SCHEDULE1],
+    'EC':[SCHEDULE6],
+    'EG':[],
+    'FB':[],
+    'FG':[SCHEDULE3],
+    'FU':[SCHEDULE5],
+    'HC':[SCHEDULE4],
+    'I' :[SCHEDULE3],
+    'IH':[SCHEDULE1,SCHEDULE2],
+    'IF':[SCHEDULE1,SCHEDULE2],
+    'IC':[SCHEDULE1,SCHEDULE2],
+    'IM':[SCHEDULE1,SCHEDULE2],
+    'J' :[],
+    'JD':[SCHEDULE1],
+    'JM':[],
+    'JR':[],
+    'L' :[],
+    'LC':[],
+    'LH':[],
+    'LR':[],
+    'LU':[SCHEDULE1,SCHEDULE1],
+    'M' :[SCHEDULE3],
+    'MA':[SCHEDULE3],
+    'NI':[SCHEDULE1,SCHEDULE1],
+    'NR':[SCHEDULE1],
+    'OI':[SCHEDULE4],
+    'P' :[SCHEDULE3],
+    'PB':[SCHEDULE1],
+    'PF':[SCHEDULE1],
+    'PG':[SCHEDULE1],
+    'PK':[],
+    'PM':[],
+    'PP':[SCHEDULE3],
+    'PX':[],
+    'RB':[SCHEDULE1,SCHEDULE4],
+    'RI':[],
+    'RM':[SCHEDULE3],
+    'RR':[],
+    'RS':[],
+    'RU':[SCHEDULE3],
+    'SA':[SCHEDULE3],
+    'SC':[SCHEDULE1],
+    'SF':[SCHEDULE3],
+    'SH':[SCHEDULE1],
+    'SI':[SCHEDULE1,SCHEDULE1],
+    'SM':[SCHEDULE3],
+    'SN':[SCHEDULE1],
+    'SP':[],
+    'SR':[],
+    'SS':[SCHEDULE1,SCHEDULE1],
+    'TA':[SCHEDULE3],
+    'TS':[],
+    'TF':[],
+    'T' :[],
+    'TL':[],
+    'UR':[],
+    'V' :[SCHEDULE4],
+    'WH':[],
+    'WR':[],
+    'Y' :[SCHEDULE3],
+    'ZC':[],
+    'ZN':[SCHEDULE1]
+}
