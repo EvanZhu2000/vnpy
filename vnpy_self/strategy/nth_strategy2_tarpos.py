@@ -217,5 +217,5 @@ if __name__ == "__main__":
 
     # 4. insert balancing_list into database
     mysqlservice.insert("daily_rebalance_target", date=get_next_trading_date(today_date),
-        symbol = trading_list, target = ','.join(balancing_list))
+        symbol = balancing_list.index, target = balancing_list.values)
     mysqlservice.close()

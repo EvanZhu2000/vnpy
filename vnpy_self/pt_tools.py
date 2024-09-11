@@ -103,8 +103,8 @@ def cal_regression(df1,df2):
     return -reg.params[0]
 
 
-def bt_all(g_df, ins_price, ins_price_to_cal_fee, mul_map, 
-           to=None, mul_method = 60, initial_capital=10000000, commission = 0.0001, exec_delay=0, toFormat=True,toRound=False):
+def bt_all(g_df, ins_price, ins_price_to_cal_fee, mul_map, initial_capital=10000000, mul_method = 60, 
+           commission = 0.0001, exec_delay=0, to=None, toFormat=True,toRound=False):
     '''
     all of g_df, ins_price and ins_price_to_cal_fee need to be dataframe with columns as sequenced datetimes and index as names
     ins_price_to_cal_fee: the price to calculate fees, used in pairs trading, usually need to be 88
@@ -116,7 +116,6 @@ def bt_all(g_df, ins_price, ins_price_to_cal_fee, mul_map,
     turnover: -1 to 1 (or the opposite) = 100%, to 0 means 50%
     trades_count: open and close means one trade, the output is annual trade per instrument
     '''
-    print(to)
     # validation
     if not (type(g_df) == pd.core.frame.DataFrame) \
     or not (type(ins_price) == pd.core.frame.DataFrame) \
@@ -182,7 +181,6 @@ def bt_all(g_df, ins_price, ins_price_to_cal_fee, mul_map,
     max_divisor = g_df.abs().stack().replace(0,np.nan).dropna().describe().loc['25%']
     min_cash_needed = (c_df.abs().sum(1).loc[recent_start:recent_end]).mean()/max_divisor
     ttl_capacity = 0
-    print(to)
     if to is not None:
         ttl_capacity = min_cash_needed * max_divisor * (to.mean() / initial_capital).describe().loc['50%'] / 1000000000
     
