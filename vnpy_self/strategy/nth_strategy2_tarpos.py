@@ -7,9 +7,6 @@ from vnpy_self.pt_tools import *
 from vnpy_portfoliostrategy.mysqlservice import MysqlService
 mysqlservice = MysqlService()
 
-# today_date = datetime.today()
-today_date = datetime(2024, 9, 9)
-next_trading_date = get_next_trading_date(today_date)
 
 def retrieve_price(trading_list):
     def get_clean_day_data(df,total_turnover_thres = 1e+8, open_interest_thres = 1000, volume_thres = 1000):
@@ -161,9 +158,12 @@ def get_stats(trading_list, lookback_win_days, pro):
     return l_df_everyday,s_df_everyday,l_df_delta_everyday,s_df_delta_everyday,l_dom_everyday,s_dom_everyday,l_dom_delta_everyday,s_dom_delta_everyday,l_dom2_everyday,s_dom2_everyday,l_dom2_delta_everyday,s_dom2_delta_everyday
 
 if __name__ == "__main__":
-
+    # today_date = datetime.today()
+    today_date = datetime(2024, 9, 9)
+    next_trading_date = get_next_trading_date(today_date)
     lookback_win_days = 60
-    price_start = pd.Timestamp('20240601')
+    # price_start = pd.Timestamp('20240601')
+    price_start = pd.Timestamp(today_date - pd.Timedelta(lookback_win_days,'d'))
     mul_mappings = mysqlservice.select('universe').set_index('root_symbol').to_dict()['multiplier']
 
     tmp1 = mysqlservice.select('strategies',date=next_trading_date,strategy = 'strategy2',status='on')
