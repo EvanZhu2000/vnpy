@@ -33,10 +33,8 @@ warnings.filterwarnings("ignore")
 
 
 # could have some problems
-# from ds_tools import *
-# from constants import *
-# import talib
-# from talib.abstract import *
+from ds_tools import *
+from constants import *
 
 def format_number(n):
     return re.sub(r"(\d)(?=(\d{4})+(?!\d))", r"\1,", str(n))
@@ -121,6 +119,7 @@ def bt_all(g_df, ins_price, ins_price_to_cal_fee, mul_map,
     turnover: -1 to 1 (or the opposite) = 100%, to 0 means 50%
     trades_count: open and close means one trade, the output is annual trade per instrument
     '''
+    print(to)
     # validation
     if not (type(g_df) == pd.core.frame.DataFrame) \
     or not (type(ins_price) == pd.core.frame.DataFrame) \
@@ -186,6 +185,7 @@ def bt_all(g_df, ins_price, ins_price_to_cal_fee, mul_map,
     max_divisor = g_df.abs().stack().replace(0,np.nan).dropna().describe().loc['25%']
     min_cash_needed = (c_df.abs().sum(1).loc[recent_start:recent_end]).mean()/max_divisor
     ttl_capacity = 0
+    print(to)
     if to is not None:
         ttl_capacity = min_cash_needed * max_divisor * (to.mean() / initial_capital).describe().loc['50%'] / 1000000000
     
@@ -808,7 +808,7 @@ def mixture_settings(stat,ustat,lstat,a_list, custom_std,rolling_win,corr_interv
         return result
     else:
         _m,_s = resample_stat(stat, rolling_win, 'mean',samp_freq, nths,starting_n,ffill), resample_stat(stat, rolling_win, 'std',samp_freq, nths,starting_n,ffill)
-        return result, pd.concat([_m-custom_std*_s,stat,_m+custom_std*_s,_m],1)
+        return result, pd.concat([_m-custom_std*_s,stat,_m+custom_std*_s,_m],axis=1)
     
     
 def settings3(num, stat,custom_std,rolling_win,shift_days, samp_freq=1,nths=1,starting_n=-1):
@@ -837,7 +837,7 @@ def mixture_settings3(num_list, stat, custum_std, rolling_win,shift_days):
     a_df = pd.Series()
     for num in num_list:
         a = settings3(num, stat, custum_std, rolling_win,shift_days)
-        a_df = pd.concat([a_df, a], 0)
+        a_df = pd.concat([a_df, a], axis=0)
     return a_df
 
 # rename column names
@@ -914,7 +914,7 @@ def plot(ini_cap,d,m=None,t=None,rollingsharpe=False):
         return plot2(tmp.cumsum()/ini_cap)
     
     if type(d) == list:
-        tmp = pd.concat(d,1)
+        tmp = pd.concat(d,axis=1)
         tmp.rename(columns=renamer())
         return subplot_series(tmp)
     elif type(d) == pd.core.frame.DataFrame:
@@ -1047,7 +1047,7 @@ def ts_weighted_group(ini_cap, factor, pnl_matrix, cap_weight_series, underlying
                 tmp = pd.DataFrame(est.fit_transform(i[1].dropna().values.reshape(-1,1))+1,
                                    index = i[1].dropna().index,
                                   columns = [i[0]])
-                ranking = pd.concat([ranking,tmp],1)
+                ranking = pd.concat([ranking,tmp],axis=1)
         ranking = ranking.sort_index().T
         
     result = {}
@@ -1095,18 +1095,18 @@ def sensitivity(func, *args, tqdm_use=True, **kwargs):
     if tqdm_use:
         for i in tqdm(range(len(result_index))):
             try:
-                result = pd.concat([result,func(*args,**dict(zip(result_index.names,result_index[i])))],0)
+                result = pd.concat([result,func(*args,**dict(zip(result_index.names,result_index[i])))],axis=0)
             except:
                 res = pd.DataFrame([np.nan])
-                result = pd.concat([result,res],0)
+                result = pd.concat([result,res],axis=0)
     else:
         for i in range(len(result_index)):
             print(f"{i}/{len(result_index)}")
             try:
-                result = pd.concat([result,func(*args,**dict(zip(result_index.names,result_index[i])))],0)
+                result = pd.concat([result,func(*args,**dict(zip(result_index.names,result_index[i])))],axis=0)
             except:
                 res = pd.DataFrame([np.nan])
-                result = pd.concat([result,res],0)
+                result = pd.concat([result,res],axis=0)
     
     if 0 in result.columns:
         result.drop([0],axis=1)
