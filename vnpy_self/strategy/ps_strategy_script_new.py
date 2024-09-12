@@ -8,7 +8,7 @@ from vnpy_portfoliostrategy import PortfolioStrategyApp
 from vnpy_portfoliostrategy.base import EVENT_PORTFOLIO_LOG
 from vnpy_portfoliostrategy.portfolio_rollover import RolloverTool
 from vnpy_self.ctp_setting import ctp_setting
-from vnpy_self.data_and_db.db_setting import db_setting
+from vnpy_self.data_and_ps_engine.dbservice.ps_engine.dbservice_setting import ps_engine.dbservice_setting
 
 import re
 from datetime import datetime, time, date
@@ -20,40 +20,15 @@ SETTINGS["log.active"] = True
 SETTINGS["log.level"] = INFO
 SETTINGS["log.console"] = True
 
-# Chinese futures market trading period (day/night)
-DAY_START = time(8, 45)
-DAY_END = time(15, 0)
-
-NIGHT_START = time(20, 45)
-NIGHT_END = time(2, 45)
-
-def init_strategy1(sc_symbol, dbservice):
-    trading_df = pd.DataFrame(columns = ['symb_title', 'pre_roll', 'post_roll'])
-    trading_symbol_df = dbservice.select("trading_schedule", "order by date desc",
-                                         strategy = 'strategy1',
-                                         sc_symbol = sc_symbol)
-    
-    pre_roll, post_roll = '',''
-    if trading_symbol_df.shape[0] == 0:
-        return trading_df
-    for r in trading_symbol_df.iterrows():  # assuming trading dates are sorted
-        if date.today() < r[1]['date']:
-            continue
-        elif date.today() == r[1]['date']:
-            # needs to rollover
-            post_roll = r[1]['symbol']
-        else:
-            pre_roll = r[1]['symbol']
-            break
-    
-    if pre_roll == '' and post_roll != '':
-        pre_roll = post_roll  
-        post_roll = '' # This aims to make sure that pre_roll always points to current trading symbol (or first day trading symbol)
-    trading_df.loc[trading_df.shape[0]] = [str(" ".join(re.findall("[a-zA-Z]+", sc_symbol))),pre_roll,post_roll]
-    return trading_df
-
-def check_trading_period():
+def strategy_running_period():
     """"""
+    # Chinese futures market trading period (day/night)
+    DAY_START = time(8, 45)
+    DAY_END = time(15, 45)
+
+    NIGHT_START = time(20, 45)
+    NIGHT_END = time(2, 45)
+    
     current_time = datetime.now().time()
 
     trading = False
@@ -66,16 +41,10 @@ def check_trading_period():
 
     return trading
 
+# NOTE: the rollover tool will get position from different strategies, so rollover can be anytime
 def check_rollover_period():
     current_time = datetime.now().time()
     return current_time>=time(10, 50)
-
-def parse_strategy(data, strategy_default_name):
-    symb_title = data['symb_title']
-    pre_roll = data['pre_roll'].split(',')
-    post_roll = data['post_roll'].split(',')
-    strategy_title = strategy_default_name + '_' + symb_title
-    return pre_roll,post_roll,strategy_title
 
 def run():
     SETTINGS["log.file"] = True
@@ -84,7 +53,7 @@ def run():
     main_engine = MainEngine(event_engine)
     main_engine.init_engines()
     main_engine.add_gateway(CtpGateway)
-    ps_engine = main_engine.add_app(PortfolioStrategyApp)   #  add portfolio strategy app
+    ps_engine = main_engine.add_app(PortfolioStrategyApp)   
     main_engine.write_log("主引擎创建成功")
 
     log_engine = main_engine.get_engine("log")
@@ -98,46 +67,55 @@ def run():
     ps_engine.init_engine()
     main_engine.write_log("ps策略初始化完成")
     
-    
-    trading_df = init_strategy1('IH_2', ps_engine.dbservice)
-    if trading_df.shape[0] == 0:
-        print('dont have target symbol!!')
-        return
-    rollover_df = trading_df.loc[trading_df['post_roll']!='']
-    
-    strategy1_IH_settings = {"boll_window": 10,"boll_dev": 2}
-    for r in trading_df.iterrows():
-        pre_roll,post_roll,strategy_title = parse_strategy(r[1], 'Strategy1')
-        if strategy_title not in ps_engine.strategies.keys():
-            ps_engine.add_strategy('Strategy1',strategy_title,pre_roll,strategy1_IH_settings)
-        ps_engine.init_strategy(strategy_title)
-        main_engine.write_log("ps策略全部初始化")
-        sleep(5)
-        ps_engine.start_strategy(strategy_title)
-        main_engine.write_log("ps策略全部启动")
+    current_day = datetime(2024,9,10)
+    rebal_tar = ps_engine.dbservice.select('daily_rebalance_target',today = current_day, strategy = 'strategy2')
+    rebal_tar = pd.concat([pd.Series(rebal_tar['symbol'].values[0].split(',')),
+                        pd.Series(rebal_tar['target'].values[0].split(','))],axis=1,keys=['symbol','target'])
+    trading_schedule = ps_engine.dbservice.select('trading_schedule',today = current_day, strategy = 'strategy2').set_index('id').drop_duplicates()
+    previous_trading_schedule = ps_engine.dbservice.select('trading_schedule',date = current_day, strategy = 'strategy2').set_index('id').drop_duplicates()
+    trading_hours = ps_engine.dbservice.select('trading_hours',date = trading_schedule['date'].iloc[0])
+    if trading_schedule.shape[0]!=1 or previous_trading_schedule.shape[0]!=1:
+        raise Exception('Wrong trading schedule for strategy2')
+    rollover_df = pd.concat([pd.Series(previous_trading_schedule['symbol'].values[0].split(',')),
+                 pd.Series(trading_schedule['symbol'].values[0].split(','))],axis=1,keys=['pre','post']).query("pre!=post")
+    to_trade_df = pd.concat([pd.Series(trading_schedule['symbol'].values[0].split(',')).str[:-4],
+                             pd.Series(trading_schedule['symbol'].values[0].split(','))],axis=1,keys=['symbol','symb']
+                            ).merge(trading_hours[['rqsymbol','symbol']],left_on='symb',right_on='rqsymbol',how='inner'
+                                    ).merge(rebal_tar,left_on='symbol_x',right_on='symbol',how='inner'
+                                            )[['symbol_y','target']]
+    strategy_title = 'strategy2'
+    if strategy_title not in ps_engine.strategies.keys():
+        ps_engine.add_strategy('Strategy2','strategy2',to_trade_df['symbol_y'],dict({'tarpos':to_trade_df['target']}))
         
+    ps_engine.init_strategy(strategy_title)
+    main_engine.write_log("ps策略全部初始化")
+    sleep(5)
+    ps_engine.start_strategy(strategy_title)
+    main_engine.write_log("ps策略全部启动")
+    
     HAVE_ROLLOVER = False
     while True:
         sleep(10)
         
         if check_rollover_period() and not HAVE_ROLLOVER:
             for r in rollover_df.iterrows():
-                pre_roll,post_roll,strategy_title = parse_strategy(r[1], 'Strategy1')
+                pre_roll,post_roll = r['pre'],r['post']
                 rt = RolloverTool(ps_engine=ps_engine, main_engine=main_engine)
                 main_engine.write_log(f"Rolling from {pre_roll} to {post_roll}")
                 rt.init(strategy_title, pre_roll, post_roll)
                 rt.roll_all()
                 
-                # then restart the strategy
-                ps_engine.stop_strategy(strategy_title)
-                ps_engine.remove_strategy(strategy_title)
-                ps_engine.add_strategy('Strategy1',strategy_title,post_roll,strategy1_IH_settings)
-                ps_engine.init_strategy(strategy_title)
-                sleep(5)
-                ps_engine.start_strategy(strategy_title)
+                # @TODO why is there a need for this???
+                ### then restart the strategy
+                # ps_engine.stop_strategy(strategy_title)
+                # ps_engine.remove_strategy(strategy_title)
+                # ps_engine.add_strategy('Strategy1',strategy_title,post_roll,strategy1_IH_settings)
+                # ps_engine.init_strategy(strategy_title)
+                # sleep(5)
+                # ps_engine.start_strategy(strategy_title)
                 HAVE_ROLLOVER = True
                 
-        if not check_trading_period():
+        if not strategy_running_period():
             main_engine.write_log("ps策略全部close")
             ps_engine.stop_all_strategies()
             main_engine.close()
