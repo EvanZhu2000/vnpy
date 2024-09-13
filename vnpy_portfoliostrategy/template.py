@@ -6,10 +6,10 @@ from datetime import datetime, timedelta
 from vnpy.trader.constant import Interval, Direction, Offset, Status
 from vnpy.trader.object import BarData, TickData, OrderData, TradeData
 from vnpy.trader.utility import virtual
-from .base import EngineType
+from vnpy_portfoliostrategy.base import EngineType
 
 if TYPE_CHECKING:
-    from .engine import StrategyEngine
+    from vnpy_portfoliostrategy.engine import StrategyEngine
 
 
 class StrategyTemplate(ABC):
@@ -135,6 +135,8 @@ class StrategyTemplate(ABC):
         if not order.is_active() and order.vt_orderid in self.active_orderids:
             self.active_orderids.remove(order.vt_orderid)
             self.symbol_is_active[order.vt_symbol] = False
+            
+        self.strategy_engine.dbservice.update_order_status(order.vt_orderid, order.status)
 
     def buy(self, vt_symbol: str, price: float, volume: float, lock: bool = False, net: bool = False, isFAK: bool = False,strategy:str = None,intention:str = None,pos=None,tar=None) -> list[str]:
         """买入开仓"""
@@ -232,6 +234,10 @@ class StrategyTemplate(ABC):
     def get_target(self, vt_symbol: str) -> int:
         """查询目标仓位"""
         return self.target_data[vt_symbol]
+    
+    def set_pos(self, vt_symbol: str, pos: int) -> None:
+        """when we restart the strategy we want to sync db for positions"""
+        self.pos_data[vt_symbol] = pos
 
     def set_target(self, vt_symbol: str, target: int) -> None:
         """设置目标仓位"""
@@ -255,10 +261,10 @@ class StrategyTemplate(ABC):
 
     def rebalance(self, vt_symbol: str, buy_price:float, sell_price:float, strategy:str=None, intention:str=None) -> None:
         """基于目标执行调仓交易"""
-        ##@TODO need partial fill logic
-        for oid in self.symbol_to_order_dict[vt_symbol]:
-            if oid in self.orders and self.orders[oid].status == Status.NOTTRADED:
-                self.cancel_order(oid)
+        # ##@TODO need partial fill logic
+        # for oid in self.symbol_to_order_dict[vt_symbol]:
+        #     if oid in self.orders and self.orders[oid].status == Status.NOTTRADED:
+        #         self.cancel_order(oid)
 
         result_list: list = []
         target: int = self.get_target(vt_symbol)
@@ -310,8 +316,8 @@ class StrategyTemplate(ABC):
             if short_volume:
                 result_list = self.short(vt_symbol, order_price, short_volume, isFAK=True, strategy=strategy,intention=intention,pos=pos,tar=target)
         
-        if len(result_list) != 0:
-            self.symbol_to_order_dict[vt_symbol].append(result_list[-1])
+        # if len(result_list) != 0:
+        #     self.symbol_to_order_dict[vt_symbol].append(result_list[-1])
 
     def rebalance_portfolio(self, bars: dict[str, BarData]) -> None:
         """基于目标执行调仓交易"""

@@ -9,8 +9,6 @@ from vnpy.trader.object import (
 from vnpy.trader.constant import Direction, Status
 
 class Strategy2(StrategyTemplate):
-    # get trading hours
-    # apply rebalancing rules
    
     def __init__(
         self,
@@ -21,9 +19,11 @@ class Strategy2(StrategyTemplate):
     ) -> None:
         """构造函数"""
         super().__init__(strategy_engine, strategy_name, vt_symbols, setting)
+        self.write_log(f"setting{setting}")
         for i in range(len(vt_symbols)):
             symb = vt_symbols[i]
-            tar = setting['tarpos'][i]
+            # tar = int(setting['tarpos'][i])
+            tar = 10
             self.set_target(symb, tar)
     
     def on_init(self) -> None:
@@ -43,6 +43,5 @@ class Strategy2(StrategyTemplate):
         
     def on_tick(self, tick: TickData) -> None:
         """行情推送回调"""
-        # tick.datetime
-        if (self.get_target(tick.symbol) != self.get_pos(tick.symbol)) and (not self.symbol_is_active[tick.symbol]):
-            self.rebalance(tick.symbol, tick.ask_price_1, tick.bid_price_1, 'strategy2','rebalance')
+        if (self.get_target(tick.vt_symbol) != self.get_pos(tick.vt_symbol)) and (not self.symbol_is_active[tick.vt_symbol]):
+            self.rebalance(tick.vt_symbol, tick.ask_price_1, tick.bid_price_1, 'strategy2','rebalance')
