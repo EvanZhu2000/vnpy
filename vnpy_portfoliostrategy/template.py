@@ -42,6 +42,9 @@ class StrategyTemplate(ABC):
         # 委托缓存容器
         self.orders: dict[str, OrderData] = {}
         self.active_orderids: set[str] = set()
+        self.symbol_is_active: dict[str, bool] = {}
+        for v in self.vt_symbols:
+            self.symbol_is_active[v] = False
 
         # 复制变量名列表，插入默认变量内容
         self.variables: list = copy(self.variables)
@@ -131,6 +134,7 @@ class StrategyTemplate(ABC):
 
         if not order.is_active() and order.vt_orderid in self.active_orderids:
             self.active_orderids.remove(order.vt_orderid)
+            self.symbol_is_active[order.vt_symbol] = False
 
     def buy(self, vt_symbol: str, price: float, volume: float, lock: bool = False, net: bool = False, isFAK: bool = False,strategy:str = None,intention:str = None,pos=None,tar=None) -> list[str]:
         """买入开仓"""
@@ -177,6 +181,7 @@ class StrategyTemplate(ABC):
 
                 for vt_orderid in vt_orderids:
                     self.active_orderids.add(vt_orderid)
+                    self.symbol_is_active[vt_symbol] = True
                     
                 if strategy:
                     for vt_orderid in vt_orderids:
@@ -217,6 +222,8 @@ class StrategyTemplate(ABC):
         """全撤活动委托"""
         for vt_orderid in list(self.active_orderids):
             self.cancel_order(vt_orderid)
+        for k,_ in self.symbol_is_active.items():
+            self.symbol_is_active[k] = False
 
     def get_pos(self, vt_symbol: str) -> int:
         """查询当前持仓"""

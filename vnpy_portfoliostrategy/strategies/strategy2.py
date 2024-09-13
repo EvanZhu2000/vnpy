@@ -1,4 +1,12 @@
 from vnpy_portfoliostrategy import StrategyTemplate, StrategyEngine
+from vnpy.trader.object import (
+    TickData,
+    OrderData,
+    TradeData,
+    BarData,
+    OrderType
+)
+from vnpy.trader.constant import Direction, Status
 
 class Strategy2(StrategyTemplate):
     # get trading hours
@@ -36,5 +44,5 @@ class Strategy2(StrategyTemplate):
     def on_tick(self, tick: TickData) -> None:
         """行情推送回调"""
         # tick.datetime
-        if (self.get_target(tick.symbol) != self.get_pos(tick.symbol)):
+        if (self.get_target(tick.symbol) != self.get_pos(tick.symbol)) and (not self.symbol_is_active[tick.symbol]):
             self.rebalance(tick.symbol, tick.ask_price_1, tick.bid_price_1, 'strategy2','rebalance')

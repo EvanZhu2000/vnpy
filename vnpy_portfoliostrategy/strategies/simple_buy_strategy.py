@@ -20,7 +20,7 @@ class SimpleBuyStrategy(StrategyTemplate):
     """配对交易策略"""
     
     tick_add = 0
-    fixed_size = 1
+    fixed_size = 10
     buf = []
     
     
