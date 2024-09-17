@@ -1,1 +1,0 @@
-# https://yarboroughtechnologies.com/how-to-automatically-backup-a-mysql-or-mariadb-server-with-mysqldump/ 

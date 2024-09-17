@@ -67,7 +67,8 @@ def run():
     ps_engine.init_engine()
     main_engine.write_log("ps策略初始化完成")
     
-    current_day = datetime(2024,9,10)
+    # current_day = datetime(2024,9,10)
+    current_day = datetime.today()
     rebal_tar = ps_engine.dbservice.select('daily_rebalance_target',today = current_day, strategy = 'strategy2')
     rebal_tar = pd.concat([pd.Series(rebal_tar['symbol'].values[0].split(',')),
                         pd.Series(rebal_tar['target'].values[0].split(','))],axis=1,keys=['symbol','target'])

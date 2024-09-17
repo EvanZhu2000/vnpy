@@ -486,7 +486,10 @@ class StrategyEngine(BaseEngine):
         # 推送策略事件通知启动完成状态
         strategy.trading = True
         self.put_strategy_event(strategy)
-        self.dbservice.update('strategies', "`status` = 'on'", strategy = 'strategy2')
+        pos_data = self.dbservice.select('current_pos', strategy = strategy_name)
+        for r in pos_data.iterrows():
+            strategy.set_pos(r[1]['symbol'], r[1]['tar'])
+        self.dbservice.update('strategies', "`status` = 'on'", strategy = strategy_name)
 
     def stop_strategy(self, strategy_name: str) -> None:
         """停止策略"""
@@ -509,7 +512,7 @@ class StrategyEngine(BaseEngine):
         # 推送策略事件通知停止完成状态
         self.put_strategy_event(strategy)
         
-        self.dbservice.update('strategies', "`status` = 'off'", strategy = 'strategy2')
+        self.dbservice.update('strategies', "`status` = 'off'", strategy = strategy_name)
 
     def edit_strategy(self, strategy_name: str, setting: dict) -> None:
         """编辑策略参数"""

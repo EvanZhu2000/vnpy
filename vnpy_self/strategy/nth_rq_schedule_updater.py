@@ -22,24 +22,16 @@ if __name__ == "__main__":
     symb_list = list(set(symb_list) - set(['IC', 'IF', 'IH', 'IM']))
 
     today_str = datetime.today().strftime('%Y-%m-%d')
-    rq_next_trading_day_dom_list,rq_next_trading_day_dom2_list = [],[]
     next_trading_day = get_next_trading_date(today_str).strftime('%Y-%m-%d')
+    rq_next_trading_day_dom_list,rq_next_trading_day_dom2_list = [],[]
+    
     for i in all_futures_df['underlying_symbol'].values:
-        dom_contract = futures.get_dominant(i,today_str,rule=0,rank=1).values[0]
-        df = get_price((futures.get_contracts(i,today_str)),today_str,today_str,'1d').sort_index().droplevel(1)
-        candidates = df.iloc[np.where(df.index.get_level_values(0) == dom_contract)[0][0]+1:]['open_interest']>1.1*df.iloc[np.where(df.index.get_level_values(0) == dom_contract)[0][0]]['open_interest']
-        if len(candidates[candidates]) != 0:
-            next_trading_day_dom_contract = candidates[candidates].index[0]
-        else:
-            next_trading_day_dom_contract = dom_contract
-        rq_next_trading_day_dom_list.append(next_trading_day_dom_contract)
+        dom_contract_next_day = futures.get_dominant(i,next_trading_day,rule=0,rank=1).values[0]
+        rq_next_trading_day_dom_list.append(dom_contract_next_day)
         
         if i in symb_list:
-            dom2_contract = futures.get_dominant(i,today_str,rule=0,rank=2).values[0]
-            can1 = df.iloc[np.where(df.index.get_level_values(0) == next_trading_day_dom_contract)[0][0]+1:]['open_interest']
-            can2 = df.iloc[np.where(df.index.get_level_values(0) == dom2_contract)[0][0]:]['open_interest']
-            can = can1.loc[can1.index.intersection(can2.index)]
-            rq_next_trading_day_dom2_list.append(can.idxmax())
+            dom2_contract_next_day = futures.get_dominant(i,next_trading_day,rule=0,rank=2).values[0]
+            rq_next_trading_day_dom2_list.append(dom2_contract_next_day)
 
     next_trading_day_dom_list = symbol_rq2vnpy(rq_next_trading_day_dom_list)
     next_trading_day_dom2_list = symbol_rq2vnpy(rq_next_trading_day_dom2_list)

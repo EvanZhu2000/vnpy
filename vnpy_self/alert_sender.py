@@ -1,4 +1,4 @@
-def send_email(user, pwd, recipient, subject, body):
+def send_email(subject, body, user='alertevan@gmail.com', pwd='uesb oewt wdfd hcfr', recipient='evan.zhu@cashalgo.com'):
     import smtplib
 
     FROM = user
@@ -22,6 +22,5 @@ def send_email(user, pwd, recipient, subject, body):
         print(e)
 
 if __name__ == '__main__':
-    send_email('alertevan@gmail.com','uesb oewt wdfd hcfr','evan.zhu@cashalgo.com',
-               'Happy Mid-Autumn Festival',
+    send_email('Happy Mid-Autumn Festival',
                'A bright moon and stars twinkle and shine. Wishing you a merry Mid-Autumn Festival, bliss, and happiness.')

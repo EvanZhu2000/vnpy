@@ -16,3 +16,5 @@ if __name__ == "__main__":
     mydb.commit()
     mycursor.close()
     mydb.close()
+    
+# https://yarboroughtechnologies.com/how-to-automatically-backup-a-mysql-or-mariadb-server-with-mysqldump/ 

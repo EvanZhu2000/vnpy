@@ -1,5 +1,6 @@
 import pandas as pd
 import mysql.connector
+from datetime import datetime
 from vnpy_self.data_and_db.db_setting import db_setting
 
 class MysqlService():
@@ -28,12 +29,21 @@ class MysqlService():
                 "VALUES" + "('"+ "', '".join(map(str,kwargs.values())) + "');")
         self.mydb.commit()
         
-    def select(self,table,additional_query='',**where) -> pd.DataFrame:
+    def select(self,table,additional_query='',**where):
         return pd.read_sql_query(f"SELECT * FROM `vnpy`.`{table}` {'where' if len(where)>0 else ''} {self.dict_to_string(where)}" + additional_query, self.mydb)
     
-    def update_order_status(self, vt_orderid, order_status) -> pd.DataFrame:
-        self.mycursor.execute(f"UPDATE`vnpy`.`strategy_order` SET order_status = '{order_status}' where vt_orderid = '{vt_orderid}';")
-        self.mydb.commit()
+    def update_pos(self, symbol, strategy, pos):
+        df = self.select('current_pos', symbol = symbol, strategy = strategy)
+        if df.empty:
+            self.insert('current_pos', symbol = symbol, strategy = strategy, datetime = datetime.now(), pos = pos)
+        else:
+            self.update('current_pos', f'pos = {pos} and datetime = {datetime.now()}', symbol = symbol, strategy = strategy)
+    
+    def update_order_status(self, vt_orderid, order_status):
+        df = self.select('strategy_order', vt_orderid = vt_orderid)
+        df['status'] = order_status
+        df['datetime'] = datetime.now()
+        self.insert('strategy_order',additional_query='',**df.drop(['id'],axis=1).iloc[0].to_dict())
         
     def update(self, table, set_clause, **where) -> None:
         self.mycursor.execute(f"UPDATE `vnpy`.`{table}` SET {set_clause} {'where' if len(where)>0 else ''} {self.dict_to_string(where)};")
@@ -42,3 +52,14 @@ class MysqlService():
         query = f"INSERT {'IGNORE' if ignore else ''} INTO `vnpy`.`dbbardata` (`symbol`, `exchange`, `datetime`, `interval`, `volume`, `turnover`, `open_interest`, `open_price`, `high_price`, `low_price`, `close_price`) VALUES(%s, %s, %s, %s,%s, %s, %s, %s,%s, %s, %s);"                                                         
         self.mycursor.executemany(query, list(map(tuple, data.values)))
         self.mydb.commit()
+        
+    def get_pos(self, strategy_name):
+        return pd.read_sql_query( f"select * from vnpy.strategy_order as sp 
+                                    join(
+                                        SELECT symbol as latest_symbol, MAX(datetime) AS latest_timestamp, MAX(id) as max_id
+                                        FROM vnpy.strategy_order  where strategy = '{strategy_name}' and order_status = 'Status.ALLTRADED'
+                                        GROUP BY symbol
+                                    ) as latest on sp.symbol = latest.latest_symbol 
+                                        and sp.datetime = latest.latest_timestamp
+                                        and sp.id = latest.max_id;", self.mydb)[['symbol','tar']]
+        

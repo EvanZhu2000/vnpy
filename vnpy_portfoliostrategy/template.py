@@ -127,6 +127,8 @@ class StrategyTemplate(ABC):
             self.pos_data[trade.vt_symbol] += trade.volume
         else:
             self.pos_data[trade.vt_symbol] -= trade.volume
+            
+        self.strategy_engine.dbservice.update_pos(trade.vt_symbol, self.strategy_name, self.pos_data[trade.vt_symbol])
 
     def update_order(self, order: OrderData) -> None:
         """委托数据更新"""
