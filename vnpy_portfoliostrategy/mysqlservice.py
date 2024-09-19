@@ -1,5 +1,6 @@
 import pandas as pd
 import mysql.connector
+from dateutil.relativedelta import relativedelta
 from datetime import datetime
 from vnpy_self.data_and_db.db_setting import db_setting
 
@@ -51,6 +52,10 @@ class MysqlService():
     def insert_datafeed(self, data, ignore=False):
         query = f"INSERT {'IGNORE' if ignore else ''} INTO `vnpy`.`dbbardata` (`symbol`, `exchange`, `datetime`, `interval`, `volume`, `turnover`, `open_interest`, `open_price`, `high_price`, `low_price`, `close_price`) VALUES(%s, %s, %s, %s,%s, %s, %s, %s,%s, %s, %s);"                                                         
         self.mycursor.executemany(query, list(map(tuple, data.values)))
+        self.mydb.commit()
+        
+    def delete_datafeed(self, num_of_months=1):
+        self.mycursor.execute(f"DELETE FROM vnpy.dbbardata WHERE datetime < '{(datetime.now() - relativedelta(months=num_of_months)).strftime('%Y-%m-%d %H:%M:%S')}'")
         self.mydb.commit()
         
     def get_pos(self, strategy_name):
