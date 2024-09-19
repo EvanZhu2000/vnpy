@@ -158,8 +158,8 @@ def get_stats(trading_list, lookback_win_days, pro):
     return l_df_everyday,s_df_everyday,l_df_delta_everyday,s_df_delta_everyday,l_dom_everyday,s_dom_everyday,l_dom_delta_everyday,s_dom_delta_everyday,l_dom2_everyday,s_dom2_everyday,l_dom2_delta_everyday,s_dom2_delta_everyday
 
 if __name__ == "__main__":
-    # today_date = datetime.today()
-    today_date = datetime(2024, 9, 18)
+    today_date = datetime.today()
+    # today_date = datetime(2024, 9, 18)
     next_trading_date = get_next_trading_date(today_date)
     lookback_win_days = 60
     # price_start = pd.Timestamp('20240601')
