@@ -10,8 +10,8 @@ db = MysqlService()
 
 # to update strategies after open
 if __name__ == "__main__":
-    today_str = datetime(2024,9,18).strftime('%Y-%m-%d')
-    # today_str = datetime.today().strftime('%Y-%m-%d')
+    # today_str = datetime(2024,9,18).strftime('%Y-%m-%d')
+    today_str = datetime.today().strftime('%Y-%m-%d')
     next_day = db.select('trading_schedule',strategy='dom',today = today_str)['date'].values[0]
     strategies = db.select('strategies',date = today_str)
     strategies['date'] = next_day

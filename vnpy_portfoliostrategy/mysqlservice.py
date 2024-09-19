@@ -3,6 +3,8 @@ import mysql.connector
 from dateutil.relativedelta import relativedelta
 from datetime import datetime
 from vnpy_self.data_and_db.db_setting import db_setting
+import warnings
+warnings.filterwarnings("ignore")
 
 class MysqlService():
     
