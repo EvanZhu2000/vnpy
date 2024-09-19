@@ -85,7 +85,7 @@ def run():
                                             )[['symbol_y','target']]
     strategy_title = 'strategy2'
     if strategy_title not in ps_engine.strategies.keys():
-        ps_engine.add_strategy('Strategy2','strategy2',to_trade_df['symbol_y'],dict({'tarpos':','.join(to_trade_df['target'].astype(int).astype(str).values)}))
+        ps_engine.add_strategy('Strategy2','strategy2',to_trade_df['symbol_y'].values,dict({'tarpos':','.join(to_trade_df['target'].astype(int).astype(str).values)}))
         
     ps_engine.init_strategy(strategy_title)
     main_engine.write_log("ps策略全部初始化")
