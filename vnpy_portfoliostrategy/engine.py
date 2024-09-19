@@ -397,10 +397,6 @@ class StrategyEngine(BaseEngine):
 
             msg: str = f"触发异常已停止\n{traceback.format_exc()}"
             self.write_log(msg, strategy)
-            
-    def add_strategy_code(self, class_name: str, strategy_name: str, vt_symbols: list, code_params:dict = None) -> None:
-        self.add_strategy(class_name, strategy_name, vt_symbols, {})
-        self.strategies[strategy_name].code_params = code_params
 
     def add_strategy(
         self, class_name: str, strategy_name: str, vt_symbols: list, setting: dict
