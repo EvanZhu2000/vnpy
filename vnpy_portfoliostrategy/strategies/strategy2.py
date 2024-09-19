@@ -6,7 +6,7 @@ from vnpy.trader.object import (
     BarData,
     OrderType
 )
-from vnpy.trader.constant import Direction, Status
+import pandas as pd
 
 class Strategy2(StrategyTemplate):
    
@@ -19,11 +19,14 @@ class Strategy2(StrategyTemplate):
     ) -> None:
         """构造函数"""
         super().__init__(strategy_engine, strategy_name, vt_symbols, setting)
-        self.write_log(f"setting{setting}")
+        if 'tarpos' in setting:
+            tarpos = pd.Series(setting['tarpos'].split(',') ).astype(int).values
+        self.write_log(f"tarpos {tarpos}")
+        
         for i in range(len(vt_symbols)):
             symb = vt_symbols[i]
-            # tar = int(setting['tarpos'][i])
-            tar = 10
+            tar = tarpos[i]
+            # tar = 10
             self.set_target(symb, tar)
     
     def on_init(self) -> None:
