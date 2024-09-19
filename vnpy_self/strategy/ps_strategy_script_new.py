@@ -8,7 +8,6 @@ from vnpy_portfoliostrategy import PortfolioStrategyApp
 from vnpy_portfoliostrategy.base import EVENT_PORTFOLIO_LOG
 from vnpy_portfoliostrategy.portfolio_rollover import RolloverTool
 from vnpy_self.ctp_setting import ctp_setting
-from vnpy_self.data_and_ps_engine.dbservice.ps_engine.dbservice_setting import ps_engine.dbservice_setting
 
 import re
 from datetime import datetime, time, date

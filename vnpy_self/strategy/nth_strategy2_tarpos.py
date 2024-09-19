@@ -159,7 +159,7 @@ def get_stats(trading_list, lookback_win_days, pro):
 
 if __name__ == "__main__":
     # today_date = datetime.today()
-    today_date = datetime(2024, 9, 9)
+    today_date = datetime(2024, 9, 18)
     next_trading_date = get_next_trading_date(today_date)
     lookback_win_days = 60
     # price_start = pd.Timestamp('20240601')
@@ -220,5 +220,6 @@ if __name__ == "__main__":
         raise Exception(f'Wrong tar pos date! {today_date}, {balancing_list.name}')
     mysqlservice.insert("daily_rebalance_target", date=next_trading_date, today=today_date,
         symbol = ','.join(balancing_list.astype(int).astype(str).index), 
-        target = ','.join(balancing_list.astype(int).astype(str).values))
+        target = ','.join(balancing_list.astype(int).astype(str).values),
+        strategy = 'strategy2')
     mysqlservice.close()
