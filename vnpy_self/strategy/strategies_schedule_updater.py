@@ -14,5 +14,5 @@ if __name__ == "__main__":
     strategies = db.select('strategies',date = datetime.today().strftime('%Y-%m-%d'))
     strategies['date'] = next_day
     for s in strategies.iterrows():
-        db.insert('strategies', **s[1].to_dict())
+        db.insert('strategies', ignore=True, **s[1].to_dict())
     db.close()

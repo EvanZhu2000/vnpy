@@ -59,12 +59,5 @@ class MysqlService():
         self.mydb.commit()
         
     def get_pos(self, strategy_name):
-        return pd.read_sql_query( f"select * from vnpy.strategy_order as sp 
-                                    join(
-                                        SELECT symbol as latest_symbol, MAX(datetime) AS latest_timestamp, MAX(id) as max_id
-                                        FROM vnpy.strategy_order  where strategy = '{strategy_name}' and order_status = 'Status.ALLTRADED'
-                                        GROUP BY symbol
-                                    ) as latest on sp.symbol = latest.latest_symbol 
-                                        and sp.datetime = latest.latest_timestamp
-                                        and sp.id = latest.max_id;", self.mydb)[['symbol','tar']]
+        return pd.read_sql_query(f"select * from vnpy.strategy_order as sp join(SELECT symbol as latest_symbol, MAX(datetime) AS latest_timestamp, MAX(id) as max_id FROM vnpy.strategy_order where strategy = '{strategy_name}' and order_status = 'Status.ALLTRADED' GROUP BY symbol) as latest on sp.symbol = latest.latest_symbol and sp.datetime = latest.latest_timestamp and sp.id = latest.max_id;", self.mydb)[['symbol','tar']]
         
