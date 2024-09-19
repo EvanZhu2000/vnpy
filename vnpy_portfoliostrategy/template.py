@@ -16,6 +16,7 @@ class StrategyTemplate(ABC):
     """组合策略模板"""
 
     author: str = ""
+    code_params: dict = {}
     parameters: list = []
     variables: list = []
 
