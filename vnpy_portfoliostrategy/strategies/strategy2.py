@@ -21,6 +21,7 @@ class Strategy2(StrategyTemplate):
         super().__init__(strategy_engine, strategy_name, vt_symbols, setting)
         if 'tarpos' in setting:
             tarpos = pd.Series(setting['tarpos'].split(',') ).astype(int).values
+        self.write_log(f"vt_symbols {vt_symbols}")
         self.write_log(f"tarpos {tarpos}")
         
         for i in range(len(vt_symbols)):

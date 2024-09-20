@@ -66,7 +66,7 @@ def run():
     ps_engine.init_engine()
     main_engine.write_log("ps策略初始化完成")
     
-    current_day = datetime(2024,9,18)
+    current_day = datetime(2024,9,19)
     # current_day = datetime.today()
     rebal_tar = ps_engine.dbservice.select('daily_rebalance_target',today = current_day, strategy = 'strategy2')
     rebal_tar = pd.concat([pd.Series(rebal_tar['symbol'].values[0].split(',')),
@@ -88,7 +88,7 @@ def run():
         ps_engine.add_strategy('Strategy2','strategy2',
                                to_trade_df['symbol_y'].values.tolist(),
                                dict({'tarpos':','.join(to_trade_df['target'].astype(int).astype(str).values)}))
-        
+    sleep(5)    
     ps_engine.init_strategy(strategy_title)
     main_engine.write_log("ps策略全部初始化")
     sleep(5)
@@ -97,7 +97,7 @@ def run():
     
     HAVE_ROLLOVER = False
     while True:
-        sleep(10)
+        sleep(5)
         
         if check_rollover_period() and not HAVE_ROLLOVER:
             for r in rollover_df.iterrows():
