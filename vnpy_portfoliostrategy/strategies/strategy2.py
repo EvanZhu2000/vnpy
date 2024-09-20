@@ -24,11 +24,11 @@ class Strategy2(StrategyTemplate):
             tarpos = pd.Series(setting['tarpos'].split(',') ).astype(int).values
             self.write_log(f"tarpos {tarpos}")
         
-        for i in range(len(vt_symbols)):
-            symb = vt_symbols[i]
-            tar = tarpos[i]
-            # tar = 10
-            self.set_target(symb, tar)
+            for i in range(len(vt_symbols)):
+                symb = vt_symbols[i]
+                tar = tarpos[i]
+                # tar = 10
+                self.set_target(symb, tar)
     
     def on_init(self) -> None:
         """策略初始化回调"""
