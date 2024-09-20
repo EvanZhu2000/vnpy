@@ -46,7 +46,7 @@ class MysqlService():
         df = self.select('strategy_order', vt_orderid = vt_orderid)
         df['status'] = order_status
         df['datetime'] = datetime.now()
-        self.insert('strategy_order',additional_query='',**df.drop(['id'],axis=1).iloc[0].to_dict())
+        self.insert('strategy_order',ignore=True,**df.drop(['id'],axis=1).iloc[0].to_dict())
         
     def update(self, table, set_clause, **where) -> None:
         self.mycursor.execute(f"UPDATE `vnpy`.`{table}` SET {set_clause} {'where' if len(where)>0 else ''} {self.dict_to_string(where)};")
