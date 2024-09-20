@@ -19,10 +19,10 @@ class Strategy2(StrategyTemplate):
     ) -> None:
         """构造函数"""
         super().__init__(strategy_engine, strategy_name, vt_symbols, setting)
+        self.write_log(f"vt_symbols {vt_symbols}")
         if 'tarpos' in setting:
             tarpos = pd.Series(setting['tarpos'].split(',') ).astype(int).values
-        self.write_log(f"vt_symbols {vt_symbols}")
-        self.write_log(f"tarpos {tarpos}")
+            self.write_log(f"tarpos {tarpos}")
         
         for i in range(len(vt_symbols)):
             symb = vt_symbols[i]
