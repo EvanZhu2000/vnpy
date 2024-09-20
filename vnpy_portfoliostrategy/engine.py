@@ -488,7 +488,7 @@ class StrategyEngine(BaseEngine):
         self.put_strategy_event(strategy)
         pos_data = self.dbservice.select('current_pos', strategy = strategy_name)
         for r in pos_data.iterrows():
-            strategy.set_pos(r[1]['symbol'], r[1]['tar'])
+            strategy.set_pos(r[1]['symbol'], r[1]['pos'])
         self.dbservice.update('strategies', "`status` = 'on'", strategy = strategy_name)
 
     def stop_strategy(self, strategy_name: str) -> None:
