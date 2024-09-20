@@ -58,7 +58,7 @@ class RolloverTool():
         
         # examine whether new symbol is valid
         ### REMEMEBER: strategy needs to be init first otherwise won't be able to subscribe to market data!!!
-        new_set:set = set(self.new_symbol_list) + set(self.old_symbol_list)
+        new_set:set = set(self.new_symbol_list) | set(self.old_symbol_list)
         for symb in new_set:
             self.subscribe(symb)
             sleep(10)
