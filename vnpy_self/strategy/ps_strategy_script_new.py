@@ -86,7 +86,7 @@ def run():
     strategy_title = 'strategy2'
     if strategy_title not in ps_engine.strategies.keys():
         ps_engine.add_strategy('Strategy2','strategy2',
-                               to_trade_df['symbol_y'].values.tolist(),
+                               to_trade_df['symbol_y'].str.strip().values.tolist(),
                                dict({'tarpos':','.join(to_trade_df['target'].astype(int).astype(str).values)}))
     sleep(5)    
     ps_engine.init_strategy(strategy_title)
