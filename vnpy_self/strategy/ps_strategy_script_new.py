@@ -84,10 +84,13 @@ def run():
                                     ).merge(rebal_tar,left_on='symbol_x',right_on='symbol',how='inner'
                                             )[['symbol_y','target']]
     strategy_title = 'strategy2'
-    if strategy_title not in ps_engine.strategies.keys():
-        ps_engine.add_strategy('Strategy2','strategy2',
+    if strategy_title in ps_engine.strategies.keys():
+        ps_engine.stop_strategy(strategy_title)
+        ps_engine.remove_strategy(strategy_title)
+        ps_engine.add_strategy('Strategy2',strategy_title,
                                to_trade_df['symbol_y'].str.strip().values.tolist(),
                                dict({'tarpos':','.join(to_trade_df['target'].astype(int).astype(str).values)}))
+        
     sleep(5)    
     ps_engine.init_strategy(strategy_title)
     main_engine.write_log("ps策略全部初始化")
