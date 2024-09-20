@@ -52,13 +52,13 @@ class RolloverTool():
         """"""
         # validation
         if len(self.old_symbol_list) == 0 or len(self.new_symbol_list) == 0 or\
-            len(self.old_symbol_list) != len(self.new_symbol_list) or set(self.strategy.vt_symbols) != set(self.old_symbol_list):
+            len(self.old_symbol_list) != len(self.new_symbol_list):
             self.write_log(f"Incorrect rollover list!")
             return
         
         # examine whether new symbol is valid
         ### REMEMEBER: strategy needs to be init first otherwise won't be able to subscribe to market data!!!
-        new_set:set = set(self.new_symbol_list) - set(self.old_symbol_list)
+        new_set:set = set(self.new_symbol_list) + set(self.old_symbol_list)
         for symb in new_set:
             self.subscribe(symb)
             sleep(10)

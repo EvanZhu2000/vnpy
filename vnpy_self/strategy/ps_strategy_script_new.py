@@ -104,20 +104,12 @@ def run():
         
         if check_rollover_period() and not HAVE_ROLLOVER:
             for r in rollover_df.iterrows():
-                pre_roll,post_roll = r['pre'],r['post']
+                pre_roll,post_roll = r[1]['pre'],r[1]['post']
                 rt = RolloverTool(ps_engine=ps_engine, main_engine=main_engine)
                 main_engine.write_log(f"Rolling from {pre_roll} to {post_roll}")
                 rt.init(strategy_title, pre_roll, post_roll)
                 rt.roll_all()
                 
-                # @TODO why is there a need for this???
-                ### then restart the strategy
-                # ps_engine.stop_strategy(strategy_title)
-                # ps_engine.remove_strategy(strategy_title)
-                # ps_engine.add_strategy('Strategy1',strategy_title,post_roll,strategy1_IH_settings)
-                # ps_engine.init_strategy(strategy_title)
-                # sleep(5)
-                # ps_engine.start_strategy(strategy_title)
                 HAVE_ROLLOVER = True
                 
         if not strategy_running_period():
