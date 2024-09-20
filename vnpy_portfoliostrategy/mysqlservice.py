@@ -44,9 +44,8 @@ class MysqlService():
     
     def update_order_status(self, vt_orderid, order_status):
         df = self.select('strategy_order', vt_orderid = vt_orderid)
-        df['status'] = order_status
+        df['order_status'] = order_status
         df['datetime'] = datetime.now()
-        print(df)
         self.insert('strategy_order',ignore=True,**df.drop(['id'],axis=1).iloc[0].to_dict())
         
     def update(self, table, set_clause, **where) -> None:
