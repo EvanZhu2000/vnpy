@@ -439,6 +439,7 @@ class StrategyEngine(BaseEngine):
         self.call_strategy_func(strategy, strategy.on_init)
 
         # 恢复策略状态
+        # I make this redundant as it cannot reflect changes throughout time
         data: Optional[dict] = self.strategy_data.get(strategy_name, None)
         if data:
             for name in strategy.variables:
@@ -453,6 +454,12 @@ class StrategyEngine(BaseEngine):
                 # 对于其他int/float/str/bool字段则可以直接赋值
                 else:
                     setattr(strategy, name, value)
+        # my way of doing this
+        pos_data = self.dbservice.select('current_pos', strategy = strategy_name)
+        print(pos_data)
+        for r in pos_data.iterrows():
+            strategy.set_pos(r[1]['symbol'], r[1]['pos'])
+        self.dbservice.update('strategies', "`status` = 'on'", strategy = strategy_name)
 
         # 订阅行情
         for vt_symbol in strategy.vt_symbols:
@@ -486,10 +493,6 @@ class StrategyEngine(BaseEngine):
         # 推送策略事件通知启动完成状态
         strategy.trading = True
         self.put_strategy_event(strategy)
-        pos_data = self.dbservice.select('current_pos', strategy = strategy_name)
-        for r in pos_data.iterrows():
-            strategy.set_pos(r[1]['symbol'], r[1]['pos'])
-        self.dbservice.update('strategies', "`status` = 'on'", strategy = strategy_name)
 
     def stop_strategy(self, strategy_name: str) -> None:
         """停止策略"""
