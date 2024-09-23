@@ -94,6 +94,8 @@ def run():
         ps_engine.stop_strategy(strategy_title)
         ps_engine.remove_strategy(strategy_title)
         ps_engine.add_strategy(strategy_class_name, strategy_title, vt_symbols, settings)
+    else:
+        ps_engine.add_strategy(strategy_class_name, strategy_title, vt_symbols, settings)
         
     sleep(5)    
     ps_engine.init_strategy(strategy_title)
