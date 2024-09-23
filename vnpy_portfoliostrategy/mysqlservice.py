@@ -36,7 +36,6 @@ class MysqlService():
         return pd.read_sql_query(f"SELECT * FROM `vnpy`.`{table}` {'where' if len(where)>0 else ''} {self.dict_to_string(where)}" + additional_query, self.mydb)
         
     def update(self, table, set_clause, **where) -> None:
-        print(f"UPDATE `vnpy`.`{table}` SET {set_clause} {'where' if len(where)>0 else ''} {self.dict_to_string(where)};")
         self.mycursor.execute(f"UPDATE `vnpy`.`{table}` SET {set_clause} {'where' if len(where)>0 else ''} {self.dict_to_string(where)};")
 
     def insert_datafeed(self, data, ignore=False):
@@ -57,7 +56,7 @@ class MysqlService():
         if df.empty:
             self.insert('current_pos', symbol = symbol, strategy = strategy, datetime = datetime.now(), pos = pos)
         else:
-            self.update('current_pos', f'pos = {pos} and datetime = {datetime.now()}', symbol = symbol, strategy = strategy)
+            self.update('current_pos', f'pos = {pos} and datetime = {str(datetime.now())}', symbol = symbol, strategy = strategy)
     
     # whenever there is an order update
     def update_order_status(self, vt_orderid, order_status):
