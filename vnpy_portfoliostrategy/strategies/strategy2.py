@@ -38,6 +38,8 @@ class Strategy2(StrategyTemplate):
     def on_start(self) -> None:
         """策略启动回调"""
         self.write_log("策略启动")
+        for s in self.vt_symbols:
+            print(f"pos - {self.get_pos(s)}; tar - {self.get_target(s)}")
         self.put_event()
         
     def on_stop(self) -> None:
