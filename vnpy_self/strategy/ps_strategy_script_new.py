@@ -9,7 +9,7 @@ from vnpy_portfoliostrategy.base import EVENT_PORTFOLIO_LOG
 from vnpy_portfoliostrategy.portfolio_rollover import RolloverTool
 from vnpy_self.ctp_setting import ctp_setting
 
-import re
+import json
 from datetime import datetime, time, date
 import sys
 from time import sleep
@@ -68,27 +68,32 @@ def run():
     
     current_day = datetime(2024,9,20)
     # current_day = datetime.today()
-    rebal_tar = ps_engine.dbservice.select('daily_rebalance_target',today = current_day, strategy = 'strategy2')
+    strategy_title = 'strategy2'
+    strategy_class_name = 'Strategy2'
+    
+    # fill positions and find target for today
+    rebal_tar = ps_engine.dbservice.select('daily_rebalance_target',today = current_day, strategy = strategy_title)
     rebal_tar = pd.concat([pd.Series(rebal_tar['symbol'].values[0].split(',')),
                         pd.Series(rebal_tar['target'].values[0].split(','))],axis=1,keys=['symbol','target'])
-    trading_schedule = ps_engine.dbservice.select('trading_schedule',today = current_day, strategy = 'strategy2').set_index('id').drop_duplicates()
-    previous_trading_schedule = ps_engine.dbservice.select('trading_schedule',date = current_day, strategy = 'strategy2').set_index('id').drop_duplicates()
+    trading_schedule = ps_engine.dbservice.select('trading_schedule',today = current_day, strategy = strategy_title).set_index('id').drop_duplicates()
+    previous_trading_schedule = ps_engine.dbservice.select('trading_schedule',date = current_day, strategy = strategy_title).set_index('id').drop_duplicates()
     trading_hours = ps_engine.dbservice.select('trading_hours',date = trading_schedule['date'].iloc[0])
     if trading_schedule.shape[0]!=1 or previous_trading_schedule.shape[0]!=1:
-        raise Exception('Wrong trading schedule for strategy2')
+        raise Exception(f'Wrong trading schedule for {strategy_title}')
     to_trade_df = pd.concat([pd.Series(trading_schedule['symbol'].values[0].split(',')).str[:-4],
                              pd.Series(trading_schedule['symbol'].values[0].split(','))],axis=1,keys=['symbol','symb']
                             ).merge(trading_hours[['rqsymbol','symbol']],left_on='symb',right_on='rqsymbol',how='inner'
                                     ).merge(rebal_tar,left_on='symbol_x',right_on='symbol',how='inner'
                                             )[['symbol_y','target']]
-    strategy_title = 'strategy2'
+    to_trade_df['target'] = pd.to_numeric(to_trade_df['target'])
     pos_data = ps_engine.refill_pos(strategy_title)
-    vt_symbols = pd.Series(list(set(pos_data) | set(to_trade_df['symbol_y'].values.tolist()))).str.strip().values.tolist()
-    settings = dict({'tarpos':','.join(to_trade_df['target'].astype(int).astype(str).values)})
+    ans = pos_data[['symbol','pos']].set_index('symbol').join(to_trade_df.set_index('symbol_y'),how='outer')
+    vt_symbols = ans.index
+    settings = dict({'tarpos':json.dumps(ans['target'].to_dict())})
     if strategy_title in ps_engine.strategies.keys():
         ps_engine.stop_strategy(strategy_title)
         ps_engine.remove_strategy(strategy_title)
-        ps_engine.add_strategy('Strategy2', strategy_title ,vt_symbols, settings)
+        ps_engine.add_strategy(strategy_class_name, strategy_title, vt_symbols, settings)
         
     sleep(5)    
     ps_engine.init_strategy(strategy_title)

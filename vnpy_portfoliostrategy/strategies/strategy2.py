@@ -1,12 +1,9 @@
 from vnpy_portfoliostrategy import StrategyTemplate, StrategyEngine
 from vnpy.trader.object import (
-    TickData,
-    OrderData,
-    TradeData,
-    BarData,
-    OrderType
+    TickData
 )
 import pandas as pd
+import json
 
 class Strategy2(StrategyTemplate):
    
@@ -19,16 +16,11 @@ class Strategy2(StrategyTemplate):
     ) -> None:
         """构造函数"""
         super().__init__(strategy_engine, strategy_name, vt_symbols, setting)
-        self.write_log(f"vt_symbols {vt_symbols}")
         if 'tarpos' in setting:
-            tarpos = pd.Series(setting['tarpos'].split(',') ).astype(int).values
+            tarpos = json.loads(setting['tarpos'])
             self.write_log(f"tarpos {tarpos}")
-            for i in range(len(vt_symbols)):
-                symb = vt_symbols[i]
-                if 'tarpos' in setting:
-                    tar = tarpos[i]
-                    self.set_target(symb, tar)
-
+            for symb,tar in tarpos.items():
+                self.set_target(symb, tar)
     
     def on_init(self) -> None:
         """策略初始化回调"""

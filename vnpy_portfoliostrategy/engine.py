@@ -421,14 +421,14 @@ class StrategyEngine(BaseEngine):
         self.save_strategy_setting()
         self.put_strategy_event(strategy)
 
-    def refill_pos(self, strategy_name:str) -> list[str]:
+    def refill_pos(self, strategy_name:str):
         strategy: StrategyTemplate = self.strategies[strategy_name]
         # My way of retrieving pos and tar
         pos_data = self.dbservice.select('current_pos', strategy = strategy_name)
         for r in pos_data.iterrows():
             strategy.set_pos(r[1]['symbol'], r[1]['pos'])
         self.dbservice.update('strategies', "`status` = 'on'", strategy = strategy_name)
-        return pos_data['symbol'].values.tolist()
+        return pos_data
         
     def init_strategy(self, strategy_name: str) -> None:
         """初始化策略"""
