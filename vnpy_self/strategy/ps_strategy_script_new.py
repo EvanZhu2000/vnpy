@@ -88,7 +88,7 @@ def run():
     to_trade_df['target'] = pd.to_numeric(to_trade_df['target'])
     pos_data = ps_engine.refill_pos(strategy_title)
     ans = pos_data[['symbol','pos']].set_index('symbol').join(to_trade_df.set_index('symbol_y'),how='outer')
-    vt_symbols = ans.index
+    vt_symbols = ans.index.values.tolist()
     settings = dict({'tarpos':json.dumps(ans['target'].to_dict())})
     if strategy_title in ps_engine.strategies.keys():
         ps_engine.stop_strategy(strategy_title)
