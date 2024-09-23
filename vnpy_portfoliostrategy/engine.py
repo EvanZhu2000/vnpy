@@ -421,12 +421,8 @@ class StrategyEngine(BaseEngine):
         self.save_strategy_setting()
         self.put_strategy_event(strategy)
 
-    def refill_pos(self, strategy_name:str):
-        strategy: StrategyTemplate = self.strategies[strategy_name]
-        # My way of retrieving pos and tar
+    def get_pos(self, strategy_name:str):
         pos_data = self.dbservice.select('current_pos', strategy = strategy_name)
-        for r in pos_data.iterrows():
-            strategy.set_pos(r[1]['symbol'], r[1]['pos'])
         self.dbservice.update('strategies', "`status` = 'on'", strategy = strategy_name)
         return pos_data
         
@@ -465,6 +461,11 @@ class StrategyEngine(BaseEngine):
                 #     setattr(strategy, name, value)
                 if name not in {"pos_data", "target_data"}:
                     setattr(strategy, name, value)
+        # my way of retrieving pos_data and target_data
+        pos_data = self.dbservice.select('current_pos', strategy = strategy_name)
+        for r in pos_data.iterrows():
+            if r[1]['symbol'] in strategy.vt_symbols:
+                strategy.set_pos(r[1]['symbol'], r[1]['pos'])
 
         # 订阅行情
         for vt_symbol in strategy.vt_symbols:
