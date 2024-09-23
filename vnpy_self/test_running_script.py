@@ -36,20 +36,21 @@ def run_child():
 
     ps_engine.init_engine()
     main_engine.write_log("策略初始化完成")
-    strategy_name = "test1"
-    if strategy_name not in ps_engine.strategies:
-        ps_engine.add_strategy('SimpleBuyStrategy',strategy_name,['IH2406.CFFEX','IF2406.CFFEX'],{})
-    ps_engine.init_strategy(strategy_name)
-    sleep(10)   # Leave enough time to complete strategy initialization
-    main_engine.write_log("策略初始化")
-    print("策略初始化")
+    print(main_engine.engines)
+    # strategy_name = "test1"
+    # if strategy_name not in ps_engine.strategies:
+    #     ps_engine.add_strategy('SimpleBuyStrategy',strategy_name,['IH2406.CFFEX','IF2406.CFFEX'],{})
+    # ps_engine.init_strategy(strategy_name)
+    # sleep(10)   # Leave enough time to complete strategy initialization
+    # main_engine.write_log("策略初始化")
+    # print("策略初始化")
 
-    ps_engine.start_strategy(strategy_name)
-    main_engine.write_log("策略启动")
+    # ps_engine.start_strategy(strategy_name)
+    # main_engine.write_log("策略启动")
 
-    sleep(120)
-    ps_engine.stop_strategy(strategy_name)
-    print("关闭子进程")
+    # sleep(120)
+    # ps_engine.stop_strategy(strategy_name)
+    # print("关闭子进程")
     main_engine.close()
     sys.exit(0)
 
