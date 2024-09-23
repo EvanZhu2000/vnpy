@@ -34,21 +34,9 @@ class MysqlService():
         
     def select(self,table,additional_query='',**where):
         return pd.read_sql_query(f"SELECT * FROM `vnpy`.`{table}` {'where' if len(where)>0 else ''} {self.dict_to_string(where)}" + additional_query, self.mydb)
-    
-    def update_pos(self, symbol, strategy, pos):
-        df = self.select('current_pos', symbol = symbol, strategy = strategy)
-        if df.empty:
-            self.insert('current_pos', symbol = symbol, strategy = strategy, datetime = datetime.now(), pos = pos)
-        else:
-            self.update('current_pos', f'pos = {pos} and datetime = {datetime.now()}', symbol = symbol, strategy = strategy)
-    
-    def update_order_status(self, vt_orderid, order_status):
-        df = self.select('strategy_order', vt_orderid = vt_orderid)
-        df['order_status'] = order_status
-        df['datetime'] = datetime.now()
-        self.insert('strategy_order',ignore=True,**df.drop(['id'],axis=1).iloc[0].to_dict())
         
     def update(self, table, set_clause, **where) -> None:
+        print(f"UPDATE `vnpy`.`{table}` SET {set_clause} {'where' if len(where)>0 else ''} {self.dict_to_string(where)};")
         self.mycursor.execute(f"UPDATE `vnpy`.`{table}` SET {set_clause} {'where' if len(where)>0 else ''} {self.dict_to_string(where)};")
 
     def insert_datafeed(self, data, ignore=False):
@@ -62,4 +50,18 @@ class MysqlService():
         
     def get_pos(self, strategy_name):
         return pd.read_sql_query(f"select * from vnpy.strategy_order as sp join(SELECT symbol as latest_symbol, MAX(datetime) AS latest_timestamp, MAX(id) as max_id FROM vnpy.strategy_order where strategy = '{strategy_name}' and order_status = 'Status.ALLTRADED' GROUP BY symbol) as latest on sp.symbol = latest.latest_symbol and sp.datetime = latest.latest_timestamp and sp.id = latest.max_id;", self.mydb)[['symbol','tar']]
-        
+    
+    # whenever there is a trade update
+    def update_pos(self, symbol, strategy, pos):
+        df = self.select('current_pos', symbol = symbol, strategy = strategy)
+        if df.empty:
+            self.insert('current_pos', symbol = symbol, strategy = strategy, datetime = datetime.now(), pos = pos)
+        else:
+            self.update('current_pos', f'pos = {pos} and datetime = {datetime.now()}', symbol = symbol, strategy = strategy)
+    
+    # whenever there is an order update
+    def update_order_status(self, vt_orderid, order_status):
+        df = self.select('strategy_order', vt_orderid = vt_orderid)
+        df['order_status'] = order_status
+        df['datetime'] = datetime.now()
+        self.insert('strategy_order',ignore=True,**df.drop(['id'],axis=1).iloc[0].to_dict())
