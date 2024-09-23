@@ -421,19 +421,21 @@ class StrategyEngine(BaseEngine):
         self.save_strategy_setting()
         self.put_strategy_event(strategy)
 
+    def refill_pos(self, strategy_name:str) -> list[str]:
+        strategy: StrategyTemplate = self.strategies[strategy_name]
+        # My way of retrieving pos and tar
+        pos_data = self.dbservice.select('current_pos', strategy = strategy_name)
+        for r in pos_data.iterrows():
+            strategy.set_pos(r[1]['symbol'], r[1]['pos'])
+        self.dbservice.update('strategies', "`status` = 'on'", strategy = strategy_name)
+        return pos_data['symbol'].values.tolist()
+        
     def init_strategy(self, strategy_name: str) -> None:
         """初始化策略"""
         self.init_executor.submit(self._init_strategy, strategy_name)
 
     def _init_strategy(self, strategy_name: str) -> None:
         """初始化策略"""
-        
-        pos_data = self.dbservice.select('current_pos', strategy = strategy_name)
-        print(pos_data)
-        for r in pos_data.iterrows():
-            strategy.set_pos(r[1]['symbol'], r[1]['pos'])
-        self.dbservice.update('strategies', "`status` = 'on'", strategy = strategy_name)
-        
         strategy: StrategyTemplate = self.strategies[strategy_name]
 
         if strategy.inited:
@@ -454,12 +456,14 @@ class StrategyEngine(BaseEngine):
                 if value is None:
                     continue
 
-                # 对于持仓和目标数据字典，需要使用dict.update更新defaultdict
-                if name in {"pos_data", "target_data"}:
-                    strategy_data = getattr(strategy, name)
-                    strategy_data.update(value)
-                # 对于其他int/float/str/bool字段则可以直接赋值
-                else:
+                # # 对于持仓和目标数据字典，需要使用dict.update更新defaultdict
+                # if name in {"pos_data", "target_data"}:
+                #     strategy_data = getattr(strategy, name)
+                #     strategy_data.update(value)
+                # # 对于其他int/float/str/bool字段则可以直接赋值
+                # else:
+                #     setattr(strategy, name, value)
+                if name not in {"pos_data", "target_data"}:
                     setattr(strategy, name, value)
 
         # 订阅行情

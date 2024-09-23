@@ -23,15 +23,11 @@ class Strategy2(StrategyTemplate):
         if 'tarpos' in setting:
             tarpos = pd.Series(setting['tarpos'].split(',') ).astype(int).values
             self.write_log(f"tarpos {tarpos}")
-        
-        currentpos = []
-        for i in range(len(vt_symbols)):
-            symb = vt_symbols[i]
-            if 'tarpos' in setting:
-                tar = tarpos[i]
-                self.set_target(symb, tar)
-            currentpos.append(self.get_pos(symb))
-        self.write_log(f"currentpos {currentpos}")
+            for i in range(len(vt_symbols)):
+                symb = vt_symbols[i]
+                if 'tarpos' in setting:
+                    tar = tarpos[i]
+                    self.set_target(symb, tar)
 
     
     def on_init(self) -> None:
