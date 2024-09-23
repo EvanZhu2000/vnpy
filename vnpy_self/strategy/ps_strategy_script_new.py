@@ -66,7 +66,7 @@ def run():
     ps_engine.init_engine()
     main_engine.write_log("ps策略初始化完成")
     
-    current_day = datetime(2024,9,19)
+    current_day = datetime(2024,9,20)
     # current_day = datetime.today()
     rebal_tar = ps_engine.dbservice.select('daily_rebalance_target',today = current_day, strategy = 'strategy2')
     rebal_tar = pd.concat([pd.Series(rebal_tar['symbol'].values[0].split(',')),
@@ -83,7 +83,7 @@ def run():
                                             )[['symbol_y','target']]
     strategy_title = 'strategy2'
     pos_data = ps_engine.refill_pos(strategy_title)
-    vt_symbols = pd.Series(list(set(pos_data['symbol'].values.tolist()) | set(to_trade_df['symbol_y'].values.tolist()))).str.strip().values.tolist()
+    vt_symbols = pd.Series(list(set(pos_data) | set(to_trade_df['symbol_y'].values.tolist()))).str.strip().values.tolist()
     settings = dict({'tarpos':','.join(to_trade_df['target'].astype(int).astype(str).values)})
     if strategy_title in ps_engine.strategies.keys():
         ps_engine.stop_strategy(strategy_title)
