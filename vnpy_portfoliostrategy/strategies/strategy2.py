@@ -1,9 +1,10 @@
+
 from vnpy_portfoliostrategy import StrategyTemplate, StrategyEngine
-from vnpy.trader.object import (
-    TickData
-)
+from vnpy_portfoliostrategy.booldict import BoolDict
+from vnpy.trader.object import TickData
 import pandas as pd
 import json
+
 
 class Strategy2(StrategyTemplate):
    
@@ -16,6 +17,9 @@ class Strategy2(StrategyTemplate):
     ) -> None:
         """构造函数"""
         super().__init__(strategy_engine, strategy_name, vt_symbols, setting)
+        self.bool_dict = BoolDict()
+        for symb in vt_symbols:
+            self.bool_dict.set(symb, False)
         if 'tarpos' in setting:
             tarpos = json.loads(setting['tarpos'])
             self.write_log(f"tarpos {tarpos}")
@@ -39,5 +43,13 @@ class Strategy2(StrategyTemplate):
         
     def on_tick(self, tick: TickData) -> None:
         """行情推送回调"""
-        if (self.get_target(tick.vt_symbol) != self.get_pos(tick.vt_symbol)) and (not self.symbol_is_active[tick.vt_symbol]):
-            self.rebalance(tick.vt_symbol, tick.ask_price_1, tick.bid_price_1, 'strategy2','rebalance')
+        if self.bool_dict.all_true():
+            self.on_stop()
+            return
+        
+        if (self.get_target(tick.vt_symbol) != self.get_pos(tick.vt_symbol)):
+            if (not self.symbol_is_active[tick.vt_symbol]):
+                self.rebalance(tick.vt_symbol, tick.ask_price_1, tick.bid_price_1, 'strategy2','rebalance')
+        else:
+            self.bool_dict.set(tick.vt_symbol, True)
+            

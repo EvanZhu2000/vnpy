@@ -89,7 +89,8 @@ def run():
     pos_data = ps_engine.get_pos(strategy_title)
     ans = pos_data[['symbol','pos']].set_index('symbol').join(to_trade_df.set_index('symbol_y'),how='outer')
     vt_symbols = ans.index.values.tolist()
-    settings = dict({'tarpos':json.dumps(ans['target'].to_dict())})
+    settings = dict({'tarpos':json.dumps(ans['target'].to_dict()),
+                     'ans':json.dumps(ans.to_dict())})
     if strategy_title in ps_engine.strategies.keys():
         ps_engine.stop_strategy(strategy_title)
         ps_engine.remove_strategy(strategy_title)
