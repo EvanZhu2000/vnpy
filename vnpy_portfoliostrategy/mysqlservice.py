@@ -60,7 +60,7 @@ class MysqlService():
             self.update(table = 'current_pos', set_clause = f'pos = {pos} and datetime = {str(datetime.now())}', symbol = symbol, strategy = strategy)
             
     def delete_pos(self, strategy):
-        self.mycursor.execute(f"DELETE FROM vnpy.current_pos WHERE strategy={strategy}")
+        self.mycursor.execute(f"DELETE FROM vnpy.current_pos WHERE strategy={strategy};")
         self.mydb.commit()
     
     # whenever there is an order update
