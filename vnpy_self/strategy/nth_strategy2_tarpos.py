@@ -216,7 +216,7 @@ if __name__ == "__main__":
     balancing_list = (-settings_all([bband_para(stat_list[0].sort_index(),1,20,5)]).iloc[-1])
 
     # 4. insert balancing_list into database
-    if today_date != balancing_list.name:
+    if today_date.date() != balancing_list.name.date():
         raise Exception(f'Wrong tar pos date! {today_date}, {balancing_list.name}')
     mysqlservice.insert("daily_rebalance_target", date=next_trading_date, today=today_date,
         symbol = ','.join(balancing_list.astype(int).astype(str).index), 
