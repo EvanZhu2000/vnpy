@@ -54,9 +54,9 @@ class MysqlService():
     def update_pos(self, symbol, strategy, pos):
         df = self.select('current_pos', symbol = symbol, strategy = strategy)
         if df.empty:
-            self.insert('current_pos', symbol = symbol, strategy = strategy, datetime = datetime.now(), pos = pos)
+            self.insert(table = 'current_pos', symbol = symbol, strategy = strategy, datetime = datetime.now(), pos = pos)
         else:
-            self.update('current_pos', f'pos = {pos} and datetime = {str(datetime.now())}', symbol = symbol, strategy = strategy)
+            self.update(table = 'current_pos', set_clause = f'pos = {pos} and datetime = {str(datetime.now())}', symbol = symbol, strategy = strategy)
     
     # whenever there is an order update
     def update_order_status(self, vt_orderid, order_status):
