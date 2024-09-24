@@ -44,7 +44,7 @@ class Strategy2(StrategyTemplate):
     def on_tick(self, tick: TickData) -> None:
         """行情推送回调"""
         if self.bool_dict.all_true():
-            self.on_stop()
+            self.strategy_engine.stop_strategy(self.strategy_name)
             return
         
         if (self.get_target(tick.vt_symbol) != self.get_pos(tick.vt_symbol)):
