@@ -21,21 +21,13 @@ SETTINGS["log.console"] = True
 
 def strategy_running_period():
     """"""
-    # Chinese futures market trading period (day/night)
-    DAY_START = time(8, 45)
+    DAY_START = time(20, 45)
     DAY_END = time(15, 45)
-
-    NIGHT_START = time(20, 45)
-    NIGHT_END = time(2, 45)
     
     current_time = datetime.now().time()
 
     trading = False
-    if (
-        (current_time >= DAY_START and current_time <= DAY_END)
-        or (current_time >= NIGHT_START)
-        or (current_time <= NIGHT_END)
-    ):
+    if (current_time >= DAY_START and current_time <= DAY_END):
         trading = True
 
     return trading
@@ -54,22 +46,24 @@ def run():
     main_engine.add_gateway(CtpGateway)
     ps_engine = main_engine.add_app(PortfolioStrategyApp)   
     main_engine.write_log("主引擎创建成功")
-
     log_engine = main_engine.get_engine("log")
     event_engine.register(EVENT_PORTFOLIO_LOG, log_engine.process_log_event)
     main_engine.write_log("注册日志事件监听")
-
     main_engine.connect(ctp_setting, "CTP")
     main_engine.write_log("连接CTP接口")
     sleep(10)
-
     ps_engine.init_engine()
     main_engine.write_log("ps策略初始化完成")
     
-    current_day = datetime(2024,9,20)
-    # current_day = datetime.today()
     strategy_title = 'strategy2'
     strategy_class_name = 'Strategy2'
+    
+    tmp = ps_engine.dbservice.select('trading_schedule',today = datetime.today().date(), strategy = strategy_title)
+    if tmp is None:
+        tmp = ps_engine.dbservice.select('trading_schedule', date = datetime.today().date(), strategy = strategy_title)
+        current_day = tmp['today']
+    else:
+        current_day = datetime.today()
     
     # fill positions and find target for today
     rebal_tar = ps_engine.dbservice.select('daily_rebalance_target',today = current_day, strategy = strategy_title)
