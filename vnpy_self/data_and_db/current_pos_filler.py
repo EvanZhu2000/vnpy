@@ -25,6 +25,7 @@ else:
     qwe = pd.DataFrame([x.__dict__ for x in tmp])
     ans = pd.concat([qwe['vt_symbol'],
                      qwe['direction'].map({Direction.LONG:1,Direction.SHORT:-1}) * qwe['volume']], axis=1)
+    ans = ans.groupby(ans['vt_symbol']).sum()
     
     strategy_title = 'strategy2'
     mysqlservice.delete_pos(strategy_title)

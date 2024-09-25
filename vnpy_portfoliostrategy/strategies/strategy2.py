@@ -50,7 +50,7 @@ class Strategy2(StrategyTemplate):
         
         if (self.get_target(tick.vt_symbol) != self.get_pos(tick.vt_symbol)):
             if (not self.symbol_is_active[tick.vt_symbol]):
-                self.rebalance(tick.vt_symbol, tick.ask_price_1, tick.bid_price_1, 'strategy2','rebalance')
+                self.rebalance(tick.vt_symbol, tick.ask_price_1, tick.bid_price_1, net=True, strategy='strategy2',intention='rebalance')
         else:
             self.bool_dict.set(tick.vt_symbol, True)
             

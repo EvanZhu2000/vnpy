@@ -261,14 +261,13 @@ class StrategyTemplate(ABC):
         sp = tick.bid_price_1 - (rej_count // 2) * min_tick
         return (bp,sp)
 
-    def rebalance(self, vt_symbol: str, buy_price:float, sell_price:float, strategy:str=None, intention:str=None) -> None:
+    def rebalance(self, vt_symbol: str, buy_price:float, sell_price:float, net:bool=False, strategy:str=None, intention:str=None) -> None:
         """基于目标执行调仓交易"""
         # ##@TODO need partial fill logic
         # for oid in self.symbol_to_order_dict[vt_symbol]:
         #     if oid in self.orders and self.orders[oid].status == Status.NOTTRADED:
         #         self.cancel_order(oid)
 
-        result_list: list = []
         target: int = self.get_target(vt_symbol)
         pos: int = self.get_pos(vt_symbol)
         diff: int = target - pos
@@ -291,10 +290,10 @@ class StrategyTemplate(ABC):
                 buy_volume = diff
 
             if cover_volume:
-                result_list = self.cover(vt_symbol, order_price, cover_volume, isFAK=True, strategy=strategy,intention=intention,pos=pos,tar=target)
+                self.cover(vt_symbol, order_price, cover_volume, net=net, isFAK=True, strategy=strategy,intention=intention,pos=pos,tar=target)
 
             if buy_volume:
-                result_list = self.buy(vt_symbol, order_price, buy_volume, isFAK=True, strategy=strategy,intention=intention,pos=pos,tar=target)
+                self.buy(vt_symbol, order_price, buy_volume, net=net, isFAK=True, strategy=strategy,intention=intention,pos=pos,tar=target)
         # 空头
         elif diff < 0:
             order_price: float = self.calculate_price(
@@ -313,10 +312,10 @@ class StrategyTemplate(ABC):
                 short_volume = abs(diff)
 
             if sell_volume:
-                result_list = self.sell(vt_symbol, order_price, sell_volume, isFAK=True, strategy=strategy,intention=intention,pos=pos,tar=target)
+                self.sell(vt_symbol, order_price, sell_volume, net=net, isFAK=True, strategy=strategy,intention=intention,pos=pos,tar=target)
 
             if short_volume:
-                result_list = self.short(vt_symbol, order_price, short_volume, isFAK=True, strategy=strategy,intention=intention,pos=pos,tar=target)
+                self.short(vt_symbol, order_price, short_volume, net=net, isFAK=True, strategy=strategy,intention=intention,pos=pos,tar=target)
         
         # if len(result_list) != 0:
         #     self.symbol_to_order_dict[vt_symbol].append(result_list[-1])
