@@ -59,11 +59,11 @@ def run():
     strategy_class_name = 'Strategy2'
     
     tmp = ps_engine.dbservice.select('trading_schedule',today = datetime.today().date(), strategy = strategy_title)
-    if tmp is None:
+    if tmp.empty:
         tmp = ps_engine.dbservice.select('trading_schedule', date = datetime.today().date(), strategy = strategy_title)
-        current_day = tmp['today']
+        current_day = pd.to_datetime(tmp['today'].iloc[0]).strftime('%Y-%m-%d')
     else:
-        current_day = datetime.today()
+        current_day = datetime.today().strftime('%Y-%m-%d')
     main_engine.write_log(f"current_day is {current_day}")
     
     # fill positions and find target for today
