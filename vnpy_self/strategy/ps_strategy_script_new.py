@@ -64,6 +64,7 @@ def run():
         current_day = tmp['today']
     else:
         current_day = datetime.today()
+    main_engine.write_log(f"current_day is {current_day}")
     
     # fill positions and find target for today
     rebal_tar = ps_engine.dbservice.select('daily_rebalance_target',today = current_day, strategy = strategy_title)

@@ -16,8 +16,10 @@ main_engine.add_gateway(CtpGateway)
 main_engine.write_log("主引擎创建成功")
 main_engine.connect(ctp_setting, "CTP")
 main_engine.write_log("连接CTP接口")
-sleep(10)
-tmp = main_engine.get_engine('oms').get_all_positions()
+sleep(5)
+omsEngine = main_engine.get_engine('oms')
+sleep(5)
+tmp = omsEngine.get_all_positions()
 
 if len(tmp) == 0:
     raise Exception('position data not retrieved')
@@ -31,6 +33,8 @@ else:
     mysqlservice.delete_pos(strategy_title)
     for r in ans.iterrows():
         mysqlservice.update_pos(r[1]['vt_symbol'], strategy_title, r[1][0])
+        
+    print("All finished")
         
 mysqlservice.close()
 main_engine.close()
