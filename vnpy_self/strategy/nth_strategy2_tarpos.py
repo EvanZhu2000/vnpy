@@ -184,18 +184,20 @@ if __name__ == "__main__":
         s_dom_delta_everyday,l_dom2_everyday,s_dom2_everyday,l_dom2_delta_everyday,s_dom2_delta_everyday = get_stats(trading_list, lookback_win_days,pro)
 
     # 3. calculate signals
-    xx = {
-        '(-s_df_everyday.loc[:, symb,:]).diff().mean(1)':(1,20,5)
-        # ,'(-l_df_everyday.loc[:, symb,:]).diff().mean(1)':(1.4,20,5)
-        # ,'(-l_df_everyday.loc[:, symb,:]-s_df_everyday.loc[:, symb,:]).diff().mean(1)':(1.4,20,5)
-        # ,'(l_df_everyday.loc[:, symb,:]-s_df_everyday.loc[:, symb,:]).mean(1)':(1,20,5)
-        # ,'(l_df_delta_everyday.loc[:, symb,:]-s_df_delta_everyday.loc[:, symb,:]).mean(1)':(0.6,20,20)  
-        # ,'(-s_dom_everyday.loc[:, symb,:]).diff().mean(1)':(0.6,20,5)
-        # ,'(-l_dom_everyday.loc[:, symb,:]).diff().mean(1)':(1.4,5,20)
-        # ,'(-l_dom_everyday.loc[:, symb,:]-s_dom_everyday.loc[:, symb,:]).diff().mean(1)':(1,5,5)  
-        # ,'(l_dom_everyday.loc[:, symb,:]-s_dom_everyday.loc[:, symb,:]).mean(1)':(0.2,20,20)
-        # ,'(l_dom_delta_everyday.loc[:, symb,:]-s_dom_delta_everyday.loc[:, symb,:]).mean(1)':(0.2,20,10)
-    }
+    xx = {'(-s_df.loc[:, symb,:]).diff().mean(1)': (1.8, 10, 20),
+    '(-l_df.loc[:, symb,:]).diff().mean(1)': (1.0, 5, 10),
+    '(-l_df.loc[:, symb,:]-s_df.loc[:, symb,:]).diff().mean(1)': (1.0, 20, 10),
+    '(l_df.loc[:, symb,:]-s_df.loc[:, symb,:]).mean(1)': (1.0, 10, 20),
+    '(l_df_delta.loc[:, symb,:]-s_df_delta.loc[:, symb ,:]).mean(1)': (0.6,
+    20,
+    5),
+    '(-s_dom.loc[:, symb,:]).diff().mean(1)': (0.6, 20, 5),
+    '(-l_dom.loc[:, symb,:]).diff().mean(1)': (0.6, 5, 20),
+    '(-l_dom.loc[:, symb,:]-s_dom.loc[:, symb,:]).diff().mean(1)': (0.2, 20, 20),
+    '(l_dom.loc[:, symb,:]-s_dom.loc[:, symb,:]).mean(1)': (1.8, 20, 20),
+    '(l_dom_delta.loc[:, symb,:]-s_dom_delta.loc[:, symb,:]).mean(1)': (1.8,
+    20,
+  10)}
 
     stat_list, result_list = [],[]
     for k,v in xx.items():
@@ -206,14 +208,10 @@ if __name__ == "__main__":
 
         stat.index = pd.to_datetime(stat.index)
         stat_list.append(stat)
-        # result_list.append( bt_all(-settings_all([bband_para(stat,*v)]),
-        #                     pro, 
-        #                     pr88, 
-        #                     mul_mappings,
-        #                     initial_capital,
-        #                     mul_method = (price_start,pd.Timestamp('20240701')),
-        #                     exec_delay=1,toRound=True))
-    balancing_list = (-settings_all([bband_para(stat_list[0].sort_index(),1,20,5)]).iloc[-1])
+    
+    g = weight_cap(-settings_all([bband_para(stat_list[0],1.8, 20, 5)]), mul_mappings, pr88, initial_capital=1000000)*0.6 +\
+    weight_cap(-settings_all([bband_para(stat_list[5],0.6, 20, 5)]), mul_mappings, pr88, initial_capital=1000000)*0.4
+    balancing_list = g.iloc[-1]
 
     # 4. insert balancing_list into database
     if today_date.date() != balancing_list.name.date():

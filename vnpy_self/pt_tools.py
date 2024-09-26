@@ -102,12 +102,24 @@ def cal_regression(df1,df2):
     reg = sm.OLS(y, x).fit()
     return -reg.params[0]
 
+def weight_cap(g_df, mul_map, ori_price, initial_capital=10000000, samp_days=60, toRound=True):
+    g_df = g_df.copy()
+    mul_series = pd.Series(mul_map)[g_df.columns]
+    mulprice_fee = (mul_series * ori_price).abs()
 
-def bt_all(g_df, ins_price, ins_price_to_cal_fee, mul_map, initial_capital=10000000, mul_method = 60, 
-           commission = 0.0001, exec_delay=0, to=None, toFormat=True,toRound=False):
+    multiplier = initial_capital / mulprice_fee.iloc[::samp_days].reindex(mulprice_fee.index).ffill()
+    g_df *= multiplier 
+    g_df =  g_df.div(g_df.count(1), axis=0)
+        
+    if toRound:
+        g_df = g_df.round(0)
+    return g_df 
+
+def bt_all(g_df, ins_price, ori_price, mul_map, initial_capital=10000000, 
+           commission = 0.0001, exec_delay=0, to=None, toFormat=True):
     '''
-    all of g_df, ins_price and ins_price_to_cal_fee need to be dataframe with columns as sequenced datetimes and index as names
-    ins_price_to_cal_fee: the price to calculate fees, used in pairs trading, usually need to be 88
+    all of g_df, ins_price and ori_price need to be dataframe with columns as sequenced datetimes and index as names
+    ori_price: the price to calculate fees, used in pairs trading, usually need to be 88
     mul: dictionary
     
     Explanation:
@@ -115,25 +127,27 @@ def bt_all(g_df, ins_price, ins_price_to_cal_fee, mul_map, initial_capital=10000
     initial_capital: initial_capital for each instrument
     turnover: -1 to 1 (or the opposite) = 100%, to 0 means 50%
     trades_count: open and close means one trade, the output is annual trade per instrument
+    min_cash: minimum cash needed for this portfolio
+    ttl_capcity: needs to times 1/1000 for example to obtain the actual capacity
     '''
     # validation
     if not (type(g_df) == pd.core.frame.DataFrame) \
     or not (type(ins_price) == pd.core.frame.DataFrame) \
-    or not (type(ins_price_to_cal_fee) == pd.core.frame.DataFrame):
+    or not (type(ori_price) == pd.core.frame.DataFrame):
         raise Exception('bad input format!')
     
     ins_price = ins_price.shift(-exec_delay).copy()
-    ins_price_to_cal_fee = ins_price_to_cal_fee.shift(-exec_delay).copy()
+    ori_price = ori_price.shift(-exec_delay).copy()
     if exec_delay>0:
         ins_price = ins_price.iloc[:-exec_delay]
-        ins_price_to_cal_fee = ins_price_to_cal_fee.iloc[:-exec_delay]
-    if not ins_price.index.equals(ins_price_to_cal_fee.index) or not ins_price.columns.equals(ins_price_to_cal_fee.columns):
-        raise Exception('unmatching ins_price & ins_price_to_cal_fee')
+        ori_price = ori_price.iloc[:-exec_delay]
+    if not ins_price.index.equals(ori_price.index) or not ins_price.columns.equals(ori_price.columns):
+        raise Exception('unmatching ins_price & ori_price')
     
     intersec_index = g_df.index.intersection(ins_price.index)
     g_df = g_df.loc[intersec_index].copy()
     ins_price = ins_price.loc[intersec_index]
-    ins_price_to_cal_fee = ins_price_to_cal_fee.loc[intersec_index]
+    ori_price = ori_price.loc[intersec_index]
     if len(set(g_df.index) - set(ins_price.index))!=0:
         raise Exception('no price for some datetime')
     if len(set(g_df.columns) - set(ins_price.columns))!=0:
@@ -143,46 +157,21 @@ def bt_all(g_df, ins_price, ins_price_to_cal_fee, mul_map, initial_capital=10000
 
     # make the dataframes match with each other
     ins_price = ins_price[g_df.columns]
-    ins_price_to_cal_fee = ins_price_to_cal_fee[g_df.columns]
+    ori_price = ori_price[g_df.columns]
     g_df = g_df.reindex(ins_price.index).ffill()
     mul_series = pd.Series(mul_map)[g_df.columns]
     
-    # statistics before equal-weighting
+    # statistics calculation
+    yrs = effective_year_count(g_df)
     c_df = g_df * mul_series * ins_price
-    trades_count = (g_df.diff().replace(0,np.nan).abs().sum() / 2).mean()
-    turnover = (g_df/g_df.shape[1]).diff().abs().sum(1).mean() / 2
-    mulprice_fee = (mul_series * ins_price_to_cal_fee).abs()
-    recent_start, recent_end = mulprice_fee.index[-1] - pd.Timedelta(days=60), mulprice_fee.index[-1]
-    
-    # calculate equal turnover portfolio
-    if mul_method:
-        if mul_method == 'mean':
-            multiplier = initial_capital / mulprice_fee.describe().loc['mean']
-        elif mul_method == 'max':
-            multiplier = initial_capital / mulprice_fee.describe().loc['max']
-        elif mul_method == 'first':
-            multiplier = initial_capital / mulprice_fee.iloc[0]
-        elif mul_method == 'last':
-            multiplier = initial_capital / mulprice_fee.iloc[-1]
-        elif type(mul_method) == int:
-            recent_start, recent_end = mulprice_fee.index[-1] - pd.Timedelta(days=mul_method), mulprice_fee.index[-1]
-            multiplier = initial_capital / mulprice_fee.loc[recent_start:recent_end].describe().loc['mean']
-        elif type(mul_method) == tuple:
-            recent_start, recent_end = mul_method
-            multiplier = initial_capital / mulprice_fee.loc[recent_start:recent_end].describe().loc['mean']
-        else:
-            raise Exception('wrong mul_method!')
-        g_df *= multiplier
-        if toRound:
-            g_df = g_df.round(0)
-        c_df = g_df * mul_series * ins_price
-        
-    # statistics after equal-weighting
-    max_divisor = g_df.abs().stack().replace(0,np.nan).dropna().describe().loc['25%']
-    min_cash_needed = (c_df.abs().sum(1).loc[recent_start:recent_end]).mean()/max_divisor
+    trades_count = ((np.sign(g_df).diff()!=0).sum()/2).mean()
+    turnover = (np.sign(g_df)/g_df.shape[1]).diff().abs().sum(1).mean() / 2
+    mulprice_fee = (mul_series * ori_price).abs()
+    min_cash_needed_per_ins = (mulprice_fee * g_df).iloc[-60:].replace(0,np.nan).abs().mean()
+    min_cash_needed = min_cash_needed_per_ins.sum()
     ttl_capacity = 0
     if to is not None:
-        ttl_capacity = min_cash_needed * max_divisor * (to.mean() / initial_capital).describe().loc['50%'] / 1000000000
+        ttl_capacity = (to.loc[to.index.intersection(g_df.index)].iloc[-60:].mean() / min_cash_needed_per_ins.describe().loc['max'] * min_cash_needed_per_ins).sum() / 1000000000
     
     # calculate commission
     comm_df = commission * g_df.diff().abs() * mulprice_fee
@@ -193,26 +182,27 @@ def bt_all(g_df, ins_price, ins_price_to_cal_fee, mul_map, initial_capital=10000
     c_daily = c_df.groupby(c_df.index.date).last()
     comm_daily = comm_df.groupby(comm_df.index.date).sum()
     daily_pnl = ((g_daily.diff()*mul_series*price_daily - comm_daily).cumsum().reindex(price_daily.index).ffill() - c_daily).diff()
+    daily_pnl.index = pd.to_datetime(daily_pnl.index)
     
     # summary of the backtest
     result = []
-    mean_daily_pnl = daily_pnl.mean(1)
+    sum_daily_pnl = daily_pnl.sum(1)
     if toFormat:
-        result.append("%.4f"%calculate_sharpe_ratio(mean_daily_pnl))
-        result.append("%.2f"%(100*calculate_annual_return(mean_daily_pnl, initial_capital))+'%')
-        result.append("%.2f"%(100*calculate_max_drawdown(mean_daily_pnl, initial_capital))+'%')
+        result.append("%.4f"%calculate_sharpe_ratio(sum_daily_pnl))
+        result.append("%.2f"%(100*calculate_annual_return(sum_daily_pnl, initial_capital))+'%')
+        result.append("%.2f"%(100*calculate_max_drawdown(sum_daily_pnl, initial_capital))+'%')
         result.append("%.2f"%(100*turnover)+'%')
-        result.append("%.2f"%(trades_count / effective_year_count(mean_daily_pnl)))
-        result.append("%.2f"%(effective_year_count(mean_daily_pnl)) + ' yrs')
+        result.append("%.2f"%(trades_count / yrs))
+        result.append("%.2f"%(yrs) + ' yrs')
         result.append(format_number(int(min_cash_needed)))
         result.append(str(int(ttl_capacity)) + ' b')
     else:
-        result.append(calculate_sharpe_ratio(mean_daily_pnl))
-        result.append(calculate_annual_return(mean_daily_pnl, initial_capital))
-        result.append(calculate_max_drawdown(mean_daily_pnl, initial_capital))
+        result.append(calculate_sharpe_ratio(sum_daily_pnl))
+        result.append(calculate_annual_return(sum_daily_pnl, initial_capital))
+        result.append(calculate_max_drawdown(sum_daily_pnl, initial_capital))
         result.append(turnover)
-        result.append((trades_count / effective_year_count(mean_daily_pnl)))
-        result.append((effective_year_count(mean_daily_pnl)))
+        result.append((trades_count / yrs))
+        result.append(yrs)
         result.append(min_cash_needed)
         result.append(ttl_capacity)
     summary_df = pd.DataFrame(result, index=['sharpe','annu_ret','mdd','turnover','#trades','period','min_cash','ttl_capcity']).T
@@ -442,10 +432,10 @@ def get_metrics(order_df, pnl_df, daily_pnl, initial_capital, risk_free_rate=0):
 
     return pd.DataFrame(result, index=get_metrics_title()).T
 
-def get_metrics_simple(ind_d, suffix = ''):
+def get_metrics_simple(ind_d, suffix = '', initial_capital = 10000000):
     return pd.DataFrame([calculate_sharpe_ratio(ind_d),
-                        calculate_annual_return(ind_d,10000000),
-                        calculate_max_drawdown(ind_d,10000000)], index= ['sharpe'+suffix,'annu_ret'+suffix,'mdd'+suffix]).T
+                        calculate_annual_return(ind_d,initial_capital),
+                        calculate_max_drawdown(ind_d,initial_capital)], index= ['sharpe'+suffix,'annu_ret'+suffix,'mdd'+suffix]).T
 
 
 
@@ -744,10 +734,14 @@ def settings_all(bband_list,open_exp='0',close_exp='0'):
     g_df_l = restrain_actions_new(l_lower, l_upper, tar=-1)  
     gdf = g_df_u.replace(np.nan,0) + g_df_l.replace(np.nan,0)
     
+    for bband in bband_list:
+        stat = bband.stat
+        gdf = gdf.where(stat.notna(),np.nan)
+    
     if (gdf<-1).sum().sum() != 0:
         raise Exception(f"gdf doesn't conform with {(gdf<-1).sum().nlargest()}")
     if (gdf>1).sum().sum() != 0:
-        raise Exception(f"gdf doesn't conform with {(gdf>1).sum().nlargest()}")
+        raise Exception(f"gdf doesn't conform with {(gdf>1).sum().nlargest()}") 
     return gdf
     
 def settings(num, stat,ustat,lstat,custom_std,rolling_win,corr_intervals,samp_freq,nths,starting_n,ffill):
