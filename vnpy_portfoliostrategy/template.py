@@ -186,20 +186,21 @@ class StrategyTemplate(ABC):
                 for vt_orderid in vt_orderids:
                     self.active_orderids.add(vt_orderid)
                     self.symbol_is_active[vt_symbol] = True
-                    
-                if strategy:
-                    for vt_orderid in vt_orderids:
-                        self.strategy_engine.dbservice.insert('strategy_order', 
-                                                              datetime = datetime.strftime(datetime.today(),'%Y-%m-%d %H:%M:%S'),
-                                                              vt_orderid = vt_orderid,
-                                                              strategy = strategy,
-                                                              symbol = vt_symbol,
-                                                              intention = intention,
-                                                              pos = pos,
-                                                              tar = tar,
-                                                              price = price,
-                                                              tif = 'fak'if isFAK else 'day',
-                                                              order_status = Status.SUBMITTING)
+                
+                ## inserting this part requires too much time
+                # if strategy:
+                #     for vt_orderid in vt_orderids:
+                #         self.strategy_engine.dbservice.insert('strategy_order', 
+                #                                               datetime = datetime.strftime(datetime.today(),'%Y-%m-%d %H:%M:%S'),
+                #                                               vt_orderid = vt_orderid,
+                #                                               strategy = strategy,
+                #                                               symbol = vt_symbol,
+                #                                               intention = intention,
+                #                                               pos = pos,
+                #                                               tar = tar,
+                #                                               price = price,
+                #                                               tif = 'fak'if isFAK else 'day',
+                #                                               order_status = Status.SUBMITTING)
 
                 return vt_orderids
             except Exception as e:
