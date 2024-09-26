@@ -209,8 +209,7 @@ if __name__ == "__main__":
         stat.index = pd.to_datetime(stat.index)
         stat_list.append(stat)
     
-    g = weight_cap(-settings_all([bband_para(stat_list[0],1.8, 20, 5)]), mul_mappings, pr88, initial_capital=1000000)*0.6 +\
-    weight_cap(-settings_all([bband_para(stat_list[5],0.6, 20, 5)]), mul_mappings, pr88, initial_capital=1000000)*0.4
+    g = weight_cap(-settings_all([bband_para(stat_list[5],0.6, 20, 5)]), mul_mappings, pr88, initial_capital=1000000)
     balancing_list = g.iloc[-1]
 
     # 4. insert balancing_list into database
