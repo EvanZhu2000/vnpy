@@ -14,6 +14,7 @@ from datetime import datetime, time, date
 import sys
 from time import sleep
 import pandas as pd
+import numpy as np
 
 SETTINGS["log.active"] = True
 SETTINGS["log.level"] = INFO
@@ -83,6 +84,7 @@ def run():
     to_trade_df['target'] = pd.to_numeric(to_trade_df['target'])
     pos_data = ps_engine.get_pos(strategy_title)
     ans = pos_data[['symbol','pos']].set_index('symbol').join(to_trade_df.set_index('symbol_y'),how='outer')
+    ans = ans.replace(np.nan,0)
     vt_symbols = ans.index.values.tolist()
     settings = dict({'tarpos':json.dumps(ans['target'].to_dict()),
                      'ans':json.dumps(ans.to_dict())})

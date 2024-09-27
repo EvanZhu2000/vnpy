@@ -423,7 +423,6 @@ class StrategyEngine(BaseEngine):
 
     def get_pos(self, strategy_name:str):
         pos_data = self.dbservice.select('current_pos', strategy = strategy_name)
-        self.dbservice.update('strategies', "`status` = 'on'", strategy = strategy_name)
         return pos_data
         
     def init_strategy(self, strategy_name: str) -> None:
@@ -498,6 +497,7 @@ class StrategyEngine(BaseEngine):
 
         # 推送策略事件通知启动完成状态
         strategy.trading = True
+        self.dbservice.update('strategies', "`status` = 'on'", strategy = strategy_name)
         self.put_strategy_event(strategy)
 
     def stop_strategy(self, strategy_name: str) -> None:
