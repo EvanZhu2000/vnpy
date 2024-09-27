@@ -52,12 +52,12 @@ class MysqlService():
     
     # whenever there is a trade update
     def update_pos(self, symbol, strategy, pos):
-        df = self.select('current_pos', symbol = symbol, strategy = strategy)
-        print(df)
-        if df.empty:
-            self.insert(table = 'current_pos', symbol = symbol, strategy = strategy, datetime = datetime.now(), pos = pos)
-        else:
-            self.update(table = 'current_pos', set_clause = f"pos = {pos} and datetime = '{str(datetime.now())}'", symbol = symbol, strategy = strategy)
+        return
+        # df = self.select('current_pos', symbol = symbol, strategy = strategy)
+        # if df.empty:
+        #     self.insert(table = 'current_pos', symbol = symbol, strategy = strategy, datetime = datetime.now(), pos = pos)
+        # else:
+        #     self.update(table = 'current_pos', set_clause = f"pos = {pos} and datetime = '{str(datetime.now())}'", symbol = symbol, strategy = strategy)
             
     def delete_pos(self, strategy):
         self.mycursor.execute(f"DELETE FROM vnpy.current_pos WHERE strategy='{strategy}';")

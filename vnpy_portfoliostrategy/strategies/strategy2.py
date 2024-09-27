@@ -41,6 +41,8 @@ class Strategy2(StrategyTemplate):
     def on_stop(self) -> None:
         """策略停止回调"""
         self.write_log("策略停止")
+        self.write_log(f"pos_data {self.pos_data}")
+        self.write_log(f"target_data {self.pos_data}")
         self.put_event()
         
     def on_tick(self, tick: TickData) -> None:

@@ -123,6 +123,7 @@ class StrategyTemplate(ABC):
 
     def update_trade(self, trade: TradeData) -> None:
         """成交数据更新"""
+        self.write_log(f"Received Trade with {trade}")
         if trade.direction == Direction.LONG:
             self.pos_data[trade.vt_symbol] += trade.volume
         else:
