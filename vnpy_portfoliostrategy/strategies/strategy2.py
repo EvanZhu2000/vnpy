@@ -21,8 +21,9 @@ class Strategy2(StrategyTemplate):
         for symb in vt_symbols:
             self.bool_dict.set(symb, False)
         if 'ans' in setting:
-            tarpos = json.loads(setting['ans']['target'])
-            self.write_log(f"curpos {setting['ans']['pos']}")
+            tarpos = json.loads(setting['ans'])['target']
+            curpos = json.loads(setting['ans'])['pos']
+            self.write_log(f"curpos {curpos}")
             self.write_log(f"tarpos {tarpos}")
             for symb,tar in tarpos.items():
                 self.set_target(symb, tar)
