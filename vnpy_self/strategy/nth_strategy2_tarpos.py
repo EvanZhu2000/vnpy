@@ -182,6 +182,10 @@ if __name__ == "__main__":
     pro,pr88 = retrieve_price(trading_list)
     l_df_everyday,s_df_everyday,l_df_delta_everyday,s_df_delta_everyday,l_dom_everyday,s_dom_everyday,l_dom_delta_everyday,\
         s_dom_delta_everyday,l_dom2_everyday,s_dom2_everyday,l_dom2_delta_everyday,s_dom2_delta_everyday = get_stats(trading_list, lookback_win_days,pro)
+        
+    l_df,s_df,l_df_delta,s_df_delta,l_dom,s_dom,l_dom_delta,\
+    s_dom_delta,l_dom2,s_dom2,l_dom2_delta,s_dom2_delta = l_df_everyday,s_df_everyday,l_df_delta_everyday,s_df_delta_everyday,l_dom_everyday,s_dom_everyday,l_dom_delta_everyday,\
+    s_dom_delta_everyday,l_dom2_everyday,s_dom2_everyday,l_dom2_delta_everyday,s_dom2_delta_everyday
 
     # 3. calculate signals
     xx = {'(-s_df.loc[:, symb,:]).diff().mean(1)': (1.8, 10, 20),
