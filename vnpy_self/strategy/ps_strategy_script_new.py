@@ -51,7 +51,7 @@ def run():
     main_engine.write_log("注册日志事件监听")
     main_engine.connect(ctp_setting, "CTP")
     main_engine.write_log("连接CTP接口")
-    sleep(10)
+    sleep(20)
     ps_engine.init_engine()
     main_engine.write_log("ps策略初始化完成")
     
