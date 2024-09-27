@@ -20,8 +20,9 @@ class Strategy2(StrategyTemplate):
         self.bool_dict = BoolDict()
         for symb in vt_symbols:
             self.bool_dict.set(symb, False)
-        if 'tarpos' in setting:
-            tarpos = json.loads(setting['tarpos'])
+        if 'ans' in setting:
+            tarpos = json.loads(setting['ans']['tarpos'])
+            self.write_log(f"curpos {setting['ans']}")
             self.write_log(f"tarpos {tarpos}")
             for symb,tar in tarpos.items():
                 self.set_target(symb, tar)
