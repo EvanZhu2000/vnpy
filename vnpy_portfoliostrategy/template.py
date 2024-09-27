@@ -109,7 +109,9 @@ class StrategyTemplate(ABC):
     @virtual
     def on_stop(self) -> None:
         """策略停止回调"""
-        pass
+        self.write_log(f"pos_data {self.pos_data}")
+        self.write_log(f"target_data {self.target_data}")
+        self.strategy_engine.dbservice.update_pos(self.strategy_name, self.pos_data)
 
     @virtual
     def on_tick(self, tick: TickData) -> None:
@@ -123,13 +125,12 @@ class StrategyTemplate(ABC):
 
     def update_trade(self, trade: TradeData) -> None:
         """成交数据更新"""
-        self.write_log(f"Received Trade with {trade}")
         if trade.direction == Direction.LONG:
             self.pos_data[trade.vt_symbol] += trade.volume
         else:
             self.pos_data[trade.vt_symbol] -= trade.volume
             
-        self.strategy_engine.dbservice.update_pos(trade.vt_symbol, self.strategy_name, self.pos_data[trade.vt_symbol])
+        # self.strategy_engine.dbservice.update_pos(trade.vt_symbol, self.strategy_name, self.pos_data[trade.vt_symbol])
 
     def update_order(self, order: OrderData) -> None:
         """委托数据更新"""
@@ -139,7 +140,7 @@ class StrategyTemplate(ABC):
             self.active_orderids.remove(order.vt_orderid)
             self.symbol_is_active[order.vt_symbol] = False
             
-        self.strategy_engine.dbservice.update_order_status(order.vt_orderid, order.status)
+        # self.strategy_engine.dbservice.update_order_status(order.vt_orderid, order.status)
 
     def buy(self, vt_symbol: str, price: float, volume: float, lock: bool = False, net: bool = False, isFAK: bool = False,strategy:str = None,intention:str = None,pos=None,tar=None) -> list[str]:
         """买入开仓"""

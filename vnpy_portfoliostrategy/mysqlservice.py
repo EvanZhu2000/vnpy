@@ -50,22 +50,19 @@ class MysqlService():
     def get_pos(self, strategy_name):
         return pd.read_sql_query(f"select * from vnpy.strategy_order as sp join(SELECT symbol as latest_symbol, MAX(datetime) AS latest_timestamp, MAX(id) as max_id FROM vnpy.strategy_order where strategy = '{strategy_name}' and order_status = 'Status.ALLTRADED' GROUP BY symbol) as latest on sp.symbol = latest.latest_symbol and sp.datetime = latest.latest_timestamp and sp.id = latest.max_id;", self.mydb)[['symbol','tar']]
     
-    # whenever there is a trade update
-    def update_pos(self, symbol, strategy, pos):
-        return
-        # df = self.select('current_pos', symbol = symbol, strategy = strategy)
-        # if df.empty:
-        #     self.insert(table = 'current_pos', symbol = symbol, strategy = strategy, datetime = datetime.now(), pos = pos)
-        # else:
-        #     self.update(table = 'current_pos', set_clause = f"pos = {pos} and datetime = '{str(datetime.now())}'", symbol = symbol, strategy = strategy)
-            
     def delete_pos(self, strategy):
         self.mycursor.execute(f"DELETE FROM vnpy.current_pos WHERE strategy='{strategy}';")
         self.mydb.commit()
+
+    def update_pos(self, strategy_name, positions:dict[str, int]):
+        self.delete_pos(strategy=strategy_name)
+        for symbol,pos in positions.items():
+            self.insert(table = 'current_pos', symbol = symbol, strategy = strategy_name, datetime = datetime.now(), pos = pos)
+            
     
     # whenever there is an order update
     def update_order_status(self, vt_orderid, order_status):
-        return
+        pass
         # df = self.select('strategy_order', vt_orderid = vt_orderid)
         # df['order_status'] = order_status
         # df['datetime'] = datetime.now()
