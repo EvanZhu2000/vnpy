@@ -214,7 +214,7 @@ if __name__ == "__main__":
         stat_list.append(stat)
     
     g = weight_cap(-settings_all([bband_para(stat_list[5],0.6, 20, 5)]), mul_mappings, pr88, initial_capital=1000000)
-    balancing_list = g.iloc[-1]
+    balancing_list = g.replace(np.nan,0).iloc[-1]
 
     # 4. insert balancing_list into database
     if today_date.date() != balancing_list.name.date():
