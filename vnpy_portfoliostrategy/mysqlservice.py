@@ -53,6 +53,7 @@ class MysqlService():
     # whenever there is a trade update
     def update_pos(self, symbol, strategy, pos):
         df = self.select('current_pos', symbol = symbol, strategy = strategy)
+        print(df)
         if df.empty:
             self.insert(table = 'current_pos', symbol = symbol, strategy = strategy, datetime = datetime.now(), pos = pos)
         else:
@@ -64,7 +65,8 @@ class MysqlService():
     
     # whenever there is an order update
     def update_order_status(self, vt_orderid, order_status):
-        df = self.select('strategy_order', vt_orderid = vt_orderid)
-        df['order_status'] = order_status
-        df['datetime'] = datetime.now()
-        self.insert('strategy_order',ignore=True,**df.drop(['id'],axis=1).iloc[0].to_dict())
+        return
+        # df = self.select('strategy_order', vt_orderid = vt_orderid)
+        # df['order_status'] = order_status
+        # df['datetime'] = datetime.now()
+        # self.insert('strategy_order',ignore=True,**df.drop(['id'],axis=1).iloc[0].to_dict())
