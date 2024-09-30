@@ -43,6 +43,20 @@ class MysqlService():
         self.mycursor.executemany(query, list(map(tuple, data.values)))
         self.mydb.commit()
         
+    def insert_rq(self, data, table:str, ignore=False):
+        s1 = ''
+        s2 = ''
+        for ind,l in enumerate(data.columns):
+            if ind == 0:
+                s1 += f'`{l}`'
+                s2 += '%s'
+            else:
+                s1 += f',`{l}`'
+                s2 += ',%s'
+        query = f"INSERT {'IGNORE' if ignore else ''} INTO `vnpy`.`{table}` ({s1}) VALUES({s2});"                                                         
+        self.mycursor.executemany(query, list(map(tuple, data.values)))
+        self.mydb.commit()
+        
     def delete_datafeed(self, num_of_months=1):
         self.mycursor.execute(f"DELETE FROM vnpy.dbbardata WHERE datetime < '{(datetime.now() - relativedelta(months=num_of_months)).strftime('%Y-%m-%d %H:%M:%S')}'")
         self.mydb.commit()

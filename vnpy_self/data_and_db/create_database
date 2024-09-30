@@ -18,8 +18,30 @@ CREATE TABLE `vnpy`.`dbbardata` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `dbbardata_symbol_exchange_interval_datetime` (`symbol`,`exchange`,`interval`,`datetime`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+
+
+CREATE TABLE `vnpy`.`dbdominant` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `date` date NOT NULL,
+  `dominant` varchar(255) NOT NULL,
+  `rulerank` datetime NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
  
- 
+
+CREATE TABLE `vnpy`.`dbmemberrank` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `trading_date` datetime NOT NULL,
+  `rank` int NOT NULL,
+  `member_name` varchar(255) NOT NULL,
+  `volume` double NOT NULL,
+  `volume_change` double NOT NULL,
+  `commodity_id` varchar(255) NOT NULL,
+  `rank_by` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 -- vnpy.dbbaroverview definition
  
 CREATE TABLE `vnpy`.`dbbaroverview` (
