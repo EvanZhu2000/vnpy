@@ -65,7 +65,7 @@ def run():
             aaa = info.reset_index().set_index('order_book_id').join(data[['order_book_id', 'exchange','trading_code']].set_index('order_book_id')).reset_index().drop(['order_book_id'],axis=1).rename(columns={"total_turnover": "turnover", "open":"open_price","low":"low_price","high":"high_price","close":"close_price","trading_code":"symbol"})
             aaa['interval'] = RECORD_FREQ
             aaa = aaa[['symbol', 'exchange', 'datetime', 'interval', 'volume', 'turnover', 'open_interest', 'open_price', 'high_price', 'low_price', 'close_price']]
-            sqlservice.insert_datafeed(aaa, ignore=True)
+            sqlservice.insert_rq(aaa, 'dbbardata', ignore=True)
 
             sqlservice.close()
         else:
@@ -78,7 +78,7 @@ def run():
                 aaa = info.swaplevel().sort_index().loc[info.swaplevel().sort_index().index.levels[0][-(RECORD_INTERVAL*2):]].reset_index().set_index('order_book_id').join(data[['order_book_id', 'exchange','trading_code']].set_index('order_book_id')).reset_index().drop(['order_book_id'],axis=1).rename(columns={"total_turnover": "turnover", "open":"open_price","low":"low_price","high":"high_price","close":"close_price","trading_code":"symbol"})
                 aaa['interval'] = RECORD_FREQ
                 aaa = aaa[['symbol', 'exchange', 'datetime', 'interval', 'volume', 'turnover', 'open_interest', 'open_price', 'high_price', 'low_price', 'close_price']]
-                sqlservice.insert_datafeed(aaa, ignore=True)
+                sqlservice.insert_rq(aaa, 'dbbardata', ignore=True)
 
         sleep(60*RECORD_INTERVAL)
 

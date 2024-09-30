@@ -7,7 +7,6 @@ rq.init('+85260983439','evan@cash')
 from vnpy_portfoliostrategy.mysqlservice import MysqlService
 import sys
 import pandas as pd
-from tqdm import tqdm
 
 
 def run_price(start_date_str, end_date_str, record_freq = '1m'):
@@ -24,7 +23,8 @@ def run_price(start_date_str, end_date_str, record_freq = '1m'):
     aaa = aaa[['symbol', 'exchange', 'datetime', 'interval', 'volume', 'turnover', 'open_interest', 'open_price', 'high_price', 'low_price', 'close_price']]
     sqlservice.insert_rq(aaa, 'dbbardata', ignore=True)
     sqlservice.close()
-    
+
+# Can only get at least after 17:00 each trading date
 def run_member_rank(start_date_str, end_date_str):
     sqlservice = MysqlService()
     
@@ -33,7 +33,7 @@ def run_member_rank(start_date_str, end_date_str):
                     (data['order_book_id'].str.contains('88') == False)].dropna().unique().tolist()
     
     res = pd.DataFrame()
-    for ind in tqdm(instrument_list):
+    for ind in instrument_list:
         long = futures.get_member_rank(ind,
                                 start_date=start_date_str,
                                 end_date=end_date_str,
@@ -58,7 +58,8 @@ def run_member_rank(start_date_str, end_date_str):
     res = res.reset_index()
     sqlservice.insert_rq(res, 'dbmemberrank', ignore=True)
     sqlservice.close()
-    
+
+# Can get next trading day or today
 def run_dominant(start_date_str, end_date_str):
     sqlservice = MysqlService()
     
@@ -66,7 +67,7 @@ def run_dominant(start_date_str, end_date_str):
     instrument_parent_list = data['underlying_symbol'].unique()
     
     res = pd.DataFrame()
-    for ind in tqdm(instrument_parent_list):
+    for ind in instrument_parent_list:
         rule0rank1 = futures.get_dominant(ind, start_date_str,end_date_str,rule=0,rank=1)
         rule0rank2 = futures.get_dominant(ind, start_date_str,end_date_str,rule=0,rank=2)
         
