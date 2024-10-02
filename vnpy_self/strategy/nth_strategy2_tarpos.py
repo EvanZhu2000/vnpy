@@ -7,6 +7,9 @@ from vnpy_self.pt_tools import *
 from vnpy_portfoliostrategy.mysqlservice import MysqlService
 mysqlservice = MysqlService()
 
+from vnpy_self.strategy.rq_api_masker import RQ_API_MASKER
+masker = RQ_API_MASKER()
+
 
 def retrieve_price(trading_list):
     def get_clean_day_data(df,total_turnover_thres = 1e+8, open_interest_thres = 1000, volume_thres = 1000):
@@ -14,13 +17,9 @@ def retrieve_price(trading_list):
         data = df.query(f"total_turnover>{total_turnover_thres} & open_interest>{open_interest_thres} & volume>{volume_thres}").reindex(df.index)
 
         data = data.unstack().stack(dropna=False)
-
         data_close = data['close'].unstack().T
-
         data_close = data_close.where(data_close[::-1].isna().cumsum()==0, np.nan)
-
         data.loc[data_close.T.stack(dropna=False).isna()] = np.nan
-
         data.dropna(inplace=True)
         data = data.sort_index()
 
@@ -59,8 +58,7 @@ def get_stats(trading_list, lookback_win_days, pro):
     for symb in tqdm(trading_list):
         _start = (today_date-pd.Timedelta(lookback_win_days,'d')).strftime('%Y%m%d')
         _end = today_date.strftime('%Y%m%d')
-
-        df = futures.get_member_rank(symb,start_date=_start,end_date=_end, 
+        df = masker.get_member_rank(symb,start_date=_start,end_date=_end, 
                                     rank_by='long')
         if df is None or symb not in pro.columns or pro[symb] is None:
             continue
@@ -76,7 +74,7 @@ def get_stats(trading_list, lookback_win_days, pro):
         convert_df = convert_df.set_index([convert_df.index,'symb'])
         l_df_delta_everyday = pd.concat([l_df_delta_everyday, convert_df],axis=0)
 
-        df = futures.get_member_rank(symb,start_date=_start,end_date=_end, 
+        df = masker.get_member_rank(symb,start_date=_start,end_date=_end, 
                                     rank_by='short')
         convert_df = df.reset_index()\
         .pivot(columns='member_name', index = 'trading_date',values='volume')
@@ -89,8 +87,8 @@ def get_stats(trading_list, lookback_win_days, pro):
         convert_df = convert_df.set_index([convert_df.index,'symb'])
         s_df_delta_everyday = pd.concat([s_df_delta_everyday, convert_df],axis=0)
         
-        dom_contracts = futures.get_dominant(symb, _start,_end,rule=0,rank=1)
-        dom2_contracts = futures.get_dominant(symb, _start,_end,rule=0,rank=2)
+        dom_contracts = masker.get_dominant(symb, _start,_end,rule=0,rank=1)
+        dom2_contracts = masker.get_dominant(symb, _start,_end,rule=0,rank=2)
         dom_contracts_schedule = pd.concat([dom_contracts.reset_index().groupby('dominant').first(),
                                             dom_contracts.reset_index().groupby('dominant').last()],axis=1)
         dom_contracts_schedule.columns = ['f','l']
@@ -100,7 +98,7 @@ def get_stats(trading_list, lookback_win_days, pro):
         
         for i in dom_contracts_schedule.iterrows():
             # ========
-            df = futures.get_member_rank(i[0],start_date=i[1]['f'],end_date=i[1]['l'], 
+            df = masker.get_member_rank(i[0],start_date=i[1]['f'],end_date=i[1]['l'], 
                                         rank_by='long')
             if df is not None:
                 convert_df = df.reset_index().pivot(columns='member_name', index = 'trading_date',values='volume')
@@ -114,7 +112,7 @@ def get_stats(trading_list, lookback_win_days, pro):
                 l_dom_delta_everyday = pd.concat([l_dom_delta_everyday, convert_df],axis=0)
 
             # ========
-            df = futures.get_member_rank(i[0],start_date=i[1]['f'],end_date=i[1]['l'], 
+            df = masker.get_member_rank(i[0],start_date=i[1]['f'],end_date=i[1]['l'], 
                                         rank_by='short')
             if df is not None:
                 convert_df = df.reset_index().pivot(columns='member_name', index = 'trading_date',values='volume')
@@ -129,7 +127,7 @@ def get_stats(trading_list, lookback_win_days, pro):
         
         for i in dom2_contracts_schedule.iterrows():
             # ========
-            df = futures.get_member_rank(i[0],start_date=i[1]['f'],end_date=i[1]['l'], 
+            df = masker.get_member_rank(i[0],start_date=i[1]['f'],end_date=i[1]['l'], 
                                         rank_by='long')
             if df is not None:
                 convert_df = df.reset_index().pivot(columns='member_name', index = 'trading_date',values='volume')
@@ -143,7 +141,7 @@ def get_stats(trading_list, lookback_win_days, pro):
                 l_dom2_delta_everyday = pd.concat([l_dom2_delta_everyday, convert_df],axis=0)
 
             # ========
-            df = futures.get_member_rank(i[0],start_date=i[1]['f'],end_date=i[1]['l'], 
+            df = masker.get_member_rank(i[0],start_date=i[1]['f'],end_date=i[1]['l'], 
                                         rank_by='short')
             if df is not None:
                 convert_df = df.reset_index().pivot(columns='member_name', index = 'trading_date',values='volume')

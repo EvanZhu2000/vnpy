@@ -52,8 +52,8 @@ class MysqlService():
         self.mycursor.executemany(query, list(map(tuple, data.values)))
         self.mydb.commit()
         
-    def delete_datafeed(self, num_of_months=1):
-        self.mycursor.execute(f"DELETE FROM vnpy.dbbardata WHERE datetime < '{(datetime.now() - relativedelta(months=num_of_months)).strftime('%Y-%m-%d %H:%M:%S')}'")
+    def delete_rq(self, table, dt_name, num_of_months=1):
+        self.mycursor.execute(f"DELETE FROM vnpy.{table} WHERE {dt_name} < '{(datetime.now() - relativedelta(months=num_of_months)).strftime('%Y-%m-%d %H:%M:%S')}'")
         self.mydb.commit()
         
     def get_pos(self, strategy_name):
