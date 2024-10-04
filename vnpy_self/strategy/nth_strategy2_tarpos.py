@@ -201,7 +201,7 @@ if __name__ == "__main__":
     20,
   10)}
 
-    stat_list, result_list = [],[]
+    stat_list, result_list,set_list = [],[],[]
     for k,v in xx.items():
         stat = pd.DataFrame()
         for symb in tqdm(trading_list):
@@ -210,8 +210,10 @@ if __name__ == "__main__":
 
         stat.index = pd.to_datetime(stat.index)
         stat_list.append(stat)
+        set_list.append(bband_para(stat,*v))
     
-    g = weight_cap(-settings_all([bband_para(stat_list[5],0.6, 20, 5)]), mul_mappings, pr88, initial_capital=1000000)
+    g = weight_cap(-settings_all(set_list,'0|4|5','0&4&5'), 
+                   mul_mappings, pr88, initial_capital=1000000)
     balancing_list = g.replace(np.nan,0).iloc[-1]
 
     # 4. insert balancing_list into database
