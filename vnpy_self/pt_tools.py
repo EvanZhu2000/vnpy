@@ -89,6 +89,7 @@ def getPrice(df, name, start_date, end_date, freq='1min', win=1):
 
     return res
 
+# NOTE: the result of adf_test is closely related to the frequency of the data
 def adf_test(df):
     if df.dropna().shape[0]>100000:
         print("Too long series")
@@ -102,12 +103,12 @@ def cal_regression(df1,df2):
     reg = sm.OLS(y, x).fit()
     return -reg.params[0]
 
-def weight_cap(g_df, mul_map, ori_price, initial_capital=10000000, samp_days=60, toRound=True):
+def weight_cap(g_df, mul_map, ori_price, sample_days, initial_capital=10000000,toRound=True):
     g_df = g_df.copy()
     mul_series = pd.Series(mul_map)[g_df.columns]
     mulprice_fee = (mul_series * ori_price).abs()
 
-    multiplier = initial_capital / mulprice_fee.iloc[::samp_days].reindex(mulprice_fee.index).ffill()
+    multiplier = initial_capital / mulprice_fee.loc[pd.Index(sample_days).intersection(mulprice_fee.index)].reindex(mulprice_fee.index).ffill()
     g_df *= multiplier 
     g_df =  g_df.div(g_df.count(1), axis=0)
         
@@ -365,6 +366,7 @@ def get_pnl_from_orders(order, ins1_df, ins2_df, mul1, mul2):
 def effective_year_count(pnl_series):
     return ((pnl_series.index[-1] - pnl_series.index[0]).days / 365)
 
+# This is simple return without reinvesting
 def calculate_cumulative_return(pnl_series, initial_capital):
     return pnl_series.sum() / initial_capital
 
@@ -696,7 +698,7 @@ class bband_para():
         return resample_stat_new(self.stat, self.rolling_win_s, 'std', self.samp_freq_s, self.min_period_s)
 
     
-def settings_all(bband_list,open_exp='0',close_exp='0'):
+def settings_all(bband_list, open_exp='0',close_exp='0',uol='u&l',exp=True):
     '''
     This is builder class for reversion strategy, for mom please add negative sign
     
@@ -725,14 +727,20 @@ def settings_all(bband_list,open_exp='0',close_exp='0'):
             u_lower_list.append(stat < _m)
             l_upper_list.append(stat > _m)
     
-    u_upper = eval(''.join(['u_upper_list[' + char + ']' if char.isdigit() else char for char in open_exp]))
-    l_lower = eval(''.join(['l_lower_list[' + char + ']' if char.isdigit() else char for char in open_exp]))
-    u_lower = eval(''.join(['u_lower_list[' + char + ']' if char.isdigit() else char for char in close_exp]))
-    l_upper = eval(''.join(['l_upper_list[' + char + ']' if char.isdigit() else char for char in close_exp]))
+    # the implied is False the the below should be correct
+    u_upper = eval('exp&('+''.join(['u_upper_list[' + char + ']' if char.isdigit() else char for char in open_exp])+')')
+    l_lower = eval('exp&('+''.join(['l_lower_list[' + char + ']' if char.isdigit() else char for char in open_exp])+')')
+    u_lower = eval('exp&('+''.join(['u_lower_list[' + char + ']' if char.isdigit() else char for char in close_exp])+')')
+    l_upper = eval('exp&('+''.join(['l_upper_list[' + char + ']' if char.isdigit() else char for char in close_exp])+')')
     
     g_df_u = restrain_actions_new(u_upper, u_lower, tar=1)  
     g_df_l = restrain_actions_new(l_lower, l_upper, tar=-1)  
-    gdf = g_df_u.replace(np.nan,0) + g_df_l.replace(np.nan,0)
+    if uol == 'u&l':
+        gdf = g_df_u.replace(np.nan,0) + g_df_l.replace(np.nan,0)
+    elif uol == 'u':
+        gdf = g_df_u.replace(np.nan,0)
+    elif uol == 'l':
+        gdf = g_df_l.replace(np.nan,0)
     
     for bband in bband_list:
         stat = bband.stat
@@ -743,7 +751,7 @@ def settings_all(bband_list,open_exp='0',close_exp='0'):
     if (gdf>1).sum().sum() != 0:
         raise Exception(f"gdf doesn't conform with {(gdf>1).sum().nlargest()}") 
     return gdf
-    
+
 def settings(num, stat,ustat,lstat,custom_std,rolling_win,corr_intervals,samp_freq,nths,starting_n,ffill):
     _m = resample_stat(stat, rolling_win, 'mean',samp_freq, nths,starting_n,ffill)
     _s = resample_stat(stat, rolling_win, 'std',samp_freq, nths,starting_n,ffill)
@@ -1240,6 +1248,37 @@ class PurgedGroupTimeSeriesSplit(_BaseKFold):
                 pass
 
             yield [int(i) for i in train_array], [int(i) for i in test_array]
+
+def sampler(trading_days, fixed_date, samp_days=60):
+    if fixed_date not in trading_days:
+        raise Exception("fixed_date not in trading_days!")
+    return pd.concat([pd.Series(trading_days, index=trading_days).loc[:fixed_date].iloc[::-samp_days].iloc[::-1],
+                      pd.Series(trading_days, index=trading_days).loc[fixed_date:].iloc[::samp_days].iloc[1:]]).values
+
+def max_consecutive_loss_days(daily_pnl):
+    '''
+    input be np.array
+    '''
+    max_loss_streak = 0
+    current_loss_streak = 0
+    max_loss = 0
+    current_loss = 0
+
+    for pnl in daily_pnl:
+        if pnl < 0:  # Check for loss
+            current_loss_streak += 1
+            current_loss += pnl
+        else:  # Reset streak if there's a profit
+            max_loss_streak = max(max_loss_streak, current_loss_streak)
+            max_loss = min(max_loss, current_loss)
+            current_loss_streak = 0
+            current_loss = 0
+
+    # Final check in case the last days were loss days
+    max_loss_streak = max(max_loss_streak, current_loss_streak)
+    max_loss = min(max_loss, current_loss)
+
+    return max_loss_streak, max_loss
 
 
 SCHEDULE1 = {'01':'02','02':'03','03':'04','04':'05','05':'06','06':'07','07':'08','08':'09','09':'10','10':'11','11':'12','12':'01'}
