@@ -9,11 +9,11 @@ class RQ_API_MASKER:
     def get_price(self):
         pass
     
-    def get_member_rank(self, symb, start, end, rank_by):
+    def get_member_rank(self, symb, start_date, end_date, rank_by):
         if self.rq:
             return futures.get_member_rank(symb,
-                                            start_date=start,
-                                            end_date=end, 
+                                            start_date=start_date,
+                                            end_date=end_date, 
                                             rank_by=rank_by)
     
     def get_dominant(self, symb, start, end, rule, rank):
