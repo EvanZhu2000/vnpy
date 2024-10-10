@@ -213,7 +213,7 @@ if __name__ == "__main__":
         set_list.append(bband_para(stat,*v))
     
     trading_dates = pd.to_datetime(get_trading_dates(start_date='20150105', end_date=today_date))
-    sam = sampler(trading_dates,'20150105')
+    sam = sampler(trading_dates,'20150105',samp_days=20)
     g = weight(-settings_all(set_list,'0|4|5','0&4&5'), mul_mappings, pr88, sam, initial_capital=initial_capital, toRound=True)[0]
     balancing_list = g.replace(np.nan,0).iloc[-1]
 
