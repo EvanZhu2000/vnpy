@@ -28,7 +28,7 @@ def strategy_running_period():
     current_time = datetime.now().time()
 
     trading = False
-    if (current_time >= DAY_START and current_time <= DAY_END):
+    if (current_time >= DAY_START or current_time <= DAY_END):
         trading = True
 
     return trading
