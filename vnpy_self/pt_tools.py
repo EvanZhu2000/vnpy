@@ -120,7 +120,7 @@ def weight_cap(g_df, mul_map, ori_price, sample_days, initial_capital=10000000,t
 
 
 def weight(g, mul_map, ori_price, sample_days, initial_capital=10000000,toRound=True):
-    cash = pd.DataFrame(1, index = g.index, columns = g.columns).where(g.loc[sample_days].shift().reindex(g.index).ffill().notna(), np.nan)
+    cash = pd.DataFrame(1, index = g.index, columns = g.columns).where(g.loc[pd.Index(sample_days).intersection(g.index)].shift().reindex(g.index).ffill().notna(), np.nan)
     cash = cash.div(cash.count(axis=1),axis=0)* initial_capital
     g_df = (cash / (g* pd.Series(mul_map)[g.columns] * ori_price[g.columns])).replace(-np.inf,0).replace(np.inf,0)
     used_capital = ((g_df.abs()*pd.Series(mul_map)[g_df.columns] * ori_price[g_df.columns]).sum(1))
