@@ -4,6 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import plotly.express as px
 import plotly.graph_objects as go
+import plotly.figure_factory as ff
 from plotly.subplots import make_subplots
 from plotly import tools
 import math
@@ -103,6 +104,7 @@ def cal_regression(df1,df2):
     reg = sm.OLS(y, x).fit()
     return -reg.params[0]
 
+# This method could be outdated, check out weight() method
 def weight_cap(g_df, mul_map, ori_price, sample_days, initial_capital=10000000,toRound=True):
     g_df = g_df.copy()
     mul_series = pd.Series(mul_map)[g_df.columns]
@@ -115,6 +117,16 @@ def weight_cap(g_df, mul_map, ori_price, sample_days, initial_capital=10000000,t
     if toRound:
         g_df = g_df.round(0)
     return g_df 
+
+
+def weight(g, mul_map, ori_price, sample_days, initial_capital=10000000,toRound=True):
+    cash = pd.DataFrame(1, index = g.index, columns = g.columns).where(g.loc[sample_days].shift().reindex(g.index).ffill().notna(), np.nan)
+    cash = cash.div(cash.count(axis=1),axis=0)* initial_capital
+    g_df = (cash / (g* pd.Series(mul_map)[g.columns] * ori_price[g.columns])).replace(-np.inf,0).replace(np.inf,0)
+    used_capital = ((g_df.abs()*pd.Series(mul_map)[g_df.columns] * ori_price[g_df.columns]).sum(1))
+    if toRound:
+        g_df = g_df.round(0)
+    return g_df, used_capital
 
 def bt_all(g_df, ins_price, ori_price, mul_map, initial_capital=10000000, 
            commission = 0.0001, exec_delay=0, to=None, toFormat=True):
@@ -192,6 +204,8 @@ def bt_all(g_df, ins_price, ori_price, mul_map, initial_capital=10000000,
         result.append("%.4f"%calculate_sharpe_ratio(sum_daily_pnl))
         result.append("%.2f"%(100*calculate_annual_return(sum_daily_pnl, initial_capital))+'%')
         result.append("%.2f"%(100*calculate_max_drawdown(sum_daily_pnl, initial_capital))+'%')
+        result.append("%.4f"%calculate_sortino_ratio(sum_daily_pnl))
+        result.append("%.4f"%calculate_calmar_ratio(sum_daily_pnl,initial_capital))
         result.append("%.2f"%(100*turnover)+'%')
         result.append("%.2f"%(trades_count / yrs))
         result.append("%.2f"%(yrs) + ' yrs')
@@ -201,13 +215,15 @@ def bt_all(g_df, ins_price, ori_price, mul_map, initial_capital=10000000,
         result.append(calculate_sharpe_ratio(sum_daily_pnl))
         result.append(calculate_annual_return(sum_daily_pnl, initial_capital))
         result.append(calculate_max_drawdown(sum_daily_pnl, initial_capital))
+        result.append(calculate_sortino_ratio(sum_daily_pnl))
+        result.append(calculate_calmar_ratio(sum_daily_pnl, initial_capital))
         result.append(turnover)
         result.append((trades_count / yrs))
         result.append(yrs)
         result.append(min_cash_needed)
         result.append(ttl_capacity)
-    summary_df = pd.DataFrame(result, index=['sharpe','annu_ret','mdd','turnover','#trades','period','min_cash','ttl_capcity']).T
-    return g_df, daily_pnl, summary_df
+    summary_df = pd.DataFrame(result, index=['sharpe','annu_ret','mdd','sortino','calmar','turnover','#trades','period','min_cash','ttl_capcity']).T
+    return daily_pnl, summary_df
 
 
 def bt(a_df, ins_price, ins_price_to_cal_fee, mul, mul_method = None, initial_capital=None, commission = 0.0003, exec_delay=0, conform=True):
@@ -401,6 +417,18 @@ def calculate_max_drawdown(pnl_series, initial_capital):
     max_drawdown = calculate_drawdown(pnl_series, initial_capital).min()
     return max_drawdown
 
+def calculate_calmar_ratio(pnl_series, initial_capital):
+    annualized_return = calculate_annual_return(pnl_series, initial_capital)
+    max_drawdown = calculate_max_drawdown(pnl_series, initial_capital)
+    calmar_ratio = annualized_return / abs(max_drawdown) if max_drawdown != 0 else np.nan
+    return calmar_ratio
+
+def calculate_sortino_ratio(pnl_series, days=250):
+    downside_returns = pnl_series[pnl_series < 0]
+    downside_deviation = np.std(downside_returns) + 1e-6
+    mean_return = np.mean(pnl_series)
+    sortino_ratio = mean_return / downside_deviation * np.sqrt(days)
+    return sortino_ratio
 
 def calculate_trade_time(pnl_df):
     if pnl_df['end_time'].dt.hour.sum() == 0:
@@ -678,6 +706,40 @@ def resample_stat_new(stat, win, mode,freq=1, min_periods = None):
       else stat.iloc[::freq].rolling(win,min_periods = min_periods).std(ddof=0).reindex(stat.index).ffill()
 
 
+#TODO: unfinished percentile band
+class pband_para():
+    def __init__(self, stat,std,rolling_win_m,rolling_win_s,samp_freq_m=1,samp_freq_s=1,min_period_m=None,min_period_s=None):
+        self.stat = stat
+        self.stat.index.name = None
+        self.stat.name = None
+        self.std = std
+        self.rolling_win_m = rolling_win_m
+        self.samp_freq_m = samp_freq_m
+        self.rolling_win_s = rolling_win_s
+        self.samp_freq_s = samp_freq_s
+        self.min_period_m = min_period_m
+        self.min_period_s = min_period_s
+        self._m = self.get_m()
+        self._s = self.get_s()
+    
+    def get_m(self):
+        return resample_stat_new(self.stat, self.rolling_win_m, 'mean', self.samp_freq_m,self.min_period_m)
+    
+    def get_s(self):
+        return resample_stat_new(self.stat, self.rolling_win_s, 'std', self.samp_freq_s, self.min_period_s)
+    
+    def upper_open(self):
+        return self.stat > self._m + self.std*self._s
+    
+    def upper_close(self):
+        return self.stat < self._m 
+    
+    def lower_open(self):
+        return self.stat < self._m + self.std*self._s
+    
+    def lower_close(self):
+        return self.stat > self._m 
+    
 class bband_para():
     def __init__(self, stat,std,rolling_win_m,rolling_win_s,samp_freq_m=1,samp_freq_s=1,min_period_m=None,min_period_s=None):
         self.stat = stat
@@ -690,12 +752,26 @@ class bband_para():
         self.samp_freq_s = samp_freq_s
         self.min_period_m = min_period_m
         self.min_period_s = min_period_s
+        self._m = self.get_m()
+        self._s = self.get_s()
     
     def get_m(self):
         return resample_stat_new(self.stat, self.rolling_win_m, 'mean', self.samp_freq_m,self.min_period_m)
     
     def get_s(self):
         return resample_stat_new(self.stat, self.rolling_win_s, 'std', self.samp_freq_s, self.min_period_s)
+    
+    def upper_open(self):
+        return self.stat > self._m + self.std*self._s
+    
+    def upper_close(self):
+        return self.stat < self._m 
+    
+    def lower_open(self):
+        return self.stat < self._m - self.std*self._s
+    
+    def lower_close(self):
+        return self.stat > self._m 
 
     
 def settings_all(bband_list, open_exp='0',close_exp='0',uol='u&l',exp=True):
@@ -718,14 +794,10 @@ def settings_all(bband_list, open_exp='0',close_exp='0',uol='u&l',exp=True):
                 stat_columns = bband.stat.columns
             elif not bband.stat.columns.equals(stat_columns):
                 raise Exception('stat should have same columns')
-            stat = bband.stat
-            std = bband.std
-            _m = bband.get_m()
-            _s = bband.get_s()
-            u_upper_list.append(stat > _m + std*_s)
-            l_lower_list.append(stat < _m - std*_s)
-            u_lower_list.append(stat < _m)
-            l_upper_list.append(stat > _m)
+            u_upper_list.append(bband.upper_open())
+            l_lower_list.append(bband.lower_open())
+            u_lower_list.append(bband.upper_close())
+            l_upper_list.append(bband.lower_close())
     
     # the implied is False the the below should be correct
     u_upper = eval('exp&('+''.join(['u_upper_list[' + char + ']' if char.isdigit() else char for char in open_exp])+')')
@@ -850,6 +922,11 @@ class renamer():
             self.d[x] += 1
             return "%s_%d" % (x, self.d[x])
         
+def concat(*list):
+    result = pd.concat(list,axis=1)
+    result = result.rename(columns=renamer())
+    return result
+        
 # secondary axis plotting tool
 def plot2(*data):
     if len(data) == 1:
@@ -901,6 +978,30 @@ def plots(a_df, sig_df, start = None, end = None):
         fig.add_vrect(x0=i, x1=j, line_width=0, fillcolor="red", opacity=0.2)
     fig.show()
 
+# ploy distribution
+def plotd(d, mean=False, std=False):
+    def subplot_series(tmp):
+        if mean:
+            tmp = (tmp - tmp.mean()) 
+        if std:
+            tmp = tmp/ tmp.std()
+        describe = tmp.dropna().describe().T
+        describe = pd.concat([describe, tmp.skew().rename('skew')],axis=1).round(2)
+        print(describe)
+        return ff.create_distplot(tmp.dropna().T.values, tmp.columns.astype(str), show_hist=False, show_rug=False)
+    
+    if type(d) == list:
+        tmp = pd.concat(d,axis=1)
+        tmp = tmp.rename(columns=renamer())
+        return subplot_series(tmp)
+    elif type(d) == pd.core.frame.DataFrame:
+        tmp = d.copy()
+        tmp = tmp.rename(columns=renamer())
+        return subplot_series(tmp)
+    elif type(d) == pd.core.series.Series:
+        tmp = d.copy().to_frame()
+        return subplot_series(tmp)
+    
     
 # plot strategy revelant plot
 def plot(ini_cap,d,m=None,t=None,rollingsharpe=False):
@@ -912,11 +1013,11 @@ def plot(ini_cap,d,m=None,t=None,rollingsharpe=False):
     
     if type(d) == list:
         tmp = pd.concat(d,axis=1)
-        tmp.rename(columns=renamer())
+        tmp = tmp.rename(columns=renamer())
         return subplot_series(tmp)
     elif type(d) == pd.core.frame.DataFrame:
         tmp = d.copy()
-        tmp.rename(columns=renamer())
+        tmp = tmp.rename(columns=renamer())
         return subplot_series(tmp)
     else:
         if m is not None:
@@ -945,9 +1046,9 @@ def plot(ini_cap,d,m=None,t=None,rollingsharpe=False):
             )
 
         fig.update_layout(
-            height=600,
-            width=950,
-            margin=dict(t=20, b=20, l=50, r=10),
+            height=550,
+            width=1400,
+            margin=dict(t=10, b=10, l=50, r=10),
             legend=dict(
                 orientation="h",
                 yanchor="bottom",
@@ -1254,6 +1355,14 @@ def sampler(trading_days, fixed_date, samp_days=60):
         raise Exception("fixed_date not in trading_days!")
     return pd.concat([pd.Series(trading_days, index=trading_days).loc[:fixed_date].iloc[::-samp_days].iloc[::-1],
                       pd.Series(trading_days, index=trading_days).loc[fixed_date:].iloc[::samp_days].iloc[1:]]).values
+    
+    
+def train_test_generator(dates, price, m = 1, n = 1):
+    for ind,d in enumerate(dates):
+        if ind <= m-1 or ind == len(dates) - n:
+            continue
+        yield price.loc[dates[ind-m]:dates[ind]], price.loc[dates[ind]:dates[ind+n]]
+        
 
 def max_consecutive_loss_days(daily_pnl):
     '''

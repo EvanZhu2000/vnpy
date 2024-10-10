@@ -214,8 +214,7 @@ if __name__ == "__main__":
     
     trading_dates = pd.to_datetime(get_trading_dates(start_date='20150105', end_date=today_date))
     sam = sampler(trading_dates,'20150105')
-    g = weight_cap(-settings_all(set_list,'0|4|5','0&4&5'), 
-                   mul_mappings, pr88, initial_capital=1000000)
+    g = weight(-settings_all(set_list,'0|4|5','0&4&5'), mul_mappings, pr88, sam, initial_capital=initial_capital, toRound=True)[0]
     balancing_list = g.replace(np.nan,0).iloc[-1]
 
     # 4. insert balancing_list into database
