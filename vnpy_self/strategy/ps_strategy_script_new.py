@@ -87,7 +87,8 @@ def run():
     ans = ans.replace(np.nan,0)
     vt_symbols = ans.index.values.tolist()
     settings = dict({'tarpos':json.dumps(ans['target'].to_dict()),
-                     'ans':json.dumps(ans.to_dict())})
+                     'ans':json.dumps(ans.to_dict()),
+                     'trading_hours':json.dumps(trading_hours[['symbol','trading_hours']].set_index('symbol').to_dict()['trading_hours'])})
     if strategy_title in ps_engine.strategies.keys():
         ps_engine.stop_strategy(strategy_title)
         ps_engine.remove_strategy(strategy_title)

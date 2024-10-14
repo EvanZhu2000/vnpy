@@ -271,12 +271,12 @@ class StrategyTemplate(ABC):
             raise Exception(f"reject counts >=3 for {vt_symbol}")
         
         min_tick:float = self.get_pricetick(tick.vt_symbol)
-        tmp = min(int(can_count // 2), 2)
+        tmp = min(int(rej_count // 2), 2)
         bp = tick.ask_price_1 + tmp * min_tick
         sp = tick.bid_price_1 - tmp * min_tick
         return (bp,sp)
     
-    # After review, don't think the below is quite useful
+    # TODO After review, don't think the below is quite useful
     def exe_FAK(self, tick:TickData, order:OrderData = None) -> tuple:
         '''return (buy_price, sell_price) tuple'''
         if order:
