@@ -50,12 +50,12 @@ class Strategy2(StrategyTemplate):
     def on_tick(self, tick: TickData) -> None:
         """行情推送回调"""
         if self.bool_dict.all_true():
-            self.write_log("All have rebalanced. Stop the strategy now")
+            self.write_log(f"All have rebalanced. Stop the strategy {self.strategy_name} now")
             self.strategy_engine.stop_strategy(self.strategy_name)
             return
         
         if tick.vt_symbol not in self.trading_hours.keys():
-            self.write_log(f"No trading hours provided for {tick.vt_symbol}")
+            self.write_log(f"No trading hours provided for {tick.vt_symbol}. Stop the strategy {self.strategy_name} now")
             self.strategy_engine.stop_strategy(self.strategy_name)
             return
         else:
