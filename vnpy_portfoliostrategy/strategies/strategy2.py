@@ -72,7 +72,7 @@ class Strategy2(StrategyTemplate):
             self.bool_dict.set(tick.vt_symbol, True)
     
     # check trading hours, may not belong to here 
-    def is_time_in_intervals(input_time, intervals):
+    def is_time_in_intervals(self, input_time, intervals):
         # Split intervals and check each one
         for interval in intervals.split(','):
             start_str, end_str = interval.split('-')
