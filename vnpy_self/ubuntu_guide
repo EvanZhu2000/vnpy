@@ -41,6 +41,11 @@ follow vnpy_self/create_database to setup the database
 pip install mysql-connector-python (maybe with version 8.4.0)
 pip install pymysql (for peewee connection)
 
+(4)
+for connection timeout purpose please set
+SET wait_timeout = 86400;
+SET interactive_timeout = 86400;
+
 5. To merge git (https://github.com/EvanZhu2000/vnpy)
 key step looks something like 
 git remote add origin https://github.com/EvanZhu2000/vnpy.git

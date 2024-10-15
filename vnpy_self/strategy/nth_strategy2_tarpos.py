@@ -209,6 +209,8 @@ if __name__ == "__main__":
                 stat = pd.concat([stat,eval(k).rename(symb)],axis=1)   
 
         stat.index = pd.to_datetime(stat.index)
+        stat.sort_index(axis=1,inplace=True)
+        stat.sort_index(axis=0,inplace=True)
         stat_list.append(stat)
         set_list.append(bband_para(stat,*v))
     
@@ -216,6 +218,9 @@ if __name__ == "__main__":
     sam = sampler(trading_dates,'20150105',samp_days=20)
     g = weight(-settings_all(set_list,'0|4|5','0&4&5'), mul_mappings, pr88, sam, initial_capital=initial_capital, toRound=True)[0]
     balancing_list = g.replace(np.nan,0).iloc[-1]
+    
+    # in the research -1 means buy but in vnpy vice versa
+    balancing_list = -balancing_list
 
     # 4. insert balancing_list into database
     if today_date.date() != balancing_list.name.date():
