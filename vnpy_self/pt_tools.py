@@ -24,7 +24,6 @@ from itertools import product
 from itertools import chain
 from statsmodels.tsa.seasonal import seasonal_decompose
 from itertools import product
-import itertools
 
 import re
 from datetime import datetime
@@ -33,6 +32,7 @@ from sklearn.model_selection._split import _BaseKFold, indexable, _num_samples
 from sklearn.utils.validation import _deprecate_positional_args
 import warnings
 warnings.filterwarnings("ignore")
+from sympy import symbols, Or, And, simplify
 
 def format_number(n):
     return re.sub(r"(\d)(?=(\d{4})+(?!\d))", r"\1,", str(n))
@@ -119,10 +119,16 @@ def weight_cap(g_df, mul_map, ori_price, sample_days, initial_capital=10000000,t
     return g_df 
 
 
-def weight(g, mul_map, ori_price, sample_days, initial_capital=10000000,toRound=True):
-    cash = pd.DataFrame(1, index = g.index, columns = g.columns).where(g.loc[pd.Index(sample_days).intersection(g.index)].shift().reindex(g.index).ffill().notna(), np.nan)
+def weight(g, mul_map, ori_price, sample_days, initial_capital=10000000,toRound=True,used_cap_ratio=1,used_cap_limit=None,shift=1):
+    cash = pd.DataFrame(1, index = g.index, columns = g.columns).where(g.loc[pd.Index(sample_days).intersection(g.index)].shift(shift).reindex(g.index).ffill().notna(), np.nan)
     cash = cash.div(cash.count(axis=1),axis=0)* initial_capital
     g_df = (cash / (g* pd.Series(mul_map)[g.columns] * ori_price[g.columns])).replace(-np.inf,0).replace(np.inf,0)
+    used_capital = ((g_df.abs()*pd.Series(mul_map)[g_df.columns] * ori_price[g_df.columns]).sum(1))
+    used_capital_limit = used_capital.quantile(used_cap_ratio)
+    if used_cap_limit is not None:
+        used_capital_limit = used_cap_limit
+    g_df = g_df.div((used_capital.loc[(used_capital> used_capital_limit)]/used_capital_limit).reindex(used_capital.index).replace(np.nan,1),axis=0)
+    # re-compute the used_capital
     used_capital = ((g_df.abs()*pd.Series(mul_map)[g_df.columns] * ori_price[g_df.columns]).sum(1))
     if toRound:
         g_df = g_df.round(0)
@@ -590,6 +596,15 @@ def masker(my_series):
     intervals = [(start, end) for start, end in zip(start_indices, end_indices)]
     return intervals
 
+# numpy's method of ffill
+def ffill_numpy(arr,axis=0):
+    if axis==0:
+        arr = arr.copy().T
+    mask = np.isnan(arr)
+    idx = np.where(~mask,np.arange(mask.shape[1]),0)
+    np.maximum.accumulate(idx,axis=1, out=idx)
+    out = arr[np.arange(idx.shape[0])[:,None], idx]
+    return out if axis == 1 else out.T
 
 # Here we will execute one timepoint after the signal
 def restrain_actions(_tmp1, _tmp2, intervals, ins1=None, doubleside=True, tar=1):
@@ -632,32 +647,50 @@ def restrain_actions(_tmp1, _tmp2, intervals, ins1=None, doubleside=True, tar=1)
     for i in adf.index:
         if i in np.array(intervals)[:,1].tolist():
             count += 1    
-#     print(f'There are {adf.shape[0]//2} trades')
-#     if adf.shape[0] != 0:
-#         print(f'Hitting ratio {count / adf.shape[0] * 2}')
-#     else:
-#         print(f'Hitting ratio: none as 0 actions')
     
     return adf
 
 def restrain_actions_new(tmp1, tmp2, tar=1):
-    '''
-    tmp1: open position
-    tmp2: close position
-    tar: whether to open long or short
-    '''
-    if tar not in (-1,1):
+    if tar not in (-1, 1):
         raise Exception('wrong tar')
     if tar == -1:
         return -restrain_actions_new(tmp1, tmp2, 1)
-    
-    tmp2 = tmp2.where(tmp1.cumsum()>0,False)
-    asd = (tmp1.astype(int) - tmp2.astype(int)).replace(0,np.nan).ffill().replace(np.nan,0)
+
+    tmp2 = tmp2.where(tmp1.cumsum() > 0, False)
+    asd = (tmp1.astype(int) - tmp2.astype(int)).replace(0, np.nan).ffill().replace(np.nan, 0)
     zxc = asd.diff()
     zxc.iloc[0] = asd.iloc[0]
     zxc = zxc.where((zxc == 2) | (zxc == -2) | (zxc == 1), np.nan)
     zxc = zxc.where((zxc != 1), 2) / 2
-    return zxc.cumsum().ffill()
+    return zxc.cumsum().ffill().replace(np.nan,0)
+
+# NOTE: after testing, when tmp1 and tmp2 is greater than (50k,100), than probably pandas would be faster
+def restrain_actions_new_numpy(tmp1, tmp2, tar=1):
+    if type(tmp1) == pd.core.frame.DataFrame or type(tmp1) == pd.core.series.Series:
+        tmp1 = tmp1.copy().values
+    if type(tmp2) == pd.core.frame.DataFrame or type(tmp2) == pd.core.series.Series:
+        tmp2 = tmp2.copy().values
+        
+    if tar not in (-1, 1):
+        raise Exception('wrong tar')
+    if tar == -1:
+        return -restrain_actions_new_numpy(tmp1, tmp2, 1)
+
+    tmp1 = np.asarray(tmp1, dtype=float)
+    tmp2 = np.asarray(tmp2, dtype=float)
+    mask = (np.cumsum(tmp1,axis=0) > 0).reshape(tmp1.shape)
+    tmp2 = np.where(mask, tmp2, 0)  # Use 0 for False
+
+    asd = (tmp1 - tmp2)  # Keep as float to allow NaN
+    asd[asd == 0] = np.nan  # Set zeros to NaN
+    asd = ffill_numpy(asd)
+    asd = np.nan_to_num(asd, nan=0)
+
+    zxc = np.diff(asd,axis=0 , prepend=0)
+    zxc = np.where((zxc == 2) | (zxc == -2) | (zxc == 1), zxc, np.nan) 
+    zxc[zxc == 1] = 2
+    zxc /= 2
+    return np.nancumsum(zxc,axis=0)
 
 
 def resample_stat(stat, rolling_win, mode, freq=1, nths = 3, starting_n = -1, ffill=True):
@@ -754,6 +787,10 @@ class bband_para():
         self.min_period_s = min_period_s
         self._m = self.get_m()
         self._s = self.get_s()
+        self.uo = self.upper_open()
+        self.uc = self.upper_close()
+        self.lo = self.lower_open()
+        self.lc = self.lower_close()
     
     def get_m(self):
         return resample_stat_new(self.stat, self.rolling_win_m, 'mean', self.samp_freq_m,self.min_period_m)
@@ -774,17 +811,22 @@ class bband_para():
         return self.stat > self._m 
 
     
-def settings_all(bband_list, open_exp='0',close_exp='0',uol='u&l',exp=True):
+def settings_all(bband_list, open_exp='x0',close_exp='x0',uol='u&l',exp=True):
     '''
     This is builder class for reversion strategy, for mom please add negative sign
     
     bband_list: the list of conditions (filters)
     open_exp & close_exp: e.g. open_exp = "0&1", which means opening position when bband_list[0]&bband_list[1]
+    exp: additional universal boolean based expression
     '''
+    def create_expression(the_exp, lst):
+        return re.sub(r'x(\d+)', rf'{lst}[\1]', the_exp)
+    
     if type(bband_list)!=list:
         raise Exception('Wrong bband_list format!')
         
     u_upper_list,u_lower_list,l_upper_list,l_lower_list = [],[],[],[]
+    start,end = None,None
     stat_columns = None
     for bband in bband_list:
         if type(bband) != bband_para:
@@ -794,35 +836,40 @@ def settings_all(bband_list, open_exp='0',close_exp='0',uol='u&l',exp=True):
                 stat_columns = bband.stat.columns
             elif not bband.stat.columns.equals(stat_columns):
                 raise Exception('stat should have same columns')
-            u_upper_list.append(bband.upper_open())
-            l_lower_list.append(bband.lower_open())
-            u_lower_list.append(bband.upper_close())
-            l_upper_list.append(bband.lower_close())
+            
+            if start is None and end is None:
+                start,end = bband.stat.index[0], bband.stat.index[-1]
+            else:
+                if start!=bband.stat.index[0] or end !=bband.stat.index[-1]:
+                    raise Exception('stat should have same time range')
+            u_upper_list.append(bband.uo)
+            l_lower_list.append(bband.lo)
+            u_lower_list.append(bband.uc)
+            l_upper_list.append(bband.lc)
     
     # the implied is False the the below should be correct
-    u_upper = eval('exp&('+''.join(['u_upper_list[' + char + ']' if char.isdigit() else char for char in open_exp])+')')
-    l_lower = eval('exp&('+''.join(['l_lower_list[' + char + ']' if char.isdigit() else char for char in open_exp])+')')
-    u_lower = eval('exp&('+''.join(['u_lower_list[' + char + ']' if char.isdigit() else char for char in close_exp])+')')
-    l_upper = eval('exp&('+''.join(['l_upper_list[' + char + ']' if char.isdigit() else char for char in close_exp])+')')
-    
-    g_df_u = restrain_actions_new(u_upper, u_lower, tar=1)  
-    g_df_l = restrain_actions_new(l_lower, l_upper, tar=-1)  
+    u_upper = eval('exp&'+create_expression(open_exp,  'u_upper_list'))
+    l_lower = eval('exp&'+create_expression(open_exp,  'l_lower_list'))
+    u_lower = eval('exp&'+create_expression(close_exp, 'u_lower_list'))
+    l_upper = eval('exp&'+create_expression(close_exp, 'l_upper_list'))
+
+    g_df_u = restrain_actions_new_numpy(u_upper, u_lower, tar=1)  
+    g_df_l = restrain_actions_new_numpy(l_lower, l_upper, tar=-1)  
     if uol == 'u&l':
-        gdf = g_df_u.replace(np.nan,0) + g_df_l.replace(np.nan,0)
+        gdf = g_df_u + g_df_l
     elif uol == 'u':
-        gdf = g_df_u.replace(np.nan,0)
+        gdf = g_df_u
     elif uol == 'l':
-        gdf = g_df_l.replace(np.nan,0)
-    
-    for bband in bband_list:
-        stat = bband.stat
-        gdf = gdf.where(stat.notna(),np.nan)
+        gdf = g_df_l
     
     if (gdf<-1).sum().sum() != 0:
         raise Exception(f"gdf doesn't conform with {(gdf<-1).sum().nlargest()}")
     if (gdf>1).sum().sum() != 0:
         raise Exception(f"gdf doesn't conform with {(gdf>1).sum().nlargest()}") 
-    return gdf
+    
+    # return gdf
+    return pd.DataFrame(gdf, index = u_upper.index, columns = u_upper.columns)
+
 
 def settings(num, stat,ustat,lstat,custom_std,rolling_win,corr_intervals,samp_freq,nths,starting_n,ffill):
     _m = resample_stat(stat, rolling_win, 'mean',samp_freq, nths,starting_n,ffill)
@@ -1389,6 +1436,52 @@ def max_consecutive_loss_days(daily_pnl):
 
     return max_loss_streak, max_loss
 
+# For sensitivity test, for now it can only apply to 3 degree of freedom
+def generate_3df_expressions(n, df=3):
+    '''
+    n: number of variables
+    '''
+    variables = symbols(f'x:{n}')  # Generates a0, a1, ..., a(n-1)
+    expressions = set()
+
+    # Single variables
+    for var in variables:
+        expressions.add(var)
+    
+    # Generate combinations of two variables
+    for v1, v2 in product(variables, repeat=2):
+        expressions.add(And(v1, v2))
+        expressions.add(Or(v1, v2))
+
+    # Generate combinations of three variables
+    for v1, v2, v3 in product(variables, repeat=3):
+        expressions.add(And(v1, v2, v3))
+        expressions.add(Or(v1, v2, v3))
+        expressions.add(Or(v1, And(v2, v3)))
+        expressions.add(Or(v2, And(v1, v3)))
+        expressions.add(Or(v3, And(v1, v2)))
+        expressions.add(And(v1, Or(v2, v3)))
+        expressions.add(And(v2, Or(v1, v3)))
+        expressions.add(And(v3, Or(v1, v2)))
+        
+    simplified_expressions = {simplify(expr) for expr in expressions}
+    # print(f"len of expressions: {len(simplified_expressions)}")
+    for expr in sorted(simplified_expressions, key=str):
+        yield expr
+
+
+def generate_AND_expressions(n, df):
+    '''
+    all variables with AND relationship
+    '''
+    variables = symbols(f'x:{n}')  # Generates a0, a1, ..., a(n-1)
+    expressions = set()
+    for i in range(1,df+1):
+        for j in product(variables, repeat=i):
+            expressions.add(And(*j))
+            
+    for expr in sorted(expressions, key=str):
+        yield expr
 
 SCHEDULE1 = {'01':'02','02':'03','03':'04','04':'05','05':'06','06':'07','07':'08','08':'09','09':'10','10':'11','11':'12','12':'01'}
 SCHEDULE2 = {'01':'03','02':'03','03':'06','04':'06','05':'06','06':'09','07':'09','08':'09','09':'12','10':'12','11':'12','12':'03'}

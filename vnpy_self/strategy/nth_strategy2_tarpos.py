@@ -167,7 +167,8 @@ if __name__ == "__main__":
     tmp1 = mysqlservice.select('strategies',date=next_trading_date,strategy = 'strategy2',status='on')
     if tmp1.shape[0]!=1:
         raise Exception('Wrong vnpy.strategies table for today!')
-    initial_capital = float(tmp1['cash'][0]) * float(tmp1['leverage'][0])
+    money = float(tmp1['cash'][0]) * float(tmp1['leverage'][0])
+    used_money = 2000000
 
     tmp2 = mysqlservice.select('trading_schedule', today = today_date.strftime('%Y-%m-%d'), strategy='strategy2')
     if tmp2.shape[0]!=1:
@@ -186,38 +187,36 @@ if __name__ == "__main__":
     s_dom_delta_everyday,l_dom2_everyday,s_dom2_everyday,l_dom2_delta_everyday,s_dom2_delta_everyday
 
     # 3. calculate signals
-    xx = {'(-s_df.loc[:, symb,:]).diff().mean(1)': (1.8, 10, 20),
-    '(-l_df.loc[:, symb,:]).diff().mean(1)': (1.0, 5, 10),
-    '(-l_df.loc[:, symb,:]-s_df.loc[:, symb,:]).diff().mean(1)': (1.0, 20, 10),
-    '(l_df.loc[:, symb,:]-s_df.loc[:, symb,:]).mean(1)': (1.0, 10, 20),
-    '(l_df_delta.loc[:, symb,:]-s_df_delta.loc[:, symb ,:]).mean(1)': (0.6,
-    20,
-    5),
-    '(-s_dom.loc[:, symb,:]).diff().mean(1)': (0.6, 20, 5),
-    '(-l_dom.loc[:, symb,:]).diff().mean(1)': (0.6, 5, 20),
-    '(-l_dom.loc[:, symb,:]-s_dom.loc[:, symb,:]).diff().mean(1)': (0.2, 20, 20),
-    '(l_dom.loc[:, symb,:]-s_dom.loc[:, symb,:]).mean(1)': (1.8, 20, 20),
-    '(l_dom_delta.loc[:, symb,:]-s_dom_delta.loc[:, symb,:]).mean(1)': (1.8,
-    20,
-  10)}
+    xxx = {
+    'x0':('(-s_dom.loc[:, symb,:]).diff().mean(1)',(1.4,5,5)),
+    'x1':(' (-s_dom.loc[:, symb,:]).diff().mean(1)',(1.4,20,5)),
+    'x2':('  (-s_dom.loc[:, symb,:]).diff().mean(1)',(1.4,10,5)),
+    'x3':('(-s_df.loc[:, symb,:]).diff().mean(1)',(1.8, 10, 60)),
+    'x4':(' (-s_df.loc[:, symb,:]).diff().mean(1)',(1.7, 45, 5)),
+    'x5':('  (-s_df.loc[:, symb,:]).diff().mean(1)',(1.7, 30, 5)),
+    }
 
-    stat_list, result_list,set_list = [],[],[]
-    for k,v in xx.items():
+    stat_list,set_list = [],[]
+    for k,v in xxx.items():
         stat = pd.DataFrame()
         for symb in tqdm(trading_list):
-            if symb in l_df_everyday.index.get_level_values('symb').unique():
-                stat = pd.concat([stat,eval(k).rename(symb)],axis=1)   
+            if symb in l_df.index.get_level_values('symb').unique():
+                stat = pd.concat([stat,eval(v[0]).rename(symb)],axis=1)   
 
         stat.index = pd.to_datetime(stat.index)
         stat.sort_index(axis=1,inplace=True)
         stat.sort_index(axis=0,inplace=True)
         stat_list.append(stat)
-        set_list.append(bband_para(stat,*v))
+        set_list.append(bband_para(stat,*v[1]))
     
     trading_dates = pd.to_datetime(get_trading_dates(start_date='20150105', end_date=today_date))
     sam = sampler(trading_dates,'20150105',samp_days=20)
-    g = weight(-settings_all(set_list,'0|4|5','0&4&5'), mul_mappings, pr88, sam, initial_capital=initial_capital, toRound=True)[0]
-    balancing_list = g.replace(np.nan,0).iloc[-1]
+    used_money = 1000000
+    w1 = weight(-settings_all(set_list,'x3&x4','x3&x4'), mul_mappings, pr88, sam, initial_capital=money, toRound=False, used_cap_limit=used_money)
+    w2 = weight(-settings_all(set_list,'x0&x1&x3&x4','x0&x1&x3&x4'), mul_mappings, pr88, sam, initial_capital=money, toRound=False, used_cap_limit=used_money)
+    w3 = weight(-settings_all(set_list,'x0&x3','x0&x3'), mul_mappings, pr88, sam, initial_capital=money, toRound=False, used_cap_limit=used_money)
+    w = (0.5*w1[0]+0.3*w2[0]+0.2*w3[0]).round(0)
+    balancing_list = w.replace(np.nan,0).iloc[-1]
     
     # in the research -1 means buy but in vnpy vice versa
     balancing_list = -balancing_list
