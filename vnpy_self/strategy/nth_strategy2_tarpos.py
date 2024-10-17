@@ -202,7 +202,7 @@ if __name__ == "__main__":
         stat = pd.DataFrame()
         for symb in tqdm(trading_list):
             if symb in l_df.index.get_level_values('symb').unique():
-                stat = pd.concat([stat,eval(v[0]).rename(symb)],axis=1)   
+                stat = pd.concat([stat,eval(v[0]).rename(symb).sort_index()],axis=1)   
 
         stat.index = pd.to_datetime(stat.index)
         stat.sort_index(axis=1,inplace=True)
