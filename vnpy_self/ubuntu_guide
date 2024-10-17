@@ -57,6 +57,7 @@ akshare
 Also those within pt_tools
 statsmodels
 scikit-learn
+sympy
 
 7. For service file
 need to add User= to specify user

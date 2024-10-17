@@ -159,9 +159,16 @@ if __name__ == "__main__":
     today_date = datetime.today()
     # today_date = datetime(2024, 9, 18)
     next_trading_date = get_next_trading_date(today_date)
-    lookback_win_days = 60
-    # price_start = pd.Timestamp('20240601')
-    price_start = pd.Timestamp(today_date - pd.Timedelta(lookback_win_days,'d'))
+    xxx = {
+    'x0':('(-s_dom.loc[:, symb,:]).diff().mean(1)',(1.4,5,5)),
+    'x1':('(-s_dom.loc[:, symb,:]).diff().mean(1)',(1.4,20,5)),
+    'x2':('(-s_dom.loc[:, symb,:]).diff().mean(1)',(1.4,10,5)),
+    'x3':('(-s_df.loc[:, symb,:]).diff().mean(1)',(1.8, 10, 60)),
+    'x4':('(-s_df.loc[:, symb,:]).diff().mean(1)',(1.7, 45, 5)),
+    'x5':('(-s_df.loc[:, symb,:]).diff().mean(1)',(1.7, 30, 5)),
+    }
+    lookback_days = 1.5*max(list(sum(list(sum(xxx.values(), ()))[1::2], ())))
+    price_start = pd.Timestamp(today_date - pd.Timedelta(lookback_days,'d'))
     mul_mappings = mysqlservice.select('universe').set_index('root_symbol').to_dict()['multiplier']
 
     tmp1 = mysqlservice.select('strategies',date=next_trading_date,strategy = 'strategy2',status='on')
@@ -187,15 +194,6 @@ if __name__ == "__main__":
     s_dom_delta_everyday,l_dom2_everyday,s_dom2_everyday,l_dom2_delta_everyday,s_dom2_delta_everyday
 
     # 3. calculate signals
-    xxx = {
-    'x0':('(-s_dom.loc[:, symb,:]).diff().mean(1)',(1.4,5,5)),
-    'x1':(' (-s_dom.loc[:, symb,:]).diff().mean(1)',(1.4,20,5)),
-    'x2':('  (-s_dom.loc[:, symb,:]).diff().mean(1)',(1.4,10,5)),
-    'x3':('(-s_df.loc[:, symb,:]).diff().mean(1)',(1.8, 10, 60)),
-    'x4':(' (-s_df.loc[:, symb,:]).diff().mean(1)',(1.7, 45, 5)),
-    'x5':('  (-s_df.loc[:, symb,:]).diff().mean(1)',(1.7, 30, 5)),
-    }
-
     stat_list,set_list = [],[]
     for k,v in xxx.items():
         stat = pd.DataFrame()
