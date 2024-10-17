@@ -13,7 +13,7 @@ today_date = datetime.today()
 if __name__ == "__main__":    
     set1 = {'IF','IH','IC','IM','T','TS','TF','TL'}
     set2 = {'AG','AU','SC','EC','CU'}
-    set3 = set({}) # self definition
+    set3 = {'BC', 'BR', 'CJ', 'EC', 'IH', 'NR', 'PB', 'SC', 'SH', 'SN', 'TL', 'TS'} # self definition
     to_drop_list = list(set1|set2|set3)
     df = mysqlservice.select('trading_schedule', today = today_date.strftime('%Y-%m-%d'), strategy='dom').iloc[0]
     potential_trading_series = pd.Series(df['symbol'].split(',')).str.split('.').str[0]

@@ -156,9 +156,6 @@ def get_stats(trading_list, lookback_days, pro):
     return l_df_everyday,s_df_everyday,l_df_delta_everyday,s_df_delta_everyday,l_dom_everyday,s_dom_everyday,l_dom_delta_everyday,s_dom_delta_everyday,l_dom2_everyday,s_dom2_everyday,l_dom2_delta_everyday,s_dom2_delta_everyday
 
 if __name__ == "__main__":
-    today_date = datetime.today()
-    # today_date = datetime(2024, 9, 18)
-    next_trading_date = get_next_trading_date(today_date)
     xxx = {
     'x0':('(-s_dom.loc[:, symb,:]).diff().mean(1)',(1.4,5,5)),
     'x1':('(-s_dom.loc[:, symb,:]).diff().mean(1)',(1.4,20,5)),
@@ -167,7 +164,12 @@ if __name__ == "__main__":
     'x4':('(-s_df.loc[:, symb,:]).diff().mean(1)',(1.7, 45, 5)),
     'x5':('(-s_df.loc[:, symb,:]).diff().mean(1)',(1.7, 30, 5)),
     }
-    lookback_days = 1.5*max(list(sum(list(sum(xxx.values(), ()))[1::2], ())))
+        
+    today_date = datetime.today()
+    # today_date = datetime(2024, 9, 18)
+    next_trading_date = get_next_trading_date(today_date)
+    trading_dates = pd.to_datetime(get_trading_dates(start_date='20150105', end_date=today_date))
+    lookback_days = (today_date - trading_dates[-2.1*max(list(sum(list(sum(xxx.values(), ()))[1::2], ()))):][0]).days
     price_start = pd.Timestamp(today_date - pd.Timedelta(lookback_days,'d'))
     mul_mappings = mysqlservice.select('universe').set_index('root_symbol').to_dict()['multiplier']
 
@@ -207,7 +209,6 @@ if __name__ == "__main__":
         stat_list.append(stat)
         set_list.append(bband_para(stat,*v[1]))
     
-    trading_dates = pd.to_datetime(get_trading_dates(start_date='20150105', end_date=today_date))
     sam = sampler(trading_dates,'20150105',samp_days=20)
     used_money = 1000000
     w1 = weight(-settings_all(set_list,'x3&x4','x3&x4'), mul_mappings, pr88, sam, initial_capital=money, toRound=False, used_cap_limit=used_money)
