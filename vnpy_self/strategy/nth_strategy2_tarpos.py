@@ -169,7 +169,8 @@ if __name__ == "__main__":
     # today_date = datetime(2024, 9, 18)
     next_trading_date = get_next_trading_date(today_date)
     trading_dates = pd.to_datetime(get_trading_dates(start_date='20150105', end_date=today_date))
-    lookback_days = (today_date - trading_dates[-2.1*max(list(sum(list(sum(xxx.values(), ()))[1::2], ()))):][0]).days
+    max_para = max(list(sum(list(sum(xxx.values(), ()))[1::2], ())))
+    lookback_days = (today_date - trading_dates[-int(2.1*max_para):][0]).days
     price_start = pd.Timestamp(today_date - pd.Timedelta(lookback_days,'d'))
     mul_mappings = mysqlservice.select('universe').set_index('root_symbol').to_dict()['multiplier']
 
