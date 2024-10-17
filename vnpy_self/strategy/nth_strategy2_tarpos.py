@@ -52,11 +52,11 @@ def retrieve_price(trading_list):
     return pro, pr88
 
 
-def get_stats(trading_list, lookback_win_days, pro):
+def get_stats(trading_list, lookback_days, pro):
     l_df_everyday,s_df_everyday,l_df_delta_everyday,s_df_delta_everyday,l_dom_everyday,s_dom_everyday,l_dom_delta_everyday,s_dom_delta_everyday,l_dom2_everyday,s_dom2_everyday,l_dom2_delta_everyday,s_dom2_delta_everyday= [pd.DataFrame()]*12
 
     for symb in tqdm(trading_list):
-        _start = (today_date-pd.Timedelta(lookback_win_days,'d')).strftime('%Y%m%d')
+        _start = (today_date-pd.Timedelta(lookback_days,'d')).strftime('%Y%m%d')
         _end = today_date.strftime('%Y%m%d')
         df = masker.get_member_rank(symb,start_date=_start,end_date=_end, 
                                     rank_by='long')
@@ -187,7 +187,7 @@ if __name__ == "__main__":
     # 2. get stats
     pro,pr88 = retrieve_price(trading_list)
     l_df_everyday,s_df_everyday,l_df_delta_everyday,s_df_delta_everyday,l_dom_everyday,s_dom_everyday,l_dom_delta_everyday,\
-        s_dom_delta_everyday,l_dom2_everyday,s_dom2_everyday,l_dom2_delta_everyday,s_dom2_delta_everyday = get_stats(trading_list, lookback_win_days,pro)
+        s_dom_delta_everyday,l_dom2_everyday,s_dom2_everyday,l_dom2_delta_everyday,s_dom2_delta_everyday = get_stats(trading_list, lookback_days,pro)
         
     l_df,s_df,l_df_delta,s_df_delta,l_dom,s_dom,l_dom_delta,\
     s_dom_delta,l_dom2,s_dom2,l_dom2_delta,s_dom2_delta = l_df_everyday,s_df_everyday,l_df_delta_everyday,s_df_delta_everyday,l_dom_everyday,s_dom_everyday,l_dom_delta_everyday,\
