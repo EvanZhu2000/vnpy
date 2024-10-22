@@ -16,6 +16,10 @@ from time import sleep
 import pandas as pd
 import numpy as np
 
+from vnpy_portfoliostrategy.mysqlservice import MysqlService
+db = MysqlService()
+db.init_connection()
+
 SETTINGS["log.active"] = True
 SETTINGS["log.level"] = INFO
 SETTINGS["log.console"] = True
@@ -59,21 +63,25 @@ def run():
     strategy_title = 'strategy2'
     strategy_class_name = 'Strategy2'
     
-    tmp = ps_engine.dbservice.select('trading_schedule',today = datetime.today().date(), strategy = strategy_title)
+    # === from db get stuff
+    tmp = db.select('trading_schedule',today = datetime.today().date(), strategy = strategy_title)
     if tmp.empty:
-        tmp = ps_engine.dbservice.select('trading_schedule', date = datetime.today().date(), strategy = strategy_title)
+        tmp = db.select('trading_schedule', date = datetime.today().date(), strategy = strategy_title)
         current_day = pd.to_datetime(tmp['today'].iloc[0]).strftime('%Y-%m-%d')
     else:
         current_day = datetime.today().strftime('%Y-%m-%d')
     main_engine.write_log(f"current_day is {current_day}")
     
     # fill positions and find target for today
-    rebal_tar = ps_engine.dbservice.select('daily_rebalance_target',today = current_day, strategy = strategy_title)
+    rebal_tar = db.select('daily_rebalance_target',today = current_day, strategy = strategy_title)
     rebal_tar = pd.concat([pd.Series(rebal_tar['symbol'].values[0].split(',')),
                         pd.Series(rebal_tar['target'].values[0].split(','))],axis=1,keys=['symbol','target'])
-    trading_schedule = ps_engine.dbservice.select('trading_schedule',today = current_day, strategy = strategy_title).set_index('id').drop_duplicates()
-    previous_trading_schedule = ps_engine.dbservice.select('trading_schedule',date = current_day, strategy = strategy_title).set_index('id').drop_duplicates()
-    trading_hours = ps_engine.dbservice.select('trading_hours',date = trading_schedule['date'].iloc[0])
+    trading_schedule = db.select('trading_schedule',today = current_day, strategy = strategy_title).set_index('id').drop_duplicates()
+    previous_trading_schedule = db.select('trading_schedule',date = current_day, strategy = strategy_title).set_index('id').drop_duplicates()
+    trading_hours = db.select('trading_hours',date = trading_schedule['date'].iloc[0])
+    db.close()
+    # ============
+    
     if trading_schedule.shape[0]!=1 or previous_trading_schedule.shape[0]!=1:
         raise Exception(f'Wrong trading schedule for {strategy_title}')
     to_trade_df = pd.concat([pd.Series(trading_schedule['symbol'].values[0].split(',')).str[:-4],

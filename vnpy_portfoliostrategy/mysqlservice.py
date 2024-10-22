@@ -12,12 +12,12 @@ class MysqlService():
         pass
         
     def init_connection(self) -> None:
-        self.mydb = mydb = mysql.connector.connect(
+        self.mydb = mysql.connector.connect(
                 host= db_setting['host'],
                 user= db_setting['user'],
                 password= db_setting['password']
             )
-        self.mycursor = mydb.cursor()
+        self.mycursor = self.mydb.cursor()
         
     def close(self) -> None:
         self.mycursor.close()
