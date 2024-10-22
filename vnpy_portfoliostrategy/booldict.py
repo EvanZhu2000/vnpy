@@ -1,3 +1,5 @@
+# An efficient implementation tracking whether all positions have been adjusted to desire
+
 class BoolDict:
     def __init__(self):
         self.data = {}

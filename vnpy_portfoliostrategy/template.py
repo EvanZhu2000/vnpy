@@ -113,14 +113,15 @@ class StrategyTemplate(ABC):
     @virtual
     def on_stop(self) -> None:
         """策略停止回调"""
-        self.write_log(f"pos_data {self.pos_data}")
-        self.write_log(f"target_data {self.target_data}")
+        self.write_log(f"FINAL pos_data {self.nonzero_dict(self.pos_data)}")
+        self.write_log(f"FINAL target_data {self.nonzero_dict(self.target_data)}")
         self.strategy_engine.dbservice.update_pos(self.strategy_name, self.pos_data)
 
     @virtual
     def on_tick(self, tick: TickData) -> None:
         """行情推送回调"""
-        pass
+        if not self.check_valid_tick(tick):
+            pass
 
     @virtual
     def on_bars(self, bars: dict[str, BarData]) -> None:
@@ -467,3 +468,39 @@ class StrategyTemplate(ABC):
         """同步策略状态数据到文件"""
         if self.trading:
             self.strategy_engine.sync_strategy_data(self)
+    
+    # return nonzero version of a dict (usually refers to dict of positions)      
+    def nonzero_dict(self, d) -> dict:
+        return {k: v for k, v in d.items() if v != 0}
+    
+    # Currently only check timestamp
+    def check_valid_tick(self, tick) -> bool:
+        if tick.vt_symbol not in self.trading_hours.keys():
+            self.write_log(f"No trading hours provided for {tick.vt_symbol}. Stop the strategy {self.strategy_name} now")
+            self.strategy_engine.stop_strategy(self.strategy_name)
+            return False
+        else:
+            continuous_trading_intervals = self.trading_hours[tick.vt_symbol]
+            if not self.is_time_in_intervals(tick.datetime.time(), continuous_trading_intervals):
+                # Then this tick is not a continuous trading tick
+                return False
+        return True
+
+    # Check whether input_time is in intervals of time, along with minus seconds customization for start/end time
+    def is_time_in_intervals(self, input_time, intervals, start_time_minus_seconds=60, end_time_minus_seconds=10) -> bool:
+        # Split intervals and check each one
+        for interval in intervals.split(','):
+            start_str, end_str = interval.split('-')
+            
+            # Parse start and end times
+            start_time = datetime.strptime(start_str, '%H:%M').time()
+            end_time = datetime.strptime(end_str, '%H:%M').time()
+            
+            adjusted_start_time = (datetime.combine(datetime.today(), start_time) - timedelta(seconds=start_time_minus_seconds)).time()
+            adjusted_end_time = (datetime.combine(datetime.today(), end_time) - timedelta(seconds=end_time_minus_seconds)).time()
+            
+            # Check if the input time is within the adjusted interval
+            if adjusted_start_time <= input_time <= adjusted_end_time:
+                return True
+                
+        return False
