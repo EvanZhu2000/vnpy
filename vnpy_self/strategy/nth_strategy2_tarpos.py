@@ -6,6 +6,7 @@ from vnpy_self.pt_tools import *
 
 from vnpy_portfoliostrategy.mysqlservice import MysqlService
 mysqlservice = MysqlService()
+mysqlservice.init_connection()
 
 from vnpy_self.strategy.rq_api_masker import RQ_API_MASKER
 masker = RQ_API_MASKER()

@@ -7,6 +7,7 @@ from vnpy_self.alert_sender import send_email
 
 from vnpy_portfoliostrategy.mysqlservice import MysqlService
 db = MysqlService()
+db.init_connection()
 
 # to update strategies after open
 if __name__ == "__main__":

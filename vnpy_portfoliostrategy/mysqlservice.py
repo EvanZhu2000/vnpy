@@ -9,6 +9,9 @@ warnings.filterwarnings("ignore")
 class MysqlService():
     
     def __init__(self) -> None:
+        pass
+        
+    def init_connection(self) -> None:
         self.mydb = mydb = mysql.connector.connect(
                 host= db_setting['host'],
                 user= db_setting['user'],
@@ -35,8 +38,8 @@ class MysqlService():
     def select(self,table,additional_query='',**where):
         return pd.read_sql_query(f"SELECT * FROM `vnpy`.`{table}` {'where' if len(where)>0 else ''} {self.dict_to_string(where)}" + additional_query, self.mydb)
         
-    def update(self, table, set_clause, **where) -> None:
-        self.mycursor.execute(f"UPDATE `vnpy`.`{table}` SET {set_clause} {'where' if len(where)>0 else ''} {self.dict_to_string(where)};")
+    # def update(self, table, set_clause, **where) -> None:
+    #     self.mycursor.execute(f"UPDATE `vnpy`.`{table}` SET {set_clause} {'where' if len(where)>0 else ''} {self.dict_to_string(where)};")
         
     def insert_rq(self, data, table:str, ignore=False):
         s1 = ''
@@ -56,8 +59,8 @@ class MysqlService():
         self.mycursor.execute(f"DELETE FROM vnpy.{table} WHERE {dt_name} < '{(datetime.now() - relativedelta(months=num_of_months)).strftime('%Y-%m-%d %H:%M:%S')}'")
         self.mydb.commit()
         
-    def get_pos(self, strategy_name):
-        return pd.read_sql_query(f"select * from vnpy.strategy_order as sp join(SELECT symbol as latest_symbol, MAX(datetime) AS latest_timestamp, MAX(id) as max_id FROM vnpy.strategy_order where strategy = '{strategy_name}' and order_status = 'Status.ALLTRADED' GROUP BY symbol) as latest on sp.symbol = latest.latest_symbol and sp.datetime = latest.latest_timestamp and sp.id = latest.max_id;", self.mydb)[['symbol','tar']]
+    # def get_pos(self, strategy_name):
+    #     return pd.read_sql_query(f"select * from vnpy.strategy_order as sp join(SELECT symbol as latest_symbol, MAX(datetime) AS latest_timestamp, MAX(id) as max_id FROM vnpy.strategy_order where strategy = '{strategy_name}' and order_status = 'Status.ALLTRADED' GROUP BY symbol) as latest on sp.symbol = latest.latest_symbol and sp.datetime = latest.latest_timestamp and sp.id = latest.max_id;", self.mydb)[['symbol','tar']]
     
     def delete_pos(self, strategy):
         self.mycursor.execute(f"DELETE FROM vnpy.current_pos WHERE strategy='{strategy}';")
@@ -70,8 +73,7 @@ class MysqlService():
             
     
     # whenever there is an order update
-    def update_order_status(self, vt_orderid, order_status):
-        pass
+    # def update_order_status(self, vt_orderid, order_status):
         # df = self.select('strategy_order', vt_orderid = vt_orderid)
         # df['order_status'] = order_status
         # df['datetime'] = datetime.now()

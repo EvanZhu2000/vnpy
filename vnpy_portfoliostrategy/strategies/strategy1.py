@@ -105,8 +105,8 @@ class Strategy1(StrategyTemplate):
         if not order.is_active() and order.vt_orderid in self.active_orderids:
             self.active_orderids.remove(order.vt_orderid)
         
-        if (type(self.strategy_engine) == StrategyEngine):
-            self.strategy_engine.dbservice.update_order_status(order.vt_orderid, order.status)
+        # if (type(self.strategy_engine) == StrategyEngine):
+        #     self.strategy_engine.dbservice.update_order_status(order.vt_orderid, order.status)
         
         if pre_order_type and pre_order_status and pre_order_type == OrderType.FAK and pre_order_status == Status.SUBMITTING and order.status == Status.CANCELLED and (self.last_tick_dict[order.vt_symbol]):
             last_tick = self.last_tick_dict[order.vt_symbol]
@@ -224,20 +224,22 @@ class Strategy1(StrategyTemplate):
             if current_spread <= self.boll_mid:
                 tar1, tar2 = 0,0
                 self.need_to_rebalance(tar1, tar2, bars)
-        else: #  May need to sync database if otherwise (DANGEROUS)
-            l1 = self.strategy_engine.dbservice.select("strategy_order", "order by datetime desc limit 1",
-                                                   strategy = 'strategy1',
-                                                   symbol = self.leg1_symbol,
-                                                   order_status = 'Status.ALLTRADED')
-            l2 = self.strategy_engine.dbservice.select("strategy_order", "order by datetime desc limit 1",
-                                                   strategy = 'strategy1',
-                                                   symbol = self.leg2_symbol,
-                                                   order_status = 'Status.ALLTRADED')
+        
+        ### The following might not be optimal, abandoning strategy1
+        # else: #  May need to sync database if otherwise (DANGEROUS)
+        #     l1 = self.strategy_engine.dbservice.select("strategy_order", "order by datetime desc limit 1",
+        #                                            strategy = 'strategy1',
+        #                                            symbol = self.leg1_symbol,
+        #                                            order_status = 'Status.ALLTRADED')
+        #     l2 = self.strategy_engine.dbservice.select("strategy_order", "order by datetime desc limit 1",
+        #                                            strategy = 'strategy1',
+        #                                            symbol = self.leg2_symbol,
+        #                                            order_status = 'Status.ALLTRADED')
             
-            l1_suppose = 0 if l1.shape[0] == 0 else l1['tar'].iloc[0]
-            l2_suppose = 0 if l2.shape[0] == 0 else l2['tar'].iloc[0]
-            self.pos_data[self.leg1_symbol] = l1_suppose
-            self.pos_data[self.leg2_symbol] = l2_suppose  
+        #     l1_suppose = 0 if l1.shape[0] == 0 else l1['tar'].iloc[0]
+        #     l2_suppose = 0 if l2.shape[0] == 0 else l2['tar'].iloc[0]
+        #     self.pos_data[self.leg1_symbol] = l1_suppose
+        #     self.pos_data[self.leg2_symbol] = l2_suppose  
             
         
     def calculate_price(self, vt_symbol: str, direction: Direction, reference: float) -> float:

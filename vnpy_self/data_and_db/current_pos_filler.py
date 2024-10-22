@@ -9,6 +9,7 @@ import pandas as pd
 from vnpy.trader.constant import Direction
 from vnpy_portfoliostrategy.mysqlservice import MysqlService
 mysqlservice = MysqlService()
+mysqlservice.init_connection()
 
 event_engine = EventEngine()
 main_engine = MainEngine(event_engine)

@@ -8,6 +8,7 @@ rq.init('+85260983439','evan@cash')
 
 from vnpy_portfoliostrategy.mysqlservice import MysqlService
 mysqlservice = MysqlService()
+mysqlservice.init_connection()
 
 def symbol_rq2vnpy(l):
     return all_data.loc[all_data['order_book_id'].isin(l)][['trading_code','exchange']].apply(lambda x: '.'.join(x), axis = 1).values

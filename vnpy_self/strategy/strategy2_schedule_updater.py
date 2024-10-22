@@ -1,6 +1,6 @@
 from vnpy_portfoliostrategy.mysqlservice import MysqlService
 mysqlservice = MysqlService()
-
+mysqlservice.init_connection()
 import pandas as pd
 
 import warnings

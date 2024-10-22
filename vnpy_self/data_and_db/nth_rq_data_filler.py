@@ -11,6 +11,7 @@ import pandas as pd
 
 def run_price(start_date_str, end_date_str, record_freq = '1m'):
     sqlservice = MysqlService()
+    sqlservice.init_connection()
     data = all_instruments(type='Future', market='cn', date=end_date_str)
     instrument_list = data['order_book_id'].loc[(data['order_book_id'].str.contains('99') == False) &
                     (data['order_book_id'].str.contains('88') == False)].dropna().unique().tolist()
@@ -27,6 +28,7 @@ def run_price(start_date_str, end_date_str, record_freq = '1m'):
 # Can only get at least after 17:00 each trading date
 def run_member_rank(start_date_str, end_date_str):
     sqlservice = MysqlService()
+    sqlservice.init_connection()
     
     data = all_instruments(type='Future', market='cn', date=end_date_str)
     instrument_list = data['order_book_id'].loc[(data['order_book_id'].str.contains('99') == False) &
@@ -62,6 +64,7 @@ def run_member_rank(start_date_str, end_date_str):
 # Can get next trading day or today
 def run_dominant(start_date_str, end_date_str):
     sqlservice = MysqlService()
+    sqlservice.init_connection()
     
     data = all_instruments(type='Future', market='cn', date=end_date_str)
     instrument_parent_list = data['underlying_symbol'].unique()

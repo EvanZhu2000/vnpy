@@ -1,5 +1,6 @@
 from vnpy_portfoliostrategy.mysqlservice import MysqlService
 db = MysqlService()
+db.init_connection()
 
 if __name__ == "__main__":
     db.delete_rq('dbbardata', 'datetime', num_of_months=12)

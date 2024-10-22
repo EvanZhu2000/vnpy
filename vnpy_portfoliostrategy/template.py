@@ -115,7 +115,9 @@ class StrategyTemplate(ABC):
         """策略停止回调"""
         self.write_log(f"FINAL pos_data {self.nonzero_dict(self.pos_data)}")
         self.write_log(f"FINAL target_data {self.nonzero_dict(self.target_data)}")
+        self.strategy_engine.dbservice.init_connection()
         self.strategy_engine.dbservice.update_pos(self.strategy_name, self.pos_data)
+        self.strategy_engine.dbservice.close()
 
     @virtual
     def on_tick(self, tick: TickData) -> None:
@@ -135,7 +137,6 @@ class StrategyTemplate(ABC):
         else:
             self.pos_data[trade.vt_symbol] -= trade.volume
             
-        # self.strategy_engine.dbservice.update_pos(trade.vt_symbol, self.strategy_name, self.pos_data[trade.vt_symbol])
 
     def update_order(self, order: OrderData) -> None:
         """委托数据更新"""
@@ -230,11 +231,11 @@ class StrategyTemplate(ABC):
         try:
             if self.trading:
                 self.strategy_engine.cancel_order(self, vt_orderid)
-                self.strategy_engine.dbservice.insert('strategy_order',
-                                                      datetime = datetime.strftime(datetime.today(),'%Y-%m-%d %H:%M:%S'),
-                                                      vt_orderid = vt_orderid,
-                                                      intention = 'cancel',
-                                                      order_status = Status.SUBMITTING)
+                # self.strategy_engine.dbservice.insert('strategy_order',
+                #                                       datetime = datetime.strftime(datetime.today(),'%Y-%m-%d %H:%M:%S'),
+                #                                       vt_orderid = vt_orderid,
+                #                                       intention = 'cancel',
+                #                                       order_status = Status.SUBMITTING)
         
         except Exception as e:
             self.strategy_engine.write_log(f"Exception when sending order - {e}")

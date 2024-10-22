@@ -50,12 +50,13 @@ def is_lunch_break():
 
 def run():
     sqlservice = MysqlService()
+    sqlservice.init_connection()
     tdy_str = datetime.today().strftime('%Y%m%d')
     data = all_instruments(type='Future', market='cn', date=tdy_str)
-
     while True:
         trading = check_trading_period()
         if not trading:
+            # day-end filling of data
             print("Terminate data recording process")
             info = get_price(data['order_book_id'].loc[(data['order_book_id'].str.contains('99') == False) &
                     (data['order_book_id'].str.contains('88') == False)].dropna().unique().tolist(), 
@@ -66,9 +67,9 @@ def run():
             aaa['interval'] = RECORD_FREQ
             aaa = aaa[['symbol', 'exchange', 'datetime', 'interval', 'volume', 'turnover', 'open_interest', 'open_price', 'high_price', 'low_price', 'close_price']]
             sqlservice.insert_rq(aaa, 'dbbardata', ignore=True)
-
-            sqlservice.close()
+            break
         else:
+            # continuous recording
             if not is_lunch_break():
                 info = get_price(data['order_book_id'].loc[(data['order_book_id'].str.contains('99') == False) &
                         (data['order_book_id'].str.contains('88') == False)].dropna().unique().tolist(), 
@@ -81,6 +82,7 @@ def run():
                 sqlservice.insert_rq(aaa, 'dbbardata', ignore=True)
 
         sleep(60*RECORD_INTERVAL)
+    sqlservice.close()
 
 if __name__ == "__main__":
     run()

@@ -89,7 +89,6 @@ class StrategyEngine(BaseEngine):
     def close(self) -> None:
         """关闭"""
         self.stop_all_strategies()
-        self.dbservice.close()
 
     def register_event(self) -> None:
         """注册事件引擎"""
@@ -422,7 +421,9 @@ class StrategyEngine(BaseEngine):
         self.put_strategy_event(strategy)
 
     def get_pos(self, strategy_name:str):
+        self.dbservice.init_connection()
         pos_data = self.dbservice.select('current_pos', strategy = strategy_name)
+        self.dbservice.close()
         return pos_data
         
     def init_strategy(self, strategy_name: str) -> None:
@@ -461,7 +462,7 @@ class StrategyEngine(BaseEngine):
                 if name not in {"pos_data", "target_data"}:
                     setattr(strategy, name, value)
         # my way of retrieving pos_data and target_data
-        pos_data = self.dbservice.select('current_pos', strategy = strategy_name)
+        pos_data = self.get_pos(strategy_name=strategy_name)
         for r in pos_data.iterrows():
             if r[1]['symbol'] in strategy.vt_symbols:
                 strategy.set_pos(r[1]['symbol'], r[1]['pos'])
@@ -497,7 +498,11 @@ class StrategyEngine(BaseEngine):
 
         # 推送策略事件通知启动完成状态
         strategy.trading = True
-        self.dbservice.update('strategies', "`status` = 'on'", strategy = strategy_name)
+        
+        ## Might be unnecessary
+        # self.dbservice.init_connection()
+        # self.dbservice.update('strategies', "`status` = 'on'", strategy = strategy_name)
+        # self.dbservice.close()
         self.put_strategy_event(strategy)
 
     def stop_strategy(self, strategy_name: str) -> None:
@@ -521,7 +526,10 @@ class StrategyEngine(BaseEngine):
         # 推送策略事件通知停止完成状态
         self.put_strategy_event(strategy)
         
-        self.dbservice.update('strategies', "`status` = 'off'", strategy = strategy_name)
+        ## Might be unnecessary
+        # self.dbservice.init_connection()
+        # self.dbservice.update('strategies', "`status` = 'off'", strategy = strategy_name)
+        # self.dbservice.close()
 
     def edit_strategy(self, strategy_name: str, setting: dict) -> None:
         """编辑策略参数"""
