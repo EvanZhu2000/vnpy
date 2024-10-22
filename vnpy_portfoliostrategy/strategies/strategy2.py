@@ -52,8 +52,8 @@ class Strategy2(StrategyTemplate):
         super().on_tick(tick)
         
         if self.bool_dict.all_true():
-            self.write_log(f"All have rebalanced. Stop the strategy {self.strategy_name} now")
-            self.strategy_engine.stop_strategy(self.strategy_name)
+            self.strategy_engine.stop_strategy(self.strategy_name,
+                                               f"All have rebalanced. Stop the strategy {self.strategy_name} now")
             return
         
         if (self.get_target(tick.vt_symbol) != self.get_pos(tick.vt_symbol)):

@@ -505,7 +505,7 @@ class StrategyEngine(BaseEngine):
         # self.dbservice.close()
         self.put_strategy_event(strategy)
 
-    def stop_strategy(self, strategy_name: str) -> None:
+    def stop_strategy(self, strategy_name: str, message = None) -> None:
         """停止策略"""
         strategy: StrategyTemplate = self.strategies[strategy_name]
         if not strategy.trading:
@@ -525,6 +525,9 @@ class StrategyEngine(BaseEngine):
 
         # 推送策略事件通知停止完成状态
         self.put_strategy_event(strategy)
+        
+        if message is not None and type(message) == str:
+            self.write_log(message)
         
         ## Might be unnecessary
         # self.dbservice.init_connection()
@@ -637,7 +640,7 @@ class StrategyEngine(BaseEngine):
     def stop_all_strategies(self) -> None:
         """停止所有策略"""
         for strategy_name in self.strategies.keys():
-            self.stop_strategy(strategy_name)
+            self.stop_strategy(strategy_name, 'stop ALL strategies')
 
     def load_strategy_setting(self) -> None:
         """加载策略配置"""

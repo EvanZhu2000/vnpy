@@ -269,8 +269,8 @@ class StrategyTemplate(ABC):
         rej_count = self.reject_symb_counts[vt_symbol]
         can_count = self.cancel_symb_counts[vt_symbol]
         if rej_count >=3:
-            self.strategy_engine.stop_strategy(self.strategy_name)
-            raise Exception(f"reject counts >=3 for {vt_symbol}")
+            self.strategy_engine.stop_strategy(self.strategy_name, f"reject counts >=3 for {vt_symbol}")
+            # raise Exception(f"reject counts >=3 for {vt_symbol}")
         
         min_tick:float = self.get_pricetick(tick.vt_symbol)
         tmp = min(int(rej_count // 2), 2)
@@ -479,8 +479,8 @@ class StrategyTemplate(ABC):
     # Currently only check timestamp
     def check_valid_tick(self, tick) -> bool:
         if tick.vt_symbol not in self.trading_hours.keys():
-            self.write_log(f"No trading hours provided for {tick.vt_symbol}. Stop the strategy {self.strategy_name} now")
-            self.strategy_engine.stop_strategy(self.strategy_name)
+            self.strategy_engine.stop_strategy(self.strategy_name, 
+                                               f"No trading hours provided for {tick.vt_symbol}. Stop the strategy {self.strategy_name} now")
             return False
         else:
             continuous_trading_intervals = self.trading_hours[tick.vt_symbol]
