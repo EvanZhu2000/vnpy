@@ -478,9 +478,9 @@ class StrategyEngine(BaseEngine):
                 self.write_log(f"行情订阅失败，找不到合约{vt_symbol}", strategy)
 
         # 推送策略事件通知初始化完成状态
-        strategy.inited = True
         self.put_strategy_event(strategy)
         self.write_log(f"{strategy_name}初始化完成")
+        strategy.inited = True
 
     def start_strategy(self, strategy_name: str) -> None:
         """启动策略"""

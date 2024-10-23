@@ -56,7 +56,8 @@ def run():
     main_engine.write_log("注册日志事件监听")
     main_engine.connect(ctp_setting, "CTP")
     main_engine.write_log("连接CTP接口")
-    sleep(10)
+    while not main_engine.get_gateway('CTP').td_api.contract_inited:
+        sleep(1)
     ps_engine.init_engine()
     main_engine.write_log("ps策略初始化完成")
     
@@ -104,10 +105,11 @@ def run():
     else:
         ps_engine.add_strategy(strategy_class_name, strategy_title, vt_symbols, settings)
         
-    sleep(5)    
+    # sleep(5)    
     ps_engine.init_strategy(strategy_title)
     main_engine.write_log("ps策略全部初始化")
-    sleep(5)
+    while not ps_engine.strategies[strategy_title].inited:
+        sleep(1)
     ps_engine.start_strategy(strategy_title)
     main_engine.write_log("ps策略全部启动")
     
