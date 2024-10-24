@@ -92,12 +92,14 @@ def run():
                                             )[['symbol_y','target']]
     to_trade_df['target'] = pd.to_numeric(to_trade_df['target'])
     pos_data = ps_engine.get_pos(strategy_title)
-    ans = pos_data[['symbol','pos']].set_index('symbol').join(to_trade_df.set_index('symbol_y'),how='outer')
-    ans = ans.replace(np.nan,0)
+    ans = pos_data[['symbol','pos']].set_index('symbol').replace(0,np.nan).dropna().join(to_trade_df.drop_duplicates().set_index('symbol_y'),how='outer')
+    ans = ans.replace(0,np.nan).dropna(how='all').replace(np.nan,0).query('pos!=target')
+    
     vt_symbols = ans.index.values.tolist()
     settings = dict({'tarpos':json.dumps(ans['target'].to_dict()),
                      'ans':json.dumps(ans.to_dict()),
                      'trading_hours':json.dumps(trading_hours[['symbol','trading_hours']].set_index('symbol').to_dict()['trading_hours'])})
+    
     if strategy_title in ps_engine.strategies.keys():
         ps_engine.stop_strategy(strategy_title)
         ps_engine.remove_strategy(strategy_title)
