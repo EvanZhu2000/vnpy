@@ -19,6 +19,7 @@ class Strategy2(StrategyTemplate):
         """构造函数"""
         super().__init__(strategy_engine, strategy_name, vt_symbols, setting)
         self.bool_dict = BoolDict()
+        self.write_log(f"vt_symbols {vt_symbols}")
         for symb in vt_symbols:
             self.bool_dict.set(symb, False)
         if 'ans' in setting:
