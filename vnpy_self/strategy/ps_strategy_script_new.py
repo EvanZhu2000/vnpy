@@ -6,8 +6,7 @@ from vnpy.trader.engine import MainEngine
 from vnpy_ctp import CtpGateway
 from vnpy_portfoliostrategy import PortfolioStrategyApp
 from vnpy_portfoliostrategy.base import EVENT_PORTFOLIO_LOG
-from vnpy_portfoliostrategy.portfolio_rollover import RolloverTool
-from vnpy_self.ctp_setting import ctp_setting
+from vnpy_self.ctp_setting import ctp_setting_uat, ctp_setting_live
 
 import json
 from datetime import datetime, time, date
@@ -42,9 +41,15 @@ def check_rollover_period():
     current_time = datetime.now().time()
     return current_time>=time(10, 50)
 
-def run():
+def run(option:str):
     SETTINGS["log.file"] = True
-    
+    if option == 'uat':
+        ctp_setting = ctp_setting_uat
+    elif option == 'live':
+        ctp_setting = ctp_setting_live
+    else:
+        raise Exception(f'Wrong option input {option}')
+        
     event_engine = EventEngine()
     main_engine = MainEngine(event_engine)
     main_engine.init_engines()
@@ -124,7 +129,8 @@ def run():
             sys.exit(0)
 
 if __name__ == "__main__":
-    run()
+    option = sys.argv[1]
+    run(option)
 
         
         
