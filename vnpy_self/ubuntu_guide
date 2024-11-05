@@ -1,9 +1,11 @@
 1. Install miniconda based on
 https://docs.anaconda.com/free/miniconda/  
 
-then add to env variable 
+(1) add to env variable 
 export PATH=~/anaconda3/bin:$PATH
 and re-open the terminal
+
+(2) create environment with python version
 
 2.Install vnpy based on 
 https://www.vnpy.com/docs/cn/community/install/ubuntu_install.html 
@@ -19,7 +21,7 @@ sudo systemctl restart rsyslog"
 cron might also need user permission, check /etc/cron.d/cron.allow and relevant usage
 
 
-4. (Install and ) Configure Database （C:\Users\Chris\.vntrader\vt_setting.json）
+4. (Install and ) Configure Database （C:\Users\Chris\.vntrader\vt_setting.json） notice need 'user'@'%' for socket connection (accessible via ping)
 (1)
 ===== For SQLite ====
 database.name <str> SQLite
@@ -38,26 +40,24 @@ database.port <str> 0
 follow vnpy_self/create_database to setup the database
 
 (3)
-pip install mysql-connector-python (maybe with version 8.4.0)
-pip install pymysql (for peewee connection)
-
-(4)
 for connection timeout purpose please set
 SET wait_timeout = 86400;
 SET interactive_timeout = 86400;
 
 5. To merge git (https://github.com/EvanZhu2000/vnpy)
-key step looks something like 
+(1) key step looks something like 
 git remote add origin https://github.com/EvanZhu2000/vnpy.git
-git merge origin/master --strategy-option=theirs --allow-unrelated-histories
+git fetch origin
+git add -A .
+git commit -m "initial commit"
+git merge origin/master --strategy-option=theirs --allow-unrelated-histories 
+git pull origin master
 
-6. Install MISC
-akshare
+NOTE:
+may need to chown access to user
 
-Also those within pt_tools
-statsmodels
-scikit-learn
-sympy
+(2) Remember to install all the requirements
 
-7. For service file
+
+6. For service file
 need to add User= to specify user
