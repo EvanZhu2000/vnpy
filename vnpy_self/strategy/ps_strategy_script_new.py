@@ -23,24 +23,6 @@ SETTINGS["log.active"] = True
 SETTINGS["log.level"] = INFO
 SETTINGS["log.console"] = True
 
-def strategy_running_period():
-    """"""
-    DAY_START = time(20, 45)
-    DAY_END = time(15, 45)
-    
-    current_time = datetime.now().time()
-
-    trading = False
-    if (current_time >= DAY_START or current_time <= DAY_END):
-        trading = True
-
-    return trading
-
-# NOTE: the rollover tool will get position from different strategies, so rollover can be anytime
-def check_rollover_period():
-    current_time = datetime.now().time()
-    return current_time>=time(10, 50)
-
 def run(option:str):
     SETTINGS["log.file"] = True
     if option == 'uat':
@@ -76,7 +58,8 @@ def run(option:str):
         current_day = pd.to_datetime(tmp['today'].iloc[0]).strftime('%Y-%m-%d')
     else:
         current_day = datetime.today().strftime('%Y-%m-%d')
-    main_engine.write_log(f"current_day is {current_day}")
+    # current_day is supposingly when the script should be start running, ideally 21:00 every settlement date
+    main_engine.write_log(f"settlement date starting day is {current_day}")
     
     # fill positions and find target for today
     rebal_tar = db.select('daily_rebalance_target',today = current_day, strategy = strategy_title)
@@ -119,14 +102,6 @@ def run(option:str):
         sleep(1)
     ps_engine.start_strategy(strategy_title)
     main_engine.write_log("ps策略全部启动")
-    
-    while True:
-        sleep(5)     
-        if not strategy_running_period():
-            main_engine.write_log("ps策略全部close")
-            ps_engine.stop_all_strategies()
-            main_engine.close()
-            sys.exit(0)
 
 if __name__ == "__main__":
     option = sys.argv[1]
