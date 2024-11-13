@@ -124,6 +124,8 @@ class StrategyTemplate(ABC):
         """行情推送回调"""
         if not self.check_valid_tick(tick):
             pass
+        else:
+            self.write_log_trading(f"{tick} is valid")
 
     @virtual
     def on_bars(self, bars: dict[str, BarData]) -> None:
@@ -269,6 +271,7 @@ class StrategyTemplate(ABC):
         rej_count = self.reject_symb_counts[vt_symbol]
         can_count = self.cancel_symb_counts[vt_symbol]
         if rej_count >=3:
+            self.on_stop()
             self.strategy_engine.stop_strategy(self.strategy_name, f"reject counts >=3 for {vt_symbol}")
             # raise Exception(f"reject counts >=3 for {vt_symbol}")
         
