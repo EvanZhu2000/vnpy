@@ -2,8 +2,6 @@
 from vnpy_portfoliostrategy import StrategyTemplate, StrategyEngine
 from vnpy_portfoliostrategy.booldict import BoolDict
 from vnpy.trader.object import TickData
-import pandas as pd
-from datetime import datetime, time, timedelta
 import json
 
 
@@ -49,8 +47,8 @@ class Strategy2(StrategyTemplate):
         self.put_event()
         
     def on_tick(self, tick: TickData) -> None:
-        """行情推送回调"""
-        super().on_tick(tick)
+        if not self.trading or not super().on_tick(tick):
+            return
         
         if self.bool_dict.all_true():
             self.strategy_engine.stop_strategy(self.strategy_name,

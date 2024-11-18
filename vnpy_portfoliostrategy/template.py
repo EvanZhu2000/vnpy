@@ -120,12 +120,12 @@ class StrategyTemplate(ABC):
         self.strategy_engine.dbservice.close()
 
     @virtual
-    def on_tick(self, tick: TickData) -> None:
+    def on_tick(self, tick: TickData) -> bool:
         """行情推送回调"""
         if not self.check_valid_tick(tick):
-            pass
+            return False
         else:
-            self.write_log_trading(f"{tick} is valid")
+            return True
 
     @virtual
     def on_bars(self, bars: dict[str, BarData]) -> None:

@@ -38,6 +38,7 @@ def run(option:str):
         raise Exception('position data not retrieved')
     else:
         qwe = pd.DataFrame([x.__dict__ for x in tmp])
+        print(qwe)
         ans = pd.concat([qwe['vt_symbol'],
                         qwe['direction'].map({Direction.LONG:1,Direction.SHORT:-1}) * qwe['volume']], axis=1)
         ans = ans.groupby(ans['vt_symbol']).sum()
