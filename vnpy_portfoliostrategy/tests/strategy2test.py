@@ -1,4 +1,7 @@
 from datetime import datetime
+import json
+import os
+import pandas as pd
 from importlib import reload
 import vnpy_portfoliostrategy
 reload(vnpy_portfoliostrategy)
@@ -9,37 +12,35 @@ reload(stg)
 from vnpy_portfoliostrategy.strategies.strategy2 import Strategy2
 
 
-# if __name__ == "__main__":
-vt_symbols=["IH2406.CFFEX", "IH2409.CFFEX"]
-engine = BacktestingEngine()
-engine.set_parameters(
-    vt_symbols=vt_symbols,
-    interval=Interval.MINUTE,
-    start=datetime(2024, 5, 7),
-    end=datetime(2024, 6, 1),
-    rates={
-        vt_symbols[0]: 2/10000,
-        vt_symbols[1]: 2/10000
-    },
-    slippages={
-        vt_symbols[0]: 0,
-        vt_symbols[1]: 0
-    },
-    sizes={
-        vt_symbols[0]: 300,
-        vt_symbols[1]: 300
-    },
-    priceticks={
-        vt_symbols[0]: 0.2,
-        vt_symbols[1]: 0.2
-    },
-    capital=10000000,
-)
-engine.init_strategy(Strategy2, setting)
-engine.add_strategy(Strategy2, setting)
-engine.load_data()
-engine.run_backtesting()
-df = engine.calculate_result()
-# engine.calculate_statistics()
-# engine.show_chart()
-# engine.get_all_trades(use_df=True).to_csv(r'C:\\Users\\Chris\\Desktop\\Evan\\trades.csv')
+if __name__ == "__main__":
+    vt_symbols=["fu2501.SHFE"]
+    current_dir = os.path.dirname(__file__)
+    csv_file_path = os.path.join(current_dir, 'testfiles', 'stg2ticks.csv')
+    
+    engine = BacktestingEngine()
+    engine.set_parameters(
+        vt_symbols=vt_symbols,
+        interval=Interval.TICK,
+        start=datetime(2024, 11, 14),
+        end=datetime(2024, 11, 14),
+        sizes={
+            vt_symbols[0]: 10
+        },
+        capital=10000000,
+        file_path=csv_file_path
+    )
+    trading_hours = {"fu2501.SHFE":'21:01-23:00,09:01-10:15,10:31-11:30,13:31-15:00'}
+    ans = pd.DataFrame([[1,0]],
+                        index=pd.Index(['fu2501.SHFE'],name='symbol'),
+                        columns = ['target','pos'])
+    settings = dict({'ans':json.dumps(ans.to_dict()),
+                     'trading_hours':json.dumps(trading_hours)})
+    engine.add_strategy(Strategy2, settings)
+    engine.init_strategy()
+    engine.load_data()
+    engine.run_backtesting()
+    df = engine.calculate_result()
+    print(engine.get_all_trades(use_df=True))
+    # engine.calculate_statistics()
+    # engine.show_chart()
+    # engine.get_all_trades(use_df=True).to_csv(r'C:\\Users\\Chris\\Desktop\\Evan\\trades.csv')

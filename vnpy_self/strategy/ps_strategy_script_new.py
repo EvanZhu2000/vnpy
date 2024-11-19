@@ -61,7 +61,6 @@ def run(option:str):
     # current_day is supposingly when the script should be start running, ideally 21:00 every settlement date
     main_engine.write_log(f"settlement date starting day is {current_day}")
     
-    # fill positions and find target for today
     rebal_tar = db.select('daily_rebalance_target',today = current_day, strategy = strategy_title)
     rebal_tar = pd.concat([pd.Series(rebal_tar['symbol'].values[0].split(',')),
                         pd.Series(rebal_tar['target'].values[0].split(','))],axis=1,keys=['symbol','target'])
@@ -69,8 +68,8 @@ def run(option:str):
     previous_trading_schedule = db.select('trading_schedule',date = current_day, strategy = strategy_title).set_index('id').drop_duplicates()
     trading_hours = db.select('trading_hours',date = trading_schedule['date'].iloc[0])
     db.close()
-    # ============
     
+    # ===== fill positions and find target for today
     if trading_schedule.shape[0]!=1 or previous_trading_schedule.shape[0]!=1:
         raise Exception(f'Wrong trading schedule for {strategy_title}')
     to_trade_df = pd.concat([pd.Series(trading_schedule['symbol'].values[0].split(',')).str[:-4],
@@ -83,9 +82,9 @@ def run(option:str):
     ans = pos_data[['symbol','pos']].set_index('symbol').replace(0,np.nan).dropna().join(to_trade_df.drop_duplicates().set_index('symbol_y'),how='outer')
     ans = ans.replace(0,np.nan).dropna(how='all').replace(np.nan,0)
     
+    # ===== start strategy
     vt_symbols = ans.index.values.tolist()
-    settings = dict({'tarpos':json.dumps(ans['target'].to_dict()),
-                     'ans':json.dumps(ans.to_dict()),
+    settings = dict({'ans':json.dumps(ans.to_dict()),
                      'trading_hours':json.dumps(trading_hours[['symbol','trading_hours']].set_index('symbol').to_dict()['trading_hours'])})
     
     if strategy_title in ps_engine.strategies.keys():
@@ -94,8 +93,7 @@ def run(option:str):
         ps_engine.add_strategy(strategy_class_name, strategy_title, vt_symbols, settings)
     else:
         ps_engine.add_strategy(strategy_class_name, strategy_title, vt_symbols, settings)
-        
-    # sleep(5)    
+           
     ps_engine.init_strategy(strategy_title)
     main_engine.write_log("ps策略全部初始化")
     while not ps_engine.strategies[strategy_title].inited:
