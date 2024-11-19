@@ -14,7 +14,7 @@ from pandas import DataFrame
 
 from vnpy.trader.constant import Direction, Offset, Interval, Status
 from vnpy.trader.database import get_database, BaseDatabase
-from vnpy.trader.object import OrderData, TradeData, BarData, TickData, Exchange
+from vnpy.trader.object import OrderData, TradeData, BarData, TickData, Exchange, OrderType
 from vnpy.trader.utility import round_to, extract_vt_symbol
 from vnpy.trader.optimize import (
     OptimizationSetting,
@@ -697,11 +697,6 @@ class BacktestingEngine(StrategyEngine):
                 long_best_price: float = bar.open_price
                 short_best_price: float = bar.open_price
 
-            # 推送委托未成交状态更新
-            if order.status == Status.SUBMITTING:
-                order.status = Status.NOTTRADED
-                self.strategy.update_order(order)
-            # NOTE: it would always be NOT Traded at the moment
 
             # 检查可以被撮合的限价委托
             long_cross: bool = (
@@ -716,7 +711,17 @@ class BacktestingEngine(StrategyEngine):
                 and short_cross_price > 0
             )
 
+            # 推送委托未成交状态更新, FAK/FOK different from limit order
+            if order.status == Status.SUBMITTING and (order.type != OrderType.FAK and order.type != OrderType.FOK):
+                order.status = Status.NOTTRADED
+                self.strategy.update_order(order)
+                
             if not long_cross and not short_cross:
+                if (order.type == OrderType.FAK or order.type == OrderType.FOK):
+                    order.status = Status.CANCELLED
+                    if order.vt_orderid in self.active_limit_orders:
+                        self.active_limit_orders.pop(order.vt_orderid)
+                    self.strategy.update_order(order)
                 continue
 
             # 推送委托成交状态更新
@@ -811,18 +816,18 @@ class BacktestingEngine(StrategyEngine):
         symbol, exchange = extract_vt_symbol(vt_symbol)
 
         self.limit_order_count += 1
-        FAK_price = math.inf if direction == Direction.LONG else -math.inf
         order: OrderData = OrderData(
             symbol=symbol,
             exchange=exchange,
             orderid=str(self.limit_order_count),
             direction=direction,
             offset=offset,
-            price=FAK_price,
+            price=price,
             volume=volume,
             status=Status.SUBMITTING,
             datetime=self.datetime,
             gateway_name=self.gateway_name,
+            type=OrderType.FAK
         )
 
         self.active_limit_orders[order.vt_orderid] = order

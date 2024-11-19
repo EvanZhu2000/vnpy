@@ -41,6 +41,8 @@ if __name__ == "__main__":
     engine.run_backtesting()
     df = engine.calculate_result()
     print(engine.get_all_trades(use_df=True))
+    # print(engine.get_all_orders())
+    
     # engine.calculate_statistics()
     # engine.show_chart()
     # engine.get_all_trades(use_df=True).to_csv(r'C:\\Users\\Chris\\Desktop\\Evan\\trades.csv')
