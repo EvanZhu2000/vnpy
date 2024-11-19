@@ -11,6 +11,11 @@ from vnpy_portfoliostrategy.base import EngineType
 if TYPE_CHECKING:
     from vnpy_portfoliostrategy.engine import StrategyEngine
 
+class SymbolStatus():
+    is_active = False
+    rej_counts = 0
+    can_counts = 0
+    order_list = []
 
 class StrategyTemplate(ABC):
     """组合策略模板"""
@@ -42,13 +47,9 @@ class StrategyTemplate(ABC):
         # 委托缓存容器
         self.orders: dict[str, OrderData] = {}
         self.active_orderids: set[str] = set()
-        self.symbol_is_active: dict[str, bool] = {}
-        self.reject_symb_counts = {}
-        self.cancel_symb_counts = {}
+        self.symbol_status: dict[str, SymbolStatus] = {}
         for v in self.vt_symbols:
-            self.symbol_is_active[v] = False
-            self.reject_symb_counts[v] = 0
-            self.cancel_symb_counts[v] = 0
+            self.symbol_status[v] = SymbolStatus()
 
         # 复制变量名列表，插入默认变量内容
         self.variables: list = copy(self.variables)
@@ -143,19 +144,20 @@ class StrategyTemplate(ABC):
     def update_order(self, order: OrderData) -> None:
         """委托数据更新"""
         pre_order_type,pre_order_status = None,None
+        symb = order.vt_symbol
         if order.vt_orderid in self.orders:
             pre_order_type,pre_order_status = self.orders[order.vt_orderid].type, self.orders[order.vt_orderid].status
         self.orders[order.vt_orderid] = order
 
         if not order.is_active() and order.vt_orderid in self.active_orderids:
             self.active_orderids.remove(order.vt_orderid)
-            self.symbol_is_active[order.vt_symbol] = False
+            self.symbol_status[symb].is_active = False
         
         if pre_order_type and pre_order_status and pre_order_type == OrderType.FAK and pre_order_status == Status.SUBMITTING:
             if order.status == Status.REJECTED:
-                self.reject_symb_counts[order.vt_symbol] += 1
+                self.symbol_status[symb].rej_counts += 1
             if order.status == Status.CANCELLED:
-                self.cancel_symb_counts[order.vt_symbol] += 1
+                self.symbol_status[symb].can_counts += 1
             
         # self.strategy_engine.dbservice.update_order_status(order.vt_orderid, order.status)
 
@@ -204,7 +206,7 @@ class StrategyTemplate(ABC):
 
                 for vt_orderid in vt_orderids:
                     self.active_orderids.add(vt_orderid)
-                    self.symbol_is_active[vt_symbol] = True
+                    self.symbol_status[vt_symbol].is_active += 1
                 
                 ## inserting this part requires too much time
                 # if strategy:
@@ -246,8 +248,8 @@ class StrategyTemplate(ABC):
         """全撤活动委托"""
         for vt_orderid in list(self.active_orderids):
             self.cancel_order(vt_orderid)
-        for k,_ in self.symbol_is_active.items():
-            self.symbol_is_active[k] = False
+        for k,_ in self.symbol_status.items():
+            self.symbol_status[k].is_active = False
 
     def get_pos(self, vt_symbol: str) -> int:
         """查询当前持仓"""
@@ -268,8 +270,8 @@ class StrategyTemplate(ABC):
     def get_retry_price(self, tick:TickData) -> tuple:
         '''return (buy_price, sell_price) tuple'''
         vt_symbol = tick.vt_symbol
-        rej_count = self.reject_symb_counts[vt_symbol]
-        can_count = self.cancel_symb_counts[vt_symbol]
+        rej_count = self.symbol_status[vt_symbol].rej_counts
+        can_count = self.symbol_status[vt_symbol].can_counts
         if rej_count >=3:
             self.on_stop()
             self.strategy_engine.stop_strategy(self.strategy_name, f"reject counts >=3 for {vt_symbol}")
@@ -300,7 +302,7 @@ class StrategyTemplate(ABC):
 
     def rebalance(self, vt_symbol: str, buy_price:float, sell_price:float, net:bool=False, strategy:str=None, intention:str=None) -> None:
         """基于目标执行调仓交易"""
-        if self.symbol_is_active[vt_symbol]:
+        if self.symbol_status[vt_symbol].is_active:
             pass
 
         target: int = self.get_target(vt_symbol)

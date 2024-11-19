@@ -278,8 +278,8 @@ class StrategyEngine(BaseEngine):
         """委托撤单"""
         for vt_orderid in list(strategy.active_orderids):
             self.cancel_order(strategy, vt_orderid)
-        for k,_ in strategy.symbol_is_active.items():
-            strategy.symbol_is_active[k] = False
+        for k,_ in strategy.symbol_status.items():
+            strategy.symbol_status[k].is_active = False
 
     def get_engine_type(self) -> EngineType:
         """获取引擎类型"""
