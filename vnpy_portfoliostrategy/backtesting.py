@@ -641,7 +641,7 @@ class BacktestingEngine(StrategyEngine):
                 )
                 self.bars[vt_symbol] = bar
 
-        self.cross_limit_order()
+        self.cross_order()
         self.strategy.on_bars(bars)
 
         if self.strategy.inited:
@@ -672,15 +672,16 @@ class BacktestingEngine(StrategyEngine):
                 )
                 self.ticks[vt_symbol] = tick
 
-        self.cross_limit_order()
+        self.cross_order()
         self.strategy.on_tick(tick)
 
         if self.strategy.inited:
             self.update_daily_close(self.ticks, dt)
 
 
-    def cross_limit_order(self) -> None:
+    def cross_order(self) -> None:
         """撮合限价委托"""
+        # Only supports limit order as well as FAK/FOK orders
         for order in list(self.active_limit_orders.values()):
             if self.interval == Interval.TICK:
                 tick: TickData = self.ticks[order.vt_symbol]
@@ -710,6 +711,17 @@ class BacktestingEngine(StrategyEngine):
                 and order.price <= short_cross_price
                 and short_cross_price > 0
             )
+            
+            if self.interval == Interval.TICK:
+                enough_volume : bool = (
+                    (order.direction == Direction.LONG
+                    and order.volume >= tick.ask_volume_1)
+                    or
+                    (order.direction == Direction.SHORT
+                    and order.volume >= tick.bid_volume_1)
+                )
+            else:
+                enough_volume = True
 
             # 推送委托未成交状态更新, FAK/FOK different from limit order
             if order.status == Status.SUBMITTING and (order.type != OrderType.FAK and order.type != OrderType.FOK):
@@ -725,8 +737,19 @@ class BacktestingEngine(StrategyEngine):
                 continue
 
             # 推送委托成交状态更新
-            order.traded = order.volume
-            order.status = Status.ALLTRADED
+            if not enough_volume:
+                if order.direction == Direction.LONG:
+                    matched_volume = min(order.volume, tick.ask_volume_1) 
+                elif order.direction == Direction.SHORT:
+                    matched_volume = min(order.volume, tick.bid_volume_1) 
+                if (order.type == OrderType.FAK or order.type == OrderType.FOK):
+                    matched_status = Status.PARTTRADED
+            else:
+                matched_volume = order.volume
+                matched_status = Status.ALLTRADED
+            
+            order.status = matched_status
+            order.traded = matched_volume
             self.strategy.update_order(order)
 
             if order.vt_orderid in self.active_limit_orders:
@@ -748,7 +771,7 @@ class BacktestingEngine(StrategyEngine):
                 direction=order.direction,
                 offset=order.offset,
                 price=trade_price,
-                volume=order.volume,
+                volume=matched_volume,
                 datetime=self.datetime,
                 gateway_name=self.gateway_name,
             )
