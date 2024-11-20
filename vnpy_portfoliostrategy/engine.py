@@ -463,21 +463,6 @@ class StrategyEngine(BaseEngine):
                     
         # my way of retrieving pos_data and target_data, please ignore the above from now
         pos_data = self.get_pos(strategy_name=strategy_name)
-        omsEngine = self.main_engine.get_engine('oms')
-        while(1):
-            tmp = omsEngine.get_all_positions()
-            if tmp is not None and len(tmp) != 0:
-                break;  
-        tmp = omsEngine.get_all_positions()
-        abc = pd.DataFrame([x.__dict__ for x in tmp])
-        ans = pd.concat([abc['vt_symbol'],
-                abc['direction'].map({Direction.LONG:1,Direction.SHORT:-1}) * abc['volume']], axis=1)
-        ans = ans.groupby(ans['vt_symbol']).sum()
-        ans = ans.loc[ans[0]!=0].sort_index().squeeze().astype(int)
-        if not pos_data[['symbol','pos']].groupby('symbol').sum().query("pos!=0").sort_index().squeeze().astype(int).equals(ans):
-            raise Exception("Wrong database positions record compared to CTP record")
-        
-        self.write_log("Matching succeed: CTP and database")
         for r in pos_data.iterrows():
             if r[1]['symbol'] in strategy.vt_symbols:
                 strategy.set_pos(r[1]['symbol'], r[1]['pos'])

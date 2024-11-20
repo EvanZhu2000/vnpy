@@ -7,7 +7,7 @@ from vnpy_ctp import CtpGateway
 from vnpy_portfoliostrategy import PortfolioStrategyApp
 from vnpy_portfoliostrategy.base import EVENT_PORTFOLIO_LOG
 from vnpy_self.ctp_setting import ctp_setting_uat, ctp_setting_live
-
+from vnpy.trader.constant import Direction
 import json
 from datetime import datetime, time, date
 import sys
@@ -23,7 +23,7 @@ SETTINGS["log.active"] = True
 SETTINGS["log.level"] = INFO
 SETTINGS["log.console"] = True
 
-def run(option:str):
+def run(option:str, quickstart:bool):
     SETTINGS["log.file"] = True
     if option == 'uat':
         ctp_setting = ctp_setting_uat
@@ -82,11 +82,28 @@ def run(option:str):
     ans = pos_data[['symbol','pos']].set_index('symbol').replace(0,np.nan).dropna().join(to_trade_df.drop_duplicates().set_index('symbol_y'),how='outer')
     ans = ans.replace(0,np.nan).dropna(how='all').replace(np.nan,0)
     
-    # ===== start strategy
     vt_symbols = ans.index.values.tolist()
     settings = dict({'ans':json.dumps(ans.to_dict()),
                      'trading_hours':json.dumps(trading_hours[['symbol','trading_hours']].set_index('symbol').to_dict()['trading_hours'])})
     
+    # ===== Examine positions if necessary
+    if not quickstart:
+        omsEngine = main_engine.get_engine('oms')
+        while(1):
+            tmp = omsEngine.get_all_positions()
+            if tmp is not None and len(tmp) != 0:
+                break;  
+        tmp = omsEngine.get_all_positions()
+        abc = pd.DataFrame([x.__dict__ for x in tmp])
+        qwe = pd.concat([abc['vt_symbol'],
+                        abc['direction'].map({Direction.LONG:1,Direction.SHORT:-1}) * abc['volume']], axis=1)
+        qwe = qwe.groupby(qwe['vt_symbol']).sum()
+        qwe = qwe.loc[qwe[0]!=0].sort_index().squeeze().astype(int)
+        if not pos_data[['symbol','pos']].groupby('symbol').sum().query("pos!=0").sort_index().squeeze().astype(int).equals(qwe):
+            raise Exception("Wrong database positions record compared to CTP record")
+        main_engine.write_log("Matching succeed: CTP and database")
+    
+    # ===== start strategy
     if strategy_title in ps_engine.strategies.keys():
         ps_engine.stop_strategy(strategy_title)
         ps_engine.remove_strategy(strategy_title)
@@ -102,8 +119,11 @@ def run(option:str):
     main_engine.write_log("ps策略全部启动")
 
 if __name__ == "__main__":
+    if len(sys.argv)<3:
+        raise Exception("Need to have two arguments, 1: CTP options 2: whether to quickstart")
     option = sys.argv[1]
-    run(option)
+    quickstart = sys.argv[2]
+    run(option, quickstart)
 
         
         
