@@ -8,7 +8,9 @@ from logging import INFO
 
 from .constant import Direction, Exchange, Interval, Offset, Status, Product, OptionType, OrderType
 
-ACTIVE_STATUSES = set([Status.SUBMITTING, Status.NOTTRADED, Status.PARTTRADED])
+# TODO I get rid of PARTTRADED only because of FAK, yet this remains to be check
+ACTIVE_STATUSES = set([Status.SUBMITTING, Status.NOTTRADED])
+# ACTIVE_STATUSES = set([Status.SUBMITTING, Status.NOTTRADED, Status.PARTTRADED])
 
 
 @dataclass

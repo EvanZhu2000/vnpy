@@ -30,7 +30,7 @@ if __name__ == "__main__":
         file_path=csv_file_path
     )
     trading_hours = {"fu2501.SHFE":'21:01-23:00,09:01-10:15,10:31-11:30,13:31-15:00'}
-    ans = pd.DataFrame([[1,0]],
+    ans = pd.DataFrame([[10,0]],
                         index=pd.Index(['fu2501.SHFE'],name='symbol'),
                         columns = ['target','pos'])
     settings = dict({'ans':json.dumps(ans.to_dict()),
