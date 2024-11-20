@@ -476,7 +476,8 @@ class StrategyEngine(BaseEngine):
         ans = ans.loc[ans[0]!=0].sort_index().squeeze().astype(int)
         if not pos_data[['symbol','pos']].groupby('symbol').sum().query("pos!=0").sort_index().squeeze().astype(int).equals(ans):
             raise Exception("Wrong database positions record compared to CTP record")
-            
+        
+        self.write_log("Matching succeed: CTP and database")
         for r in pos_data.iterrows():
             if r[1]['symbol'] in strategy.vt_symbols:
                 strategy.set_pos(r[1]['symbol'], r[1]['pos'])

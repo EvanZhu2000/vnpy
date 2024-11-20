@@ -196,9 +196,9 @@ class StrategyTemplate(ABC):
         """发送委托"""
         if self.trading:
             try:
-                # order number check
-                if len(self.symbol_status[vt_symbol].order_list) > 20:
-                    raise Exception(f"Too much orders for {vt_symbol}, stop sending additional orders!")
+                # # order number check
+                # if len(self.symbol_status[vt_symbol].order_list) > 20:
+                #     raise Exception(f"Too much orders for {vt_symbol}, stop sending additional orders!")
                     
                 if isFAK:
                     vt_orderids: list = self.strategy_engine.send_order_FAK(
