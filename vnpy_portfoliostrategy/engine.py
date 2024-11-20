@@ -45,14 +45,13 @@ from .base import (
     EngineType
 )
 from .template import StrategyTemplate
-import mysql.connector
-from vnpy.trader.setting import SETTINGS
+import pandas as pd
 
 class StrategyEngine(BaseEngine):
     """组合策略引擎"""
 
     engine_type: EngineType = EngineType.LIVE
-
+    main_engine: MainEngine
     setting_filename: str = "portfolio_strategy_setting.json"
     data_filename: str = "portfolio_strategy_data.json"
 
@@ -61,7 +60,7 @@ class StrategyEngine(BaseEngine):
         super().__init__(main_engine, event_engine, APP_NAME)
 
         self.strategy_data: dict[str, dict] = {}
-
+        self.main_engine = main_engine
         self.classes: dict[str, Type[StrategyTemplate]] = {}
         self.strategies: dict[str, StrategyTemplate] = {}
 
@@ -461,8 +460,23 @@ class StrategyEngine(BaseEngine):
                 #     setattr(strategy, name, value)
                 if name not in {"pos_data", "target_data"}:
                     setattr(strategy, name, value)
-        # my way of retrieving pos_data and target_data
+                    
+        # my way of retrieving pos_data and target_data, please ignore the above from now
         pos_data = self.get_pos(strategy_name=strategy_name)
+        omsEngine = self.main_engine.get_engine('oms')
+        while(1):
+            tmp = omsEngine.get_all_positions()
+            if tmp is not None and len(tmp) != 0:
+                break;  
+        tmp = omsEngine.get_all_positions()
+        abc = pd.DataFrame([x.__dict__ for x in tmp])
+        ans = pd.concat([abc['vt_symbol'],
+                abc['direction'].map({Direction.LONG:1,Direction.SHORT:-1}) * abc['volume']], axis=1)
+        ans = ans.groupby(ans['vt_symbol']).sum()
+        ans = ans.loc[ans[0]!=0].sort_index().squeeze().astype(int)
+        if not pos_data[['symbol','pos']].groupby('symbol').sum().query("pos!=0").sort_index().squeeze().astype(int).equals(ans):
+            raise Exception("Wrong database positions record compared to CTP record")
+            
         for r in pos_data.iterrows():
             if r[1]['symbol'] in strategy.vt_symbols:
                 strategy.set_pos(r[1]['symbol'], r[1]['pos'])
