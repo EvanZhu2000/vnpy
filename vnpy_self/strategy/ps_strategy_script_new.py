@@ -23,7 +23,7 @@ SETTINGS["log.active"] = True
 SETTINGS["log.level"] = INFO
 SETTINGS["log.console"] = True
 
-def run(option:str, quickstart:bool):
+def run(option:str, quickstart:str):
     SETTINGS["log.file"] = True
     if option == 'uat':
         ctp_setting = ctp_setting_uat
@@ -87,14 +87,14 @@ def run(option:str, quickstart:bool):
                      'trading_hours':json.dumps(trading_hours[['symbol','trading_hours']].set_index('symbol').to_dict()['trading_hours'])})
     
     # ===== Examine positions if necessary
-    if not quickstart:
+    if quickstart == 'False':
         omsEngine = main_engine.get_engine('oms')
         while(1):
-            tmp = omsEngine.get_all_positions()
-            if tmp is not None and len(tmp) != 0:
+            allpos = omsEngine.get_all_positions()
+            if allpos is not None and len(allpos) != 0:
                 break;  
-        tmp = omsEngine.get_all_positions()
-        abc = pd.DataFrame([x.__dict__ for x in tmp])
+        allpos = omsEngine.get_all_positions()
+        abc = pd.DataFrame([x.__dict__ for x in allpos])
         qwe = pd.concat([abc['vt_symbol'],
                         abc['direction'].map({Direction.LONG:1,Direction.SHORT:-1}) * abc['volume']], axis=1)
         qwe = qwe.groupby(qwe['vt_symbol']).sum()
@@ -122,7 +122,7 @@ if __name__ == "__main__":
     if len(sys.argv)<3:
         raise Exception("Need to have two arguments, 1: CTP options 2: whether to quickstart")
     option = sys.argv[1]
-    quickstart = sys.argv[2]
+    quickstart = sys.argv[2] #(Should be either True or False)
     run(option, quickstart)
 
         
