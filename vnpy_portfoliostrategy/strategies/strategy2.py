@@ -56,7 +56,7 @@ class Strategy2(StrategyTemplate):
             return
         
         if (self.get_target(tick.vt_symbol) != self.get_pos(tick.vt_symbol)):
-            if (not self.symbol_status[tick.vt_symbol].is_active):
+            if (not self.symbol_status[tick.vt_symbol].is_active and not self.symbol_status[tick.vt_symbol].is_stop()):
                 bp,ap = self.get_retry_price(tick)
                 self.rebalance(tick.vt_symbol, bp, ap, net=False, strategy='strategy2',intention='rebalance')
         else:

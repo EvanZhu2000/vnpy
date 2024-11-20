@@ -715,16 +715,17 @@ class BacktestingEngine(StrategyEngine):
             if self.interval == Interval.TICK:
                 enough_volume : bool = (
                     (order.direction == Direction.LONG
-                    and order.volume >= tick.ask_volume_1)
+                    and order.volume <= tick.ask_volume_1)
                     or
                     (order.direction == Direction.SHORT
-                    and order.volume >= tick.bid_volume_1)
+                    and order.volume <= tick.bid_volume_1)
                 )
             else:
                 enough_volume = True
 
             # 推送委托未成交状态更新, FAK/FOK different from limit order
-            if order.status == Status.SUBMITTING and (order.type != OrderType.FAK and order.type != OrderType.FOK):
+            if order.status == Status.SUBMITTING:
+            # if order.status == Status.SUBMITTING and not (order.type == OrderType.FAK or order.type == OrderType.FOK): #TODO this is to be confirmed 
                 order.status = Status.NOTTRADED
                 self.strategy.update_order(order)
                 

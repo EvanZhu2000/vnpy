@@ -40,8 +40,12 @@ if __name__ == "__main__":
     engine.load_data()
     engine.run_backtesting()
     df = engine.calculate_result()
-    print(engine.get_all_trades(use_df=True))
-    # print(engine.get_all_orders())
+    trades = engine.get_all_trades(use_df=True)
+    orders = pd.DataFrame([x.__dict__ for x in engine.get_all_orders()])
+    if not trades.empty:
+        print(trades[['datetime','vt_symbol', 'vt_orderid','direction','offset','price', 'volume']])
+    if not orders.empty:
+        print(orders[['datetime','vt_symbol', 'vt_orderid','direction','offset','price', 'volume','type', 'traded', 'status']])
     
     # engine.calculate_statistics()
     # engine.show_chart()

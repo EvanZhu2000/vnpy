@@ -16,6 +16,10 @@ class SymbolStatus():
     rej_counts = 0
     can_counts = 0
     order_list = []
+    stop_because_FAK_cancel = False
+    
+    def is_stop(self):
+        return self.stop_because_FAK_cancel
 
 class StrategyTemplate(ABC):
     """组合策略模板"""
@@ -143,17 +147,14 @@ class StrategyTemplate(ABC):
 
     def update_order(self, order: OrderData) -> None:
         """委托数据更新"""
-        pre_order_type,pre_order_status = None,None
         symb = order.vt_symbol
-        if order.vt_orderid in self.orders:
-            pre_order_type,pre_order_status = self.orders[order.vt_orderid].type, self.orders[order.vt_orderid].status
         self.orders[order.vt_orderid] = order
 
         if not order.is_active() and order.vt_orderid in self.active_orderids:
             self.active_orderids.remove(order.vt_orderid)
             self.symbol_status[symb].is_active = False
         
-        if pre_order_type and pre_order_status and pre_order_type == OrderType.FAK and pre_order_status == Status.SUBMITTING:
+        if (order.type == OrderType.FAK or order.type == OrderType.FOK):
             if order.status == Status.REJECTED:
                 self.symbol_status[symb].rej_counts += 1
             if order.status == Status.CANCELLED:
@@ -195,6 +196,10 @@ class StrategyTemplate(ABC):
         """发送委托"""
         if self.trading:
             try:
+                # order number check
+                if len(self.symbol_status[vt_symbol].order_list) > 20:
+                    raise Exception(f"Too much orders for {vt_symbol}, stop sending additional orders!")
+                    
                 if isFAK:
                     vt_orderids: list = self.strategy_engine.send_order_FAK(
                         self, vt_symbol, direction, offset, price, volume, lock, net
@@ -206,7 +211,8 @@ class StrategyTemplate(ABC):
 
                 for vt_orderid in vt_orderids:
                     self.active_orderids.add(vt_orderid)
-                    self.symbol_status[vt_symbol].is_active += 1
+                    self.symbol_status[vt_symbol].is_active = True
+                    self.symbol_status[vt_symbol].order_list.append(vt_orderid)
                 
                 ## inserting this part requires too much time
                 # if strategy:
@@ -272,13 +278,16 @@ class StrategyTemplate(ABC):
         vt_symbol = tick.vt_symbol
         rej_count = self.symbol_status[vt_symbol].rej_counts
         can_count = self.symbol_status[vt_symbol].can_counts
+        # Something wrong with the system
         if rej_count >=3:
             self.on_stop()
-            self.strategy_engine.stop_strategy(self.strategy_name, f"reject counts >=3 for {vt_symbol}")
-            # raise Exception(f"reject counts >=3 for {vt_symbol}")
+            self.strategy_engine.stop_strategy(self.strategy_name, f"reject counts >=3 for {vt_symbol}")\
+        # the book moved so fast
+        if can_count >=3:
+            self.symbol_status[vt_symbol].stop_because_FAK_cancel=True
         
         min_tick:float = self.get_pricetick(tick.vt_symbol)
-        tmp = min(int(rej_count // 2), 2)
+        tmp = min(int(can_count // 2), 2)
         bp = tick.ask_price_1 + tmp * min_tick
         sp = tick.bid_price_1 - tmp * min_tick
         return (bp,sp)
