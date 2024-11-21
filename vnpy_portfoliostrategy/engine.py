@@ -45,14 +45,13 @@ from .base import (
     EngineType
 )
 from .template import StrategyTemplate
-import mysql.connector
-from vnpy.trader.setting import SETTINGS
+import pandas as pd
 
 class StrategyEngine(BaseEngine):
     """组合策略引擎"""
 
     engine_type: EngineType = EngineType.LIVE
-
+    main_engine: MainEngine
     setting_filename: str = "portfolio_strategy_setting.json"
     data_filename: str = "portfolio_strategy_data.json"
 
@@ -61,7 +60,7 @@ class StrategyEngine(BaseEngine):
         super().__init__(main_engine, event_engine, APP_NAME)
 
         self.strategy_data: dict[str, dict] = {}
-
+        self.main_engine = main_engine
         self.classes: dict[str, Type[StrategyTemplate]] = {}
         self.strategies: dict[str, StrategyTemplate] = {}
 
@@ -278,8 +277,8 @@ class StrategyEngine(BaseEngine):
         """委托撤单"""
         for vt_orderid in list(strategy.active_orderids):
             self.cancel_order(strategy, vt_orderid)
-        for k,_ in strategy.symbol_is_active.items():
-            strategy.symbol_is_active[k] = False
+        for k,_ in strategy.symbol_status.items():
+            strategy.symbol_status[k].is_active = False
 
     def get_engine_type(self) -> EngineType:
         """获取引擎类型"""
@@ -461,7 +460,8 @@ class StrategyEngine(BaseEngine):
                 #     setattr(strategy, name, value)
                 if name not in {"pos_data", "target_data"}:
                     setattr(strategy, name, value)
-        # my way of retrieving pos_data and target_data
+                    
+        # my way of retrieving pos_data and target_data, please ignore the above from now
         pos_data = self.get_pos(strategy_name=strategy_name)
         for r in pos_data.iterrows():
             if r[1]['symbol'] in strategy.vt_symbols:

@@ -103,11 +103,11 @@ CREATE TABLE `vnpy`.`universe` (
 
 CREATE TABLE `vnpy`.`daily_rebalance_target` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `today` date NOT NULL,
   `date` date NOT NULL,
   `symbol` varchar(1023) NOT NULL,
   `target` varchar(1023) NOT NULL,
-  `strategy` varchar(255) NOT NULL
+  `today` date NOT NULL,
+  `strategy` varchar(255) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 

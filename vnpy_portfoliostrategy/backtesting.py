@@ -14,7 +14,7 @@ from pandas import DataFrame
 
 from vnpy.trader.constant import Direction, Offset, Interval, Status
 from vnpy.trader.database import get_database, BaseDatabase
-from vnpy.trader.object import OrderData, TradeData, BarData
+from vnpy.trader.object import OrderData, TradeData, BarData, TickData, Exchange, OrderType
 from vnpy.trader.utility import round_to, extract_vt_symbol
 from vnpy.trader.optimize import (
     OptimizationSetting,
@@ -25,17 +25,18 @@ from vnpy.trader.optimize import (
 
 from vnpy_portfoliostrategy.base import EngineType
 from vnpy_portfoliostrategy.template import StrategyTemplate
+from vnpy_portfoliostrategy.engine import StrategyEngine
 import math
 
 
-INTERVAL_DELTA_MAP: dict[Interval, timedelta] = {
-    Interval.MINUTE: timedelta(minutes=1),
-    Interval.HOUR: timedelta(hours=1),
-    Interval.DAILY: timedelta(days=1),
-}
+# INTERVAL_DELTA_MAP: dict[Interval, timedelta] = {
+#     Interval.MINUTE: timedelta(minutes=1),
+#     Interval.HOUR: timedelta(hours=1),
+#     Interval.DAILY: timedelta(days=1),
+# }
 
 
-class BacktestingEngine:
+class BacktestingEngine(StrategyEngine):
     """组合策略回测引擎"""
 
     engine_type: EngineType = EngineType.BACKTESTING
@@ -47,18 +48,19 @@ class BacktestingEngine:
         self.start: datetime = None
         self.end: datetime = None
 
-        self.rates: dict[str, float] = 0
-        self.slippages: dict[str, float] = 0
-        self.sizes: dict[str, float] = 1
-        self.priceticks: dict[str, float] = 0
+        self.rates: dict[str, float] = 0.0
+        self.slippages: dict[str, float] = 0.0
+        self.sizes: dict[str, float] = 1.0
+        self.priceticks: dict[str, float] = 1.0
 
         self.capital: float = 1_000_000
         self.risk_free: float = 0
-        self.annual_days: int = 240
+        self.annual_days: int = 250
 
         self.strategy_class: StrategyTemplate = None
         self.strategy: StrategyTemplate = None
         self.bars: dict[str, BarData] = {}
+        self.ticks: dict[str, TickData] = {}
         self.datetime: datetime = None
 
         self.interval: Interval = None
@@ -77,6 +79,7 @@ class BacktestingEngine:
 
         self.daily_results: dict[date, PortfolioDailyResult] = {}
         self.daily_df: DataFrame = None
+        self.file_path=None
 
     def clear_data(self) -> None:
         """清理上次回测缓存数据"""
@@ -100,29 +103,45 @@ class BacktestingEngine:
         vt_symbols: list[str],
         interval: Interval,
         start: datetime,
-        rates: dict[str, float],
-        slippages: dict[str, float],
-        sizes: dict[str, float],
-        priceticks: dict[str, float],
-        capital: int = 0,
         end: datetime = None,
+        rates: dict[str, float] = None,
+        slippages: dict[str, float] = None,
+        sizes: dict[str, float] = None,
+        priceticks: dict[str, float] = None,
+        capital: int = 0,
         risk_free: float = 0,
-        annual_days: int = 240
+        annual_days: int = 250,
+        file_path = None
     ) -> None:
         """设置参数"""
         self.vt_symbols = vt_symbols
         self.interval = interval
 
-        self.rates = rates
-        self.slippages = slippages
-        self.sizes = sizes
-        self.priceticks = priceticks
+        self.rates = rates if rates is not None else {v:0.0 for v in vt_symbols}
+        self.slippages = slippages if slippages is not None else {v:0.0 for v in vt_symbols}
+        self.sizes = sizes if sizes is not None else {v:1.0 for v in vt_symbols}
+        self.priceticks = priceticks if priceticks is not None else {v:1.0 for v in vt_symbols}
 
         self.start = start
         self.end = end
         self.capital = capital
         self.risk_free = risk_free
         self.annual_days = annual_days
+        self.file_path = file_path
+        
+    def init_strategy(self) -> None:
+        """初始化策略"""
+        if self.strategy.inited:
+            return
+
+        # 调用策略on_init函数
+        self.call_strategy_func(self.strategy, self.strategy.on_init)
+
+        # 恢复策略状态
+        # TODO
+
+        self.strategy.inited = True
+        self.output("策略初始化完成")
 
     def add_strategy(self, strategy_class: type, setting: dict) -> None:
         """增加策略"""
@@ -130,8 +149,20 @@ class BacktestingEngine:
         self.strategy = strategy_class(
             self, strategy_class.__name__, copy(self.vt_symbols), setting
         )
-        self.strategy.inited = True
-        self.strategy.trading = True
+        
+    def stop_strategy(self, strategy_name: str, message = None) -> None:
+        """停止策略"""
+        if not self.strategy.trading:
+            return
+
+        # 调用策略on_stop函数
+        self.call_strategy_func(self.strategy, self.strategy.on_stop)
+
+        # 将交易状态设为False
+        self.strategy.trading = False
+
+        # 撤销全部委托
+        self.cancel_all(self.strategy)
 
     def load_data(self) -> None:
         """加载历史数据"""
@@ -140,7 +171,7 @@ class BacktestingEngine:
         if not self.end:
             self.end = datetime.now()
 
-        if self.start >= self.end:
+        if self.start > self.end:
             self.output("起始日期必须小于结束日期")
             return
 
@@ -148,53 +179,57 @@ class BacktestingEngine:
         self.history_data.clear()
         self.dts.clear()
 
-        # 每次加载30天历史数据
-        progress_delta: timedelta = timedelta(days=30)
-        total_delta: timedelta = self.end - self.start
-        interval_delta: timedelta = INTERVAL_DELTA_MAP[self.interval]
+        # # 每次加载30天历史数据
+        # progress_delta: timedelta = timedelta(days=30)
+        # total_delta: timedelta = self.end - self.start
+        # interval_delta: timedelta = INTERVAL_DELTA_MAP[self.interval]
 
         for vt_symbol in self.vt_symbols:
-            if self.interval == Interval.MINUTE:
-                start: datetime = self.start
-                end: datetime = self.start + progress_delta
-                progress = 0
+            
+            # if self.interval == Interval.MINUTE:
+            #     start: datetime = self.start
+            #     end: datetime = self.start + progress_delta
+            #     progress = 0
 
-                data_count = 0
-                while start < self.end:
-                    end = min(end, self.end)
+            #     data_count = 0
+            #     while start < self.end:
+            #         end = min(end, self.end)
 
-                    data: list[BarData] = load_bar_data(
-                        vt_symbol,
-                        self.interval,
-                        start,
-                        end
-                    )
+            #         data: list[BarData] = load_bar_data(
+            #             vt_symbol,
+            #             self.interval,
+            #             start,
+            #             end
+            #         )
 
-                    for bar in data:
-                        self.dts.add(bar.datetime)
-                        self.history_data[(bar.datetime, vt_symbol)] = bar
-                        data_count += 1
+            #         for bar in data:
+            #             self.dts.add(bar.datetime)
+            #             self.history_data[(bar.datetime, vt_symbol)] = bar
+            #             data_count += 1
 
-                    progress += progress_delta / total_delta
-                    progress = min(progress, 1)
-                    progress_bar = "#" * int(progress * 10)
-                    self.output(f"{vt_symbol}加载进度：{progress_bar} [{progress:.0%}]")
+            #         progress += progress_delta / total_delta
+            #         progress = min(progress, 1)
+            #         progress_bar = "#" * int(progress * 10)
+            #         self.output(f"{vt_symbol}加载进度：{progress_bar} [{progress:.0%}]")
 
-                    start = end + interval_delta
-                    end += (progress_delta + interval_delta)
+            #         start = end + interval_delta
+            #         end += (progress_delta + interval_delta)
+            # else:
+            
+            if self.interval == Interval.TICK:
+                data: list[TickData] = self.load_data_from_cache()
+
+                for dat in data:
+                    self.dts.add(dat.datetime)
+                    self.history_data[(dat.datetime, vt_symbol)] = dat
             else:
-                data: list[BarData] = load_bar_data(
-                    vt_symbol,
-                    self.interval,
-                    self.start,
-                    self.end
-                )
+                data: list[BarData] = self.load_data_from_cache()
 
                 for bar in data:
                     self.dts.add(bar.datetime)
                     self.history_data[(bar.datetime, vt_symbol)] = bar
 
-                data_count = len(data)
+            data_count = len(data)
 
             self.output(f"{vt_symbol}历史数据加载完成，数据量：{data_count}")
 
@@ -202,7 +237,6 @@ class BacktestingEngine:
 
     def run_backtesting(self) -> None:
         """开始回测"""
-        self.strategy.on_init()
 
         dts: list = list(self.dts)
         dts.sort()
@@ -210,6 +244,9 @@ class BacktestingEngine:
         # 使用指定时间的历史数据初始化策略
         day_count: int = 0
         ix: int = 0
+        self.strategy.on_start()
+        self.strategy.trading = True
+        self.output("开始回放历史数据")
 
         for ix, dt in enumerate(dts):
             if self.datetime and dt.day != self.datetime.day:
@@ -218,27 +255,27 @@ class BacktestingEngine:
                     break
 
             try:
-                self.new_bars(dt)
+                if self.interval == Interval.TICK:
+                    self.new_ticks(dt)
+                else:
+                    self.new_bars(dt)
             except Exception:
                 self.output("触发异常，回测终止")
                 self.output(traceback.format_exc())
                 return
 
-        self.strategy.inited = True
-        self.output("策略初始化完成")
 
-        self.strategy.on_start()
-        self.strategy.trading = True
-        self.output("开始回放历史数据")
-
-        # 使用剩余历史数据进行策略回测
-        for dt in dts[ix:]:
-            try:
-                self.new_bars(dt)
-            except Exception:
-                self.output("触发异常，回测终止")
-                self.output(traceback.format_exc())
-                return
+        # # 使用剩余历史数据进行策略回测
+        # for dt in dts[ix:]:
+        #     try:
+        #         if self.interval == Interval.TICK:
+        #             self.new_ticks(dt)
+        #         else:
+        #             self.new_bars(dt)
+        #     except Exception:
+        #         self.output("触发异常，回测终止")
+        #         self.output(traceback.format_exc())
+        #         return
 
         self.output("历史数据回放结束")
 
@@ -556,13 +593,16 @@ class BacktestingEngine:
 
         return results
 
-    def update_daily_close(self, bars: dict[str, BarData], dt: datetime) -> None:
+    def update_daily_close(self, barsOrticks, dt: datetime) -> None:
         """更新每日收盘价"""
         d: date = dt.date()
 
         close_prices: dict = {}
-        for bar in bars.values():
-            close_prices[bar.vt_symbol] = bar.close_price
+        for bot in barsOrticks.values():
+            if type(bot) == TickData:
+                close_prices[bot.vt_symbol] = (bot.ask_price_1 + bot.bid_price_1)/2
+            else:
+                close_prices[bot.vt_symbol] = bot.close_price
 
         daily_result: Optional[PortfolioDailyResult] = self.daily_results.get(d, None)
 
@@ -601,26 +641,63 @@ class BacktestingEngine:
                 )
                 self.bars[vt_symbol] = bar
 
-        self.cross_limit_order()
+        self.cross_order()
         self.strategy.on_bars(bars)
 
         if self.strategy.inited:
             self.update_daily_close(self.bars, dt)
 
-    def cross_limit_order(self) -> None:
+    def new_ticks(self, dt: datetime) -> None:
+        self.datetime = dt
+
+        for vt_symbol in self.vt_symbols:
+            tick: Optional[TickData] = self.history_data.get((dt, vt_symbol), None)
+
+            if tick:
+                self.ticks[vt_symbol] = tick
+            elif vt_symbol in self.ticks:
+                old_tick: TickData = self.ticks[vt_symbol]
+                
+                # Note: the TickData here has OHLC, which are not considered here
+                tick: TickData = TickData(
+                    symbol=old_tick.symbol,
+                    exchange=old_tick.exchange,
+                    datetime=dt,
+                    ask_price_1=old_tick.ask_price_1,
+                    bid_price_1=old_tick.bid_price_1,
+                    ask_volume_1=old_tick.ask_volume_1,
+                    bid_volume_1=old_tick.bid_volume_1,
+                    limit_up=old_tick.limit_up,
+                    limit_down=old_tick.limit_down
+                )
+                self.ticks[vt_symbol] = tick
+
+        self.cross_order()
+        self.strategy.on_tick(tick)
+
+        if self.strategy.inited:
+            self.update_daily_close(self.ticks, dt)
+
+
+    def cross_order(self) -> None:
         """撮合限价委托"""
+        # Only supports limit order as well as FAK/FOK orders
         for order in list(self.active_limit_orders.values()):
-            bar: BarData = self.bars[order.vt_symbol]
+            if self.interval == Interval.TICK:
+                tick: TickData = self.ticks[order.vt_symbol]
+                
+                long_cross_price: float = tick.ask_price_1
+                short_cross_price: float = tick.bid_price_1
+                long_best_price: float = tick.ask_price_1
+                short_best_price: float = tick.bid_price_1
+            else:
+                bar: BarData = self.bars[order.vt_symbol]
 
-            long_cross_price: float = bar.low_price
-            short_cross_price: float = bar.high_price
-            long_best_price: float = bar.open_price
-            short_best_price: float = bar.open_price
+                long_cross_price: float = bar.low_price
+                short_cross_price: float = bar.high_price
+                long_best_price: float = bar.open_price
+                short_best_price: float = bar.open_price
 
-            # 推送委托未成交状态更新
-            if order.status == Status.SUBMITTING:
-                order.status = Status.NOTTRADED
-                self.strategy.update_order(order)
 
             # 检查可以被撮合的限价委托
             long_cross: bool = (
@@ -634,13 +711,46 @@ class BacktestingEngine:
                 and order.price <= short_cross_price
                 and short_cross_price > 0
             )
+            
+            if self.interval == Interval.TICK:
+                enough_volume : bool = (
+                    (order.direction == Direction.LONG
+                    and order.volume <= tick.ask_volume_1)
+                    or
+                    (order.direction == Direction.SHORT
+                    and order.volume <= tick.bid_volume_1)
+                )
+            else:
+                enough_volume = True
 
+            # 推送委托未成交状态更新, FAK/FOK different from limit order
+            if order.status == Status.SUBMITTING:
+            # if order.status == Status.SUBMITTING and not (order.type == OrderType.FAK or order.type == OrderType.FOK): #TODO this is to be confirmed 
+                order.status = Status.NOTTRADED
+                self.strategy.update_order(order)
+                
             if not long_cross and not short_cross:
+                if (order.type == OrderType.FAK or order.type == OrderType.FOK):
+                    order.status = Status.CANCELLED
+                    if order.vt_orderid in self.active_limit_orders:
+                        self.active_limit_orders.pop(order.vt_orderid)
+                    self.strategy.update_order(order)
                 continue
 
             # 推送委托成交状态更新
-            order.traded = order.volume
-            order.status = Status.ALLTRADED
+            if not enough_volume:
+                if order.direction == Direction.LONG:
+                    matched_volume = min(order.volume, tick.ask_volume_1) 
+                elif order.direction == Direction.SHORT:
+                    matched_volume = min(order.volume, tick.bid_volume_1) 
+                if (order.type == OrderType.FAK or order.type == OrderType.FOK):
+                    matched_status = Status.PARTTRADED
+            else:
+                matched_volume = order.volume
+                matched_status = Status.ALLTRADED
+            
+            order.status = matched_status
+            order.traded = matched_volume
             self.strategy.update_order(order)
 
             if order.vt_orderid in self.active_limit_orders:
@@ -662,7 +772,7 @@ class BacktestingEngine:
                 direction=order.direction,
                 offset=order.offset,
                 price=trade_price,
-                volume=order.volume,
+                volume=matched_volume,
                 datetime=self.datetime,
                 gateway_name=self.gateway_name,
             )
@@ -670,14 +780,14 @@ class BacktestingEngine:
             self.strategy.update_trade(trade)
             self.trades[trade.vt_tradeid] = trade
 
-    def load_bars(
-        self,
-        strategy: StrategyTemplate,
-        days: int,
-        interval: Interval
-    ) -> None:
-        """加载历史数据"""
-        self.days = days
+    # def load_bars(
+    #     self,
+    #     strategy: StrategyTemplate,
+    #     days: int,
+    #     interval: Interval
+    # ) -> None:
+    #     """加载历史数据"""
+    #     self.days = days
 
     def send_order(
         self,
@@ -730,18 +840,18 @@ class BacktestingEngine:
         symbol, exchange = extract_vt_symbol(vt_symbol)
 
         self.limit_order_count += 1
-        FAK_price = math.inf if direction == Direction.LONG else -math.inf
         order: OrderData = OrderData(
             symbol=symbol,
             exchange=exchange,
             orderid=str(self.limit_order_count),
             direction=direction,
             offset=offset,
-            price=FAK_price,
+            price=price,
             volume=volume,
             status=Status.SUBMITTING,
             datetime=self.datetime,
             gateway_name=self.gateway_name,
+            type=OrderType.FAK
         )
 
         self.active_limit_orders[order.vt_orderid] = order
@@ -809,6 +919,26 @@ class BacktestingEngine:
     def get_all_daily_results(self) -> list["PortfolioDailyResult"]:
         """获取所有每日盈亏信息"""
         return list(self.daily_results.values())
+    
+    @lru_cache(maxsize=999) 
+    def load_data_from_cache(self) -> list:
+        csv_list = pd.read_csv(self.file_path, header=0).to_dict(orient='records')
+        res = []
+        for l in csv_list:
+            tick = TickData(
+                gateway_name = 'CTP',
+                symbol = l['symbol'],
+                exchange = Exchange(l['exchange']),
+                datetime = datetime.strptime(l['datetime'], "%Y-%m-%d %H:%M:%S"),
+                limit_up = l['limit_up'],
+                limit_down = l['limit_down'],
+                bid_price_1 = l['bid_price_1'],
+                ask_price_1 = l['ask_price_1'],
+                bid_volume_1 = l['bid_volume_1'],
+                ask_volume_1 = l['ask_volume_1'],
+            )
+            res.append(tick)
+        return res
 
 
 class ContractDailyResult:
@@ -976,7 +1106,6 @@ def load_bar_data(
     return database.load_bar_data(
         symbol, exchange, interval, start, end
     )
-
 
 def evaluate(
     target_name: str,

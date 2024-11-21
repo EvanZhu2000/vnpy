@@ -1,6 +1,6 @@
 
 
-ctp_setting_live = {
+ctp_setting_uat = {
     "用户名": "224829",
     "密码": "evan@cash1q2",
     "经纪商代码": "9999",
@@ -12,7 +12,7 @@ ctp_setting_live = {
 }
 
 
-ctp_setting_uat = {
+ctp_setting_live = {
     "用户名": "226593",
     "密码": "evan@cash1q2",
     "经纪商代码": "9999",

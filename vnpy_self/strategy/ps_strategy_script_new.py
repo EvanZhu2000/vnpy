@@ -7,7 +7,7 @@ from vnpy_ctp import CtpGateway
 from vnpy_portfoliostrategy import PortfolioStrategyApp
 from vnpy_portfoliostrategy.base import EVENT_PORTFOLIO_LOG
 from vnpy_self.ctp_setting import ctp_setting_uat, ctp_setting_live
-
+from vnpy.trader.constant import Direction
 import json
 from datetime import datetime, time, date
 import sys
@@ -23,25 +23,7 @@ SETTINGS["log.active"] = True
 SETTINGS["log.level"] = INFO
 SETTINGS["log.console"] = True
 
-def strategy_running_period():
-    """"""
-    DAY_START = time(20, 45)
-    DAY_END = time(15, 45)
-    
-    current_time = datetime.now().time()
-
-    trading = False
-    if (current_time >= DAY_START or current_time <= DAY_END):
-        trading = True
-
-    return trading
-
-# NOTE: the rollover tool will get position from different strategies, so rollover can be anytime
-def check_rollover_period():
-    current_time = datetime.now().time()
-    return current_time>=time(10, 50)
-
-def run(option:str):
+def run(option:str, quickstart:str):
     SETTINGS["log.file"] = True
     if option == 'uat':
         ctp_setting = ctp_setting_uat
@@ -76,9 +58,9 @@ def run(option:str):
         current_day = pd.to_datetime(tmp['today'].iloc[0]).strftime('%Y-%m-%d')
     else:
         current_day = datetime.today().strftime('%Y-%m-%d')
-    main_engine.write_log(f"current_day is {current_day}")
+    # current_day is supposingly when the script should be start running, ideally 21:00 every settlement date
+    main_engine.write_log(f"settlement date starting day is {current_day}")
     
-    # fill positions and find target for today
     rebal_tar = db.select('daily_rebalance_target',today = current_day, strategy = strategy_title)
     rebal_tar = pd.concat([pd.Series(rebal_tar['symbol'].values[0].split(',')),
                         pd.Series(rebal_tar['target'].values[0].split(','))],axis=1,keys=['symbol','target'])
@@ -86,8 +68,8 @@ def run(option:str):
     previous_trading_schedule = db.select('trading_schedule',date = current_day, strategy = strategy_title).set_index('id').drop_duplicates()
     trading_hours = db.select('trading_hours',date = trading_schedule['date'].iloc[0])
     db.close()
-    # ============
     
+    # ===== fill positions and find target for today
     if trading_schedule.shape[0]!=1 or previous_trading_schedule.shape[0]!=1:
         raise Exception(f'Wrong trading schedule for {strategy_title}')
     to_trade_df = pd.concat([pd.Series(trading_schedule['symbol'].values[0].split(',')).str[:-4],
@@ -101,36 +83,47 @@ def run(option:str):
     ans = ans.replace(0,np.nan).dropna(how='all').replace(np.nan,0)
     
     vt_symbols = ans.index.values.tolist()
-    settings = dict({'tarpos':json.dumps(ans['target'].to_dict()),
-                     'ans':json.dumps(ans.to_dict()),
+    settings = dict({'ans':json.dumps(ans.to_dict()),
                      'trading_hours':json.dumps(trading_hours[['symbol','trading_hours']].set_index('symbol').to_dict()['trading_hours'])})
     
+    # ===== Examine positions if necessary
+    if quickstart == 'False':
+        omsEngine = main_engine.get_engine('oms')
+        while(1):
+            allpos = omsEngine.get_all_positions()
+            if allpos is not None and len(allpos) != 0:
+                break;  
+        allpos = omsEngine.get_all_positions()
+        abc = pd.DataFrame([x.__dict__ for x in allpos])
+        qwe = pd.concat([abc['vt_symbol'],
+                        abc['direction'].map({Direction.LONG:1,Direction.SHORT:-1}) * abc['volume']], axis=1)
+        qwe = qwe.groupby(qwe['vt_symbol']).sum()
+        qwe = qwe.loc[qwe[0]!=0].sort_index().squeeze().astype(int)
+        if not pos_data[['symbol','pos']].groupby('symbol').sum().query("pos!=0").sort_index().squeeze().astype(int).equals(qwe):
+            raise Exception("Wrong database positions record compared to CTP record")
+        main_engine.write_log("Matching succeed: CTP and database")
+    
+    # ===== start strategy
     if strategy_title in ps_engine.strategies.keys():
         ps_engine.stop_strategy(strategy_title)
         ps_engine.remove_strategy(strategy_title)
         ps_engine.add_strategy(strategy_class_name, strategy_title, vt_symbols, settings)
     else:
         ps_engine.add_strategy(strategy_class_name, strategy_title, vt_symbols, settings)
-        
-    # sleep(5)    
+           
     ps_engine.init_strategy(strategy_title)
     main_engine.write_log("ps策略全部初始化")
     while not ps_engine.strategies[strategy_title].inited:
         sleep(1)
     ps_engine.start_strategy(strategy_title)
     main_engine.write_log("ps策略全部启动")
-    
-    while True:
-        sleep(5)     
-        if not strategy_running_period():
-            main_engine.write_log("ps策略全部close")
-            ps_engine.stop_all_strategies()
-            main_engine.close()
-            sys.exit(0)
 
 if __name__ == "__main__":
+    if len(sys.argv)<3:
+        raise Exception("Need to have two arguments, 1: CTP options 2: whether to quickstart")
     option = sys.argv[1]
-    run(option)
+    quickstart = sys.argv[2] #(Should be either True or False)
+    run(option, quickstart)
 
         
         

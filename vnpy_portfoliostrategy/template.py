@@ -11,6 +11,15 @@ from vnpy_portfoliostrategy.base import EngineType
 if TYPE_CHECKING:
     from vnpy_portfoliostrategy.engine import StrategyEngine
 
+class SymbolStatus():
+    is_active = False
+    rej_counts = 0
+    can_counts = 0
+    order_list = []
+    stop_because_FAK_cancel = False
+    
+    def is_stop(self):
+        return self.stop_because_FAK_cancel
 
 class StrategyTemplate(ABC):
     """组合策略模板"""
@@ -42,13 +51,9 @@ class StrategyTemplate(ABC):
         # 委托缓存容器
         self.orders: dict[str, OrderData] = {}
         self.active_orderids: set[str] = set()
-        self.symbol_is_active: dict[str, bool] = {}
-        self.reject_symb_counts = {}
-        self.cancel_symb_counts = {}
+        self.symbol_status: dict[str, SymbolStatus] = {}
         for v in self.vt_symbols:
-            self.symbol_is_active[v] = False
-            self.reject_symb_counts[v] = 0
-            self.cancel_symb_counts[v] = 0
+            self.symbol_status[v] = SymbolStatus()
 
         # 复制变量名列表，插入默认变量内容
         self.variables: list = copy(self.variables)
@@ -120,10 +125,12 @@ class StrategyTemplate(ABC):
         self.strategy_engine.dbservice.close()
 
     @virtual
-    def on_tick(self, tick: TickData) -> None:
+    def on_tick(self, tick: TickData) -> bool:
         """行情推送回调"""
         if not self.check_valid_tick(tick):
-            pass
+            return False
+        else:
+            return True
 
     @virtual
     def on_bars(self, bars: dict[str, BarData]) -> None:
@@ -140,20 +147,18 @@ class StrategyTemplate(ABC):
 
     def update_order(self, order: OrderData) -> None:
         """委托数据更新"""
-        pre_order_type,pre_order_status = None,None
-        if order.vt_orderid in self.orders:
-            pre_order_type,pre_order_status = self.orders[order.vt_orderid].type, self.orders[order.vt_orderid].status
+        symb = order.vt_symbol
         self.orders[order.vt_orderid] = order
 
         if not order.is_active() and order.vt_orderid in self.active_orderids:
             self.active_orderids.remove(order.vt_orderid)
-            self.symbol_is_active[order.vt_symbol] = False
+            self.symbol_status[symb].is_active = False
         
-        if pre_order_type and pre_order_status and pre_order_type == OrderType.FAK and pre_order_status == Status.SUBMITTING:
+        if (order.type == OrderType.FAK or order.type == OrderType.FOK):
             if order.status == Status.REJECTED:
-                self.reject_symb_counts[order.vt_symbol] += 1
+                self.symbol_status[symb].rej_counts += 1
             if order.status == Status.CANCELLED:
-                self.cancel_symb_counts[order.vt_symbol] += 1
+                self.symbol_status[symb].can_counts += 1
             
         # self.strategy_engine.dbservice.update_order_status(order.vt_orderid, order.status)
 
@@ -191,6 +196,10 @@ class StrategyTemplate(ABC):
         """发送委托"""
         if self.trading:
             try:
+                # # order number check
+                # if len(self.symbol_status[vt_symbol].order_list) > 20:
+                #     raise Exception(f"Too much orders for {vt_symbol}, stop sending additional orders!")
+                    
                 if isFAK:
                     vt_orderids: list = self.strategy_engine.send_order_FAK(
                         self, vt_symbol, direction, offset, price, volume, lock, net
@@ -202,7 +211,8 @@ class StrategyTemplate(ABC):
 
                 for vt_orderid in vt_orderids:
                     self.active_orderids.add(vt_orderid)
-                    self.symbol_is_active[vt_symbol] = True
+                    self.symbol_status[vt_symbol].is_active = True
+                    self.symbol_status[vt_symbol].order_list.append(vt_orderid)
                 
                 ## inserting this part requires too much time
                 # if strategy:
@@ -244,8 +254,8 @@ class StrategyTemplate(ABC):
         """全撤活动委托"""
         for vt_orderid in list(self.active_orderids):
             self.cancel_order(vt_orderid)
-        for k,_ in self.symbol_is_active.items():
-            self.symbol_is_active[k] = False
+        for k,_ in self.symbol_status.items():
+            self.symbol_status[k].is_active = False
 
     def get_pos(self, vt_symbol: str) -> int:
         """查询当前持仓"""
@@ -266,14 +276,18 @@ class StrategyTemplate(ABC):
     def get_retry_price(self, tick:TickData) -> tuple:
         '''return (buy_price, sell_price) tuple'''
         vt_symbol = tick.vt_symbol
-        rej_count = self.reject_symb_counts[vt_symbol]
-        can_count = self.cancel_symb_counts[vt_symbol]
+        rej_count = self.symbol_status[vt_symbol].rej_counts
+        can_count = self.symbol_status[vt_symbol].can_counts
+        # Something wrong with the system
         if rej_count >=3:
-            self.strategy_engine.stop_strategy(self.strategy_name, f"reject counts >=3 for {vt_symbol}")
-            # raise Exception(f"reject counts >=3 for {vt_symbol}")
+            self.on_stop()
+            self.strategy_engine.stop_strategy(self.strategy_name, f"reject counts >=3 for {vt_symbol}")\
+        # the book moved so fast
+        if can_count >=3:
+            self.symbol_status[vt_symbol].stop_because_FAK_cancel=True
         
         min_tick:float = self.get_pricetick(tick.vt_symbol)
-        tmp = min(int(rej_count // 2), 2)
+        tmp = min(int(can_count // 2), 2)
         bp = tick.ask_price_1 + tmp * min_tick
         sp = tick.bid_price_1 - tmp * min_tick
         return (bp,sp)
@@ -297,7 +311,7 @@ class StrategyTemplate(ABC):
 
     def rebalance(self, vt_symbol: str, buy_price:float, sell_price:float, net:bool=False, strategy:str=None, intention:str=None) -> None:
         """基于目标执行调仓交易"""
-        if self.symbol_is_active[vt_symbol]:
+        if self.symbol_status[vt_symbol].is_active:
             pass
 
         target: int = self.get_target(vt_symbol)
@@ -476,8 +490,8 @@ class StrategyTemplate(ABC):
         sorted_non_zero_items = dict(sorted(non_zero_items.items()))
         return sorted_non_zero_items
     
-    # Currently only check timestamp
     def check_valid_tick(self, tick) -> bool:
+        # Check whether the tick is in continuous trading hours
         if tick.vt_symbol not in self.trading_hours.keys():
             self.strategy_engine.stop_strategy(self.strategy_name, 
                                                f"No trading hours provided for {tick.vt_symbol}. Stop the strategy {self.strategy_name} now")
@@ -487,6 +501,10 @@ class StrategyTemplate(ABC):
             if not self.is_time_in_intervals(tick.datetime.time(), continuous_trading_intervals):
                 # Then this tick is not a continuous trading tick
                 return False
+        
+        # Check whether the tick is valid   
+        if not tick.last_price:
+            return False
         return True
 
     # Check whether input_time is in intervals of time, along with minus seconds customization for start/end time
