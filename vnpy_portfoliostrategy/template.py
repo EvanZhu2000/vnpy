@@ -490,8 +490,8 @@ class StrategyTemplate(ABC):
         sorted_non_zero_items = dict(sorted(non_zero_items.items()))
         return sorted_non_zero_items
     
-    # Currently only check timestamp
     def check_valid_tick(self, tick) -> bool:
+        # Check whether the tick is in continuous trading hours
         if tick.vt_symbol not in self.trading_hours.keys():
             self.strategy_engine.stop_strategy(self.strategy_name, 
                                                f"No trading hours provided for {tick.vt_symbol}. Stop the strategy {self.strategy_name} now")
@@ -501,6 +501,10 @@ class StrategyTemplate(ABC):
             if not self.is_time_in_intervals(tick.datetime.time(), continuous_trading_intervals):
                 # Then this tick is not a continuous trading tick
                 return False
+        
+        # Check whether the tick is valid   
+        if not tick.last_price:
+            return False
         return True
 
     # Check whether input_time is in intervals of time, along with minus seconds customization for start/end time
