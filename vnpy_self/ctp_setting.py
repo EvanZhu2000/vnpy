@@ -11,8 +11,18 @@ ctp_setting_uat = {
     "产品信息": ""
 }
 
-
 ctp_setting_live = {
+    "用户名": "2520000355",
+    "密码": "jacky83611",
+    "经纪商代码": "4040",
+    "交易服务器": "tcp://180.166.103.21:55205",
+    "行情服务器": "tcp://180.166.103.21:55213",
+    "产品名称": "client_LO_1.0",
+    "授权编码": "IM53ZG1HKVEYHPAI",
+    "产品信息": ""
+}
+
+ctp_setting_dev = {
     "用户名": "226593",
     "密码": "evan@cash1q2",
     "经纪商代码": "9999",
@@ -22,3 +32,14 @@ ctp_setting_live = {
     "授权编码": "0000000000000000",
     "产品信息": ""
 }
+
+def ctp_map(option):
+    if option == 'uat':
+        ctp_setting = ctp_setting_uat
+    elif option == 'live':
+        ctp_setting = ctp_setting_live
+    elif option == 'dev':
+        ctp_setting = ctp_setting_dev
+    else:
+        raise Exception(f'Wrong option input {option}')
+    return ctp_setting
