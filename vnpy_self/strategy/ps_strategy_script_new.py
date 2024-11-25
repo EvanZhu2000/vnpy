@@ -25,18 +25,19 @@ SETTINGS["log.console"] = True
 
 def run(option:str, quickstart:str):
     SETTINGS["log.file"] = True
+    
+    event_engine = EventEngine()
+    main_engine = MainEngine(event_engine)
+    main_engine.init_engines()
+    main_engine.add_gateway(CtpGateway)
+    ps_engine = main_engine.add_app(PortfolioStrategyApp)
     if option == 'uat':
         ctp_setting = ctp_setting_uat
     elif option == 'live':
         ctp_setting = ctp_setting_live
     else:
-        raise Exception(f'Wrong option input {option}')
+        main_engine.write_exception(f'Wrong option input {option}')   
         
-    event_engine = EventEngine()
-    main_engine = MainEngine(event_engine)
-    main_engine.init_engines()
-    main_engine.add_gateway(CtpGateway)
-    ps_engine = main_engine.add_app(PortfolioStrategyApp)   
     main_engine.write_log("主引擎创建成功")
     log_engine = main_engine.get_engine("log")
     event_engine.register(EVENT_PORTFOLIO_LOG, log_engine.process_log_event)
@@ -71,7 +72,7 @@ def run(option:str, quickstart:str):
     
     # ===== fill positions and find target for today
     if trading_schedule.shape[0]!=1 or previous_trading_schedule.shape[0]!=1:
-        raise Exception(f'Wrong trading schedule for {strategy_title}')
+        main_engine.write_exception(f'Wrong trading schedule for {strategy_title}')
     to_trade_df = pd.concat([pd.Series(trading_schedule['symbol'].values[0].split(',')).str[:-4],
                              pd.Series(trading_schedule['symbol'].values[0].split(','))],axis=1,keys=['symbol','symb']
                             ).merge(trading_hours[['rqsymbol','symbol']],left_on='symb',right_on='rqsymbol',how='inner'
@@ -100,7 +101,7 @@ def run(option:str, quickstart:str):
         qwe = qwe.groupby(qwe['vt_symbol']).sum()
         qwe = qwe.loc[qwe[0]!=0].sort_index().squeeze().astype(int)
         if not pos_data[['symbol','pos']].groupby('symbol').sum().query("pos!=0").sort_index().squeeze().astype(int).equals(qwe):
-            raise Exception("Wrong database positions record compared to CTP record")
+            main_engine.write_exception("Wrong database positions record compared to CTP record")
         main_engine.write_log("Matching succeed: CTP and database")
     
     # ===== start strategy

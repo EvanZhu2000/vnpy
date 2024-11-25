@@ -118,7 +118,11 @@ class MainEngine:
         log: LogData = LogData(msg=msg, gateway_name=source)
         event: Event = Event(EVENT_LOG, log)
         self.event_engine.put(event)
-
+        
+    def write_exception(self, msg: str, source: str = "") -> None:
+        self.write_log(msg, source)
+        raise Exception(msg)
+        
     def get_gateway(self, gateway_name: str) -> BaseGateway:
         """
         Return gateway object by name.
