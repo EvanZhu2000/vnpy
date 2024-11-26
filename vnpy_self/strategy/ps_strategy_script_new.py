@@ -120,7 +120,7 @@ def run(option:str, quickstart:str):
     main_engine.write_log("ps策略全部启动")
 
 if __name__ == "__main__":
-    if len(sys.argv)<3:
+    if len(sys.argv)!=3:
         raise Exception("Need to have two arguments, 1: CTP options 2: whether to quickstart")
     option = sys.argv[1]
     quickstart = sys.argv[2] #(Should be either True or False)

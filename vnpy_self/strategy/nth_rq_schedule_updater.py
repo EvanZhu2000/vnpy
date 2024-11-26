@@ -1,6 +1,4 @@
-import numpy as np
-from datetime import datetime, timedelta
-from vnpy_self.data_and_db.db_setting import db_setting
+import sys
 
 import rqdatac as rq
 from rqdatac import *
@@ -13,7 +11,7 @@ mysqlservice.init_connection()
 def symbol_rq2vnpy(l):
     return all_data.loc[all_data['order_book_id'].isin(l)][['trading_code','exchange']].apply(lambda x: '.'.join(x), axis = 1).values
 
-if __name__ == "__main__":
+def run(today_str:str): 
     all_data = all_instruments(type='Future', market='cn', date=None)
     all_futures_df = all_data.loc[(all_data['order_book_id'].str.contains('888'))&(all_data['maturity_date'] == '0000-00-00')]  
     # This is how rq calculate the get_dominant() contracts
@@ -22,7 +20,6 @@ if __name__ == "__main__":
     # symb_list = list(set(symb_list) - set(['IC', 'IF', 'IH', 'IM', 'LR', 'RI', 'RS', 'WH']))
     symb_list = list(set(symb_list) - set(['IC', 'IF', 'IH', 'IM']))
 
-    today_str = datetime.today().strftime('%Y-%m-%d')
     next_trading_day = get_next_trading_date(today_str).strftime('%Y-%m-%d')
     rq_today_dom_list,rq_today_dom2_list = [],[]
     rq_next_trading_day_dom_list,rq_next_trading_day_dom2_list = [],[]
@@ -74,3 +71,8 @@ if __name__ == "__main__":
                             rqsymbol = rq_symb, symbol = symb, 
                             trading_hours = get_trading_hours(rq_symb, next_trading_day), timezone = 'Asia/Shanghai')
     mysqlservice.close()
+    
+if __name__ == "__main__":
+    # The input today_date needs to be the real date at next settlement date start, in the format of YYYY-MM-DD
+    today_date = sys.argv[1]
+    run(today_date)
