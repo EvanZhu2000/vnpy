@@ -15,7 +15,7 @@ mysqlservice.init_connection()
 
 def run(option:str):
     ctp_setting = ctp_map(option)
-    pnl_directory = '//192.168.91.128/share_folder/Evan/PNL.xlsx'
+    pnl_directory = '//192.168.91.128/share_folder/Evan/PNL.csv'
     
     event_engine = EventEngine()
     main_engine = MainEngine(event_engine)
@@ -33,8 +33,8 @@ def run(option:str):
     fx_spot_quote_df = ak.fx_spot_quote()
     hkdcny = fx_spot_quote_df.loc[fx_spot_quote_df['货币对'] == 'HKD/CNY'].eval('(买报价+卖报价)/2').values[0]
     
-    ### read excel
-    records = pd.read_excel(pnl_directory)
+    ### read csv
+    records = pd.read_csv(pnl_directory)
     last_day_records = records.sort_values('Date', ascending=True).iloc[-1]
     pre_bal, cum_pnl_percentage = last_day_records['Balance'], last_day_records['CUM_PNL%']
     
@@ -48,8 +48,8 @@ def run(option:str):
     records.loc[len(records)] = [date, cur_bal, pnl_CNY, pnl_HKD, pnl_percentage, cum_pnl_percentage]
     records.set_index('Date', inplace=True)
 
-    ### write excel
-    records.to_excel(pnl_directory)
+    ### write csv
+    records.to_csv(pnl_directory)
     print('all finished')
 
 
