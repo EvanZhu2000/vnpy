@@ -7,6 +7,7 @@ from vnpy.trader.constant import Interval, Direction, Offset, Status
 from vnpy.trader.object import BarData, TickData, OrderData, TradeData, OrderType
 from vnpy.trader.utility import virtual
 from vnpy_portfoliostrategy.base import EngineType
+from vnpy_self.alert_sender import *
 
 if TYPE_CHECKING:
     from vnpy_portfoliostrategy.engine import StrategyEngine
@@ -120,6 +121,7 @@ class StrategyTemplate(ABC):
         """策略停止回调"""
         self.write_log(f"FINAL pos_data {self.nonzero_dict(self.pos_data)}")
         self.write_log(f"FINAL target_data {self.nonzero_dict(self.target_data)}")
+        self.email("Strategy2 successfully rebalance", "Strategy2 successfully rebalance")
         self.strategy_engine.dbservice.init_connection()
         self.strategy_engine.dbservice.update_pos(self.strategy_name, self.pos_data)
         self.strategy_engine.dbservice.close()
@@ -473,9 +475,13 @@ class StrategyTemplate(ABC):
         """推送策略数据更新事件"""
         if self.inited:
             self.strategy_engine.put_strategy_event(self)
+    
+    def email(self, title: str, msg: str) -> None:
+        send_email(title, msg)
 
     def send_email(self, msg: str) -> None:
         """发送邮件信息"""
+        # Below is the original vnpy way of sending order
         if self.inited:
             self.strategy_engine.send_email(msg, self)
 
