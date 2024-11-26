@@ -2,6 +2,7 @@ import akshare as ak
 from datetime import datetime
 import pandas as pd
 import sys
+
 from vnpy.event import EventEngine
 from vnpy.trader.engine import MainEngine
 from vnpy_ctp import CtpGateway
@@ -37,16 +38,19 @@ def run(option:str):
     last_day_records = records.sort_values('Date', ascending=True).iloc[-1]
     pre_bal, cum_pnl_percentage = last_day_records['Balance'], last_day_records['CUM_PNL%']
     
-    pnl_CNY = cur_bal - pre_bal
-    pnl_HKD = pnl_CNY * hkdcny
-    pnl_percentage = pnl_CNY / pre_bal
-    cum_pnl_percentage += pnl_percentage
-    date = datetime.today().strftime("%YYYY-%mm-%dd")
+    cur_bal = round(cur_bal,0)
+    pnl_CNY = round(cur_bal - pre_bal,2)
+    pnl_HKD = round(pnl_CNY / hkdcny,2)
+    pnl_percentage = round((pnl_CNY / pre_bal), 4)
+    cum_pnl_percentage += round(pnl_percentage, 4)
+    date = datetime.today().strftime("%Y-%m-%d")
     
     records.loc[len(records)] = [date, cur_bal, pnl_CNY, pnl_HKD, pnl_percentage, cum_pnl_percentage]
+    records.set_index('Date', inplace=True)
 
     ### write excel
     records.to_excel(pnl_directory)
+    print('all finished')
 
 
 if __name__ == "__main__":
