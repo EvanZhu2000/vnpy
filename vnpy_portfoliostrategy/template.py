@@ -18,6 +18,7 @@ class SymbolStatus():
     can_counts = 0
     order_list = []
     stop_because_FAK_cancel = False
+    last_tick = None  # for now it is just used to record whether we at least received one tick
     
     def is_stop(self):
         return self.stop_because_FAK_cancel
@@ -129,6 +130,11 @@ class StrategyTemplate(ABC):
     @virtual
     def on_tick(self, tick: TickData) -> bool:
         """行情推送回调"""
+        # this part is to check whether the subscription is successful
+        if self.symbol_status[tick.vt_symbol].last_tick is not None:
+            self.write_log(f'first tick for {tick.vt_symbol} is {tick}')
+            self.symbol_status[tick.vt_symbol].last_tick = tick
+            
         if not self.check_valid_tick(tick):
             return False
         else:

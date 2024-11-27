@@ -7,6 +7,7 @@ from vnpy_ctp import CtpGateway
 from vnpy_portfoliostrategy import PortfolioStrategyApp
 from vnpy_portfoliostrategy.base import EVENT_PORTFOLIO_LOG
 from vnpy_self.ctp_setting import ctp_setting_uat, ctp_setting_live
+from vnpy_self.general import *
 from vnpy.trader.constant import Direction
 import json
 from datetime import datetime, time, date
@@ -118,6 +119,13 @@ def run(option:str, quickstart:str):
         sleep(1)
     ps_engine.start_strategy(strategy_title)
     main_engine.write_log("ps策略全部启动")
+    
+    while True:
+        sleep(60)
+        if not check_trading_period():
+            main_engine.write_log("ps策略全部close")
+            ps_engine.stop_all_strategies()
+            main_engine.close()
 
 if __name__ == "__main__":
     if len(sys.argv)!=3:

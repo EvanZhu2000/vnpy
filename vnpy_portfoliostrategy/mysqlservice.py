@@ -40,8 +40,11 @@ class MysqlService():
         
     # def update(self, table, set_clause, **where) -> None:
     #     self.mycursor.execute(f"UPDATE `vnpy`.`{table}` SET {set_clause} {'where' if len(where)>0 else ''} {self.dict_to_string(where)};")
-        
-    def insert_rq(self, data, table:str, ignore=False):
+    
+    '''
+    to insert some data from rq to table_name
+    '''
+    def insert_rq(self, data: pd.DataFrame, table_name:str, ignore=False):
         s1 = ''
         s2 = ''
         for ind,l in enumerate(data.columns):
@@ -51,12 +54,12 @@ class MysqlService():
             else:
                 s1 += f',`{l}`'
                 s2 += ',%s'
-        query = f"INSERT {'IGNORE' if ignore else ''} INTO `vnpy`.`{table}` ({s1}) VALUES({s2});"                                                         
+        query = f"INSERT {'IGNORE' if ignore else ''} INTO `vnpy`.`{table_name}` ({s1}) VALUES({s2});"                                                         
         self.mycursor.executemany(query, list(map(tuple, data.values)))
         self.mydb.commit()
         
-    def delete_rq(self, table, dt_name, num_of_months=1):
-        self.mycursor.execute(f"DELETE FROM vnpy.{table} WHERE {dt_name} < '{(datetime.now() - relativedelta(months=num_of_months)).strftime('%Y-%m-%d %H:%M:%S')}'")
+    def delete_rq(self, table_name: str, dt_name, num_of_months=1):
+        self.mycursor.execute(f"DELETE FROM vnpy.{table_name} WHERE {dt_name} < '{(datetime.now() - relativedelta(months=num_of_months)).strftime('%Y-%m-%d %H:%M:%S')}'")
         self.mydb.commit()
         
     # def get_pos(self, strategy_name):

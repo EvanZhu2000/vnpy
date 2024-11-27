@@ -67,6 +67,15 @@ CREATE TABLE `vnpy`.`trading_schedule` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- CREATE TABLE `vnpy`.`trading_schedule` (
+--   `today` date,
+--   `date` date NOT NULL,
+--   `symbol` varchar(2047) NOT NULL,
+--   `strategy` varchar(255) NOT NULL,
+--   `sc_symbol` varchar(255) NOT NULL,
+--   PRIMARY KEY (`date`, `strategy`)
+-- ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 CREATE TABLE `vnpy`.`strategy_order` (
   `id` int NOT NULL AUTO_INCREMENT,
   `datetime` datetime NOT NULL,
@@ -93,6 +102,15 @@ CREATE TABLE `vnpy`.`trading_hours` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- CREATE TABLE `vnpy`.`trading_hours` (
+--   `date` date NOT NULL,
+--   `rqsymbol` varchar(255) NOT NULL,
+--   `symbol` varchar(255) NOT NULL,
+--   `trading_hours` varchar(255) DEFAULT '',
+--   `timezone` varchar(255) NOT NULL,
+--   PRIMARY KEY (`date`, `symbol`)
+-- ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 
 CREATE TABLE `vnpy`.`universe` (
   `id` int NOT NULL AUTO_INCREMENT,
@@ -110,6 +128,15 @@ CREATE TABLE `vnpy`.`daily_rebalance_target` (
   `strategy` varchar(255) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- CREATE TABLE `vnpy`.`daily_rebalance_target` (
+--   `date` date NOT NULL,
+--   `symbol` varchar(1023) NOT NULL,
+--   `target` varchar(1023) NOT NULL,
+--   `today` date NOT NULL,
+--   `strategy` varchar(255) NOT NULL,
+--   PRIMARY KEY (`date`, `strategy`)
+-- ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 
 CREATE TABLE `vnpy`.`strategies` (

@@ -51,6 +51,7 @@ def run(option:str):
     ### write csv
     records.to_csv(pnl_directory)
     print('all finished')
+    main_engine.close()
 
 
 if __name__ == "__main__":
