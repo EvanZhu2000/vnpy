@@ -49,8 +49,9 @@ def retrieve_price(trading_list):
     data_1d_ori = get_clean_day_data(data_raw)
 
     pro = data_1d['open'].unstack().T
+    pr = data_1d['close'].unstack().T
     pr88 = data_1d_ori['close'].unstack().T
-    return pro, pr88
+    return pro, pr, pr88
 
 
 def get_stats(trading_list, lookback_days, pro):
@@ -189,7 +190,7 @@ if __name__ == "__main__":
     trading_list = (pd.Series(tmp2['symbol'][0].split(',')).str[:-4]).tolist()
 
     # 2. get stats
-    pro,pr88 = retrieve_price(trading_list)
+    pro,pr,pr88 = retrieve_price(trading_list)
     l_df_everyday,s_df_everyday,l_df_delta_everyday,s_df_delta_everyday,l_dom_everyday,s_dom_everyday,l_dom_delta_everyday,\
         s_dom_delta_everyday,l_dom2_everyday,s_dom2_everyday,l_dom2_delta_everyday,s_dom2_delta_everyday = get_stats(trading_list, lookback_days,pro)
         
@@ -217,6 +218,17 @@ if __name__ == "__main__":
     w2 = weight(-settings_all(set_list,'x0&x1&x3&x4','x0&x1&x3&x4'), mul_mappings, pr88, sam, initial_capital=money, toRound=False, used_cap_limit=used_money)
     w3 = weight(-settings_all(set_list,'x0&x3','x0&x3'), mul_mappings, pr88, sam, initial_capital=money, toRound=False, used_cap_limit=used_money)
     w = (0.5*w1[0]+0.3*w2[0]+0.2*w3[0]).round(0)
+    print(w)
+    print(pro)
+    d,m = bt_all(         w.iloc[-1],
+             pro[w.columns].iloc[-1],
+            pr88[w.columns].iloc[-1],
+              pr[w.columns].iloc[-1],
+            mul_mappings,
+            exec_delay=1,
+            initial_capital=used_money,
+            commission=0.0001,toFormat=True)
+    d.to_csv('../analysis/strategy2_expected_pnl.csv')
     balancing_list = w.replace(np.nan,0).iloc[-1]
     
     # in the research -1 means buy but in vnpy vice versa
