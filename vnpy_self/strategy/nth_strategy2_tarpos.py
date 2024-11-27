@@ -3,6 +3,7 @@ from rqdatac import *
 rq.init('+85260983439','evan@cash')
 
 from vnpy_self.pt_tools import *
+import sys
 
 from vnpy_portfoliostrategy.mysqlservice import MysqlService
 mysqlservice = MysqlService()
@@ -12,7 +13,7 @@ from vnpy_self.strategy.rq_api_masker import RQ_API_MASKER
 masker = RQ_API_MASKER()
 
 
-def retrieve_price(trading_list):
+def retrieve_price(trading_list, price_start, today_date):
     def get_clean_day_data(df,total_turnover_thres = 1e+8, open_interest_thres = 1000, volume_thres = 1000):
         df = df.copy()
         data = df.query(f"total_turnover>{total_turnover_thres} & open_interest>{open_interest_thres} & volume>{volume_thres}").reindex(df.index)
@@ -54,7 +55,7 @@ def retrieve_price(trading_list):
     return pro, pr, pr88
 
 
-def get_stats(trading_list, lookback_days, pro):
+def get_stats(trading_list, lookback_days, pro, today_date):
     l_df_everyday,s_df_everyday,l_df_delta_everyday,s_df_delta_everyday,l_dom_everyday,s_dom_everyday,l_dom_delta_everyday,s_dom_delta_everyday,l_dom2_everyday,s_dom2_everyday,l_dom2_delta_everyday,s_dom2_delta_everyday= [pd.DataFrame()]*12
 
     for symb in tqdm(trading_list):
@@ -157,7 +158,7 @@ def get_stats(trading_list, lookback_days, pro):
                 s_dom2_delta_everyday = pd.concat([s_dom2_delta_everyday, convert_df],axis=0)
     return l_df_everyday,s_df_everyday,l_df_delta_everyday,s_df_delta_everyday,l_dom_everyday,s_dom_everyday,l_dom_delta_everyday,s_dom_delta_everyday,l_dom2_everyday,s_dom2_everyday,l_dom2_delta_everyday,s_dom2_delta_everyday
 
-if __name__ == "__main__":
+def run(today_date_str:str): 
     xxx = {
     'x0':('(-s_dom.loc[:, symb,:]).diff().mean(1)',(1.4,5,5)),
     'x1':('(-s_dom.loc[:, symb,:]).diff().mean(1)',(1.4,20,5)),
@@ -167,7 +168,7 @@ if __name__ == "__main__":
     'x5':('(-s_df.loc[:, symb,:]).diff().mean(1)',(1.7, 30, 5)),
     }
         
-    today_date = datetime.today()
+    today_date = datetime.strptime(today_date_str, "%Y-%m-%d")
     # today_date = datetime(2024, 9, 18)
     next_trading_date = get_next_trading_date(today_date)
     trading_dates = pd.to_datetime(get_trading_dates(start_date='20150105', end_date=today_date))
@@ -190,9 +191,9 @@ if __name__ == "__main__":
     trading_list = (pd.Series(tmp2['symbol'][0].split(',')).str[:-4]).tolist()
 
     # 2. get stats
-    pro,pr,pr88 = retrieve_price(trading_list)
+    pro,pr,pr88 = retrieve_price(trading_list, price_start, today_date)
     l_df_everyday,s_df_everyday,l_df_delta_everyday,s_df_delta_everyday,l_dom_everyday,s_dom_everyday,l_dom_delta_everyday,\
-        s_dom_delta_everyday,l_dom2_everyday,s_dom2_everyday,l_dom2_delta_everyday,s_dom2_delta_everyday = get_stats(trading_list, lookback_days,pro)
+        s_dom_delta_everyday,l_dom2_everyday,s_dom2_everyday,l_dom2_delta_everyday,s_dom2_delta_everyday = get_stats(trading_list, lookback_days, pro, today_date)
         
     l_df,s_df,l_df_delta,s_df_delta,l_dom,s_dom,l_dom_delta,\
     s_dom_delta,l_dom2,s_dom2,l_dom2_delta,s_dom2_delta = l_df_everyday,s_df_everyday,l_df_delta_everyday,s_df_delta_everyday,l_dom_everyday,s_dom_everyday,l_dom_delta_everyday,\
@@ -242,3 +243,8 @@ if __name__ == "__main__":
         target = ','.join(balancing_list.astype(int).astype(str).values),
         strategy = 'strategy2')
     mysqlservice.close()
+    
+if __name__ == "__main__":
+    # The input today_date needs to be the real date at next settlement date start, in the format of YYYY-MM-DD
+    today_date_str = sys.argv[1]
+    run(today_date_str)

@@ -8,10 +8,9 @@ from vnpy_self.alert_sender import send_email
 from vnpy_portfoliostrategy.mysqlservice import MysqlService
 db = MysqlService()
 db.init_connection()
+import sys
 
-# to update strategies after open
-if __name__ == "__main__":
-    # today_str = datetime(2024,9,18).strftime('%Y-%m-%d')
+def run(today_str:str): 
     today_str = datetime.today().strftime('%Y-%m-%d')
     next_day = db.select('trading_schedule',strategy='dom',today = today_str)['date'].values[0]
     strategies = db.select('strategies',date = today_str)
@@ -19,3 +18,8 @@ if __name__ == "__main__":
     for s in strategies.drop('id',axis=1).iterrows():
         db.insert('strategies', ignore=True, **s[1].to_dict())
     db.close()
+    
+if __name__ == "__main__":
+    # The input today_date needs to be the real date at next settlement date start, in the format of YYYY-MM-DD
+    today_date = sys.argv[1]
+    run(today_date)
