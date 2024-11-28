@@ -221,10 +221,10 @@ def run(today_date_str:str):
     w = (0.5*w1[0]+0.3*w2[0]+0.2*w3[0]).round(0)
     print(w)
     print(pro)
-    d,m = bt_all(         w.iloc[-1],
-             pro[w.columns].iloc[-1],
-            pr88[w.columns].iloc[-1],
-              pr[w.columns].iloc[-1],
+    d,m = bt_all(w,
+             pro[w.columns],
+            pr88[w.columns],
+              pr[w.columns],
             mul_mappings,
             exec_delay=1,
             initial_capital=used_money,
