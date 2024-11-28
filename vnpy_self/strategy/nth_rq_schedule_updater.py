@@ -8,7 +8,7 @@ from vnpy_portfoliostrategy.mysqlservice import MysqlService
 mysqlservice = MysqlService()
 mysqlservice.init_connection()
 
-def symbol_rq2vnpy(l):
+def symbol_rq2vnpy(l, all_data):
     return all_data.loc[all_data['order_book_id'].isin(l)][['trading_code','exchange']].apply(lambda x: '.'.join(x), axis = 1).values
 
 def run(today_str:str): 
@@ -36,10 +36,10 @@ def run(today_str:str):
             dom2_contract_today = futures.get_dominant(i,today_str,rule=0,rank=2).values[0]
             rq_today_dom2_list.append(dom2_contract_today)
 
-    next_trading_day_dom_list = symbol_rq2vnpy(rq_next_trading_day_dom_list)
-    next_trading_day_dom2_list = symbol_rq2vnpy(rq_next_trading_day_dom2_list)
-    today_dom_list =  symbol_rq2vnpy(rq_today_dom_list)
-    today_dom2_list = symbol_rq2vnpy(rq_today_dom2_list)
+    next_trading_day_dom_list = symbol_rq2vnpy(rq_next_trading_day_dom_list, all_data)
+    next_trading_day_dom2_list = symbol_rq2vnpy(rq_next_trading_day_dom2_list, all_data)
+    today_dom_list =  symbol_rq2vnpy(rq_today_dom_list, all_data)
+    today_dom2_list = symbol_rq2vnpy(rq_today_dom2_list, all_data)
     mysqlservice.insert('trading_schedule', ignore=True, today = today_str, date = next_trading_day, symbol = ','.join(rq_next_trading_day_dom_list), strategy = 'dom', sc_symbol = 'rq_dom')
     mysqlservice.insert('trading_schedule', ignore=True, today = today_str, date = next_trading_day, symbol = ','.join(rq_next_trading_day_dom2_list), strategy = 'dom2', sc_symbol = 'rq_dom2')
     
