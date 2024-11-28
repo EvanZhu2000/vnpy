@@ -1,17 +1,12 @@
 import pandas as pd
+from pt_tools import *
+import sys
 
-from vnpy_self.data_and_db.db_setting import db_setting
-import mysql.connector
-mydb = mysql.connector.connect(
-  host= db_setting['host'],
-  user= db_setting['user'],
-  password= db_setting['password']
-)
-mycursor = mydb.cursor()
-
-def run(strategy):
-    orders = pd.read_sql_query(f"SELECT * FROM vnpy.strategy_order where strategy = '{strategy}' and order_status = 'Status.ALLTRADED';", mydb)
-    print(orders.eval("price * (tar-pos)").groupby(orders['datetime'].dt.date).sum())
+def run(file_name):
+    d = pd.read_csv(f'../{file_name}')
+    print(d.tail())
+    return plot(1000000, d.sum(1))
 
 if __name__ == "__main__":
-    run('strategy1')
+    file_name = sys.argv[1]
+    run(file_name)
