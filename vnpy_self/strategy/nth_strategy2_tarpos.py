@@ -219,8 +219,6 @@ def run(today_date_str:str):
     w2 = weight(-settings_all(set_list,'x0&x1&x3&x4','x0&x1&x3&x4'), mul_mappings, pr88, sam, initial_capital=money, toRound=False, used_cap_limit=used_money)
     w3 = weight(-settings_all(set_list,'x0&x3','x0&x3'), mul_mappings, pr88, sam, initial_capital=money, toRound=False, used_cap_limit=used_money)
     w = (0.5*w1[0]+0.3*w2[0]+0.2*w3[0]).round(0)
-    print(w)
-    print(pro)
     d,m = bt_all(w,
              pro[w.columns],
             pr88[w.columns],
