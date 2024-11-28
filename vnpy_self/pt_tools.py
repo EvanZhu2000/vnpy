@@ -1102,7 +1102,7 @@ def plot(ini_cap,d,m=None,t=None,rollingsharpe=False):
                 x=1
             )
         )
-        fig.show()
+        return fig
 
 def plota(ini_cap, df, sort=None, **mapping):
     color_discrete_map= {'股指期货': 'red',
