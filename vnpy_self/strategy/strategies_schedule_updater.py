@@ -11,7 +11,6 @@ db.init_connection()
 import sys
 
 def run(today_str:str): 
-    today_str = datetime.today().strftime('%Y-%m-%d')
     next_day = db.select('trading_schedule',strategy='dom',today = today_str)['date'].values[0]
     strategies = db.select('strategies',date = today_str)
     strategies['date'] = next_day
