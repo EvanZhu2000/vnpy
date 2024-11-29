@@ -227,7 +227,7 @@ def run(today_date_str:str):
             exec_delay=1,
             initial_capital=used_money,
             commission=0.0001,toFormat=True)
-    d.to_csv('../analysis/strategy2_expected_pnl.csv')
+    d.to_csv('vnpy_self/analysis/strategy2_expected_pnl.csv')
     balancing_list = w.replace(np.nan,0).iloc[-1]
     
     # in the research -1 means buy but in vnpy vice versa
