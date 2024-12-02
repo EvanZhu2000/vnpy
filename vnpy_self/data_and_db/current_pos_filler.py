@@ -4,7 +4,7 @@ from time import sleep
 from vnpy.event import EventEngine
 from vnpy.trader.engine import MainEngine
 from vnpy_ctp import CtpGateway
-from vnpy_self.ctp_setting import ctp_setting_uat, ctp_setting_live
+from vnpy_self.ctp_setting import *
 import pandas as pd
 from vnpy.trader.constant import Direction
 from vnpy_portfoliostrategy.mysqlservice import MysqlService
@@ -13,12 +13,7 @@ mysqlservice.init_connection()
 
 
 def run(option:str):
-    if option == 'uat':
-        ctp_setting = ctp_setting_uat
-    elif option == 'live':
-        ctp_setting = ctp_setting_live
-    else:
-        raise Exception(f'Wrong option input {option}')
+    ctp_setting = ctp_map(option)
     
     event_engine = EventEngine()
     main_engine = MainEngine(event_engine)

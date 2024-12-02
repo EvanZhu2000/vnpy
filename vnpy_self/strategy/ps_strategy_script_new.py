@@ -6,7 +6,7 @@ from vnpy.trader.engine import MainEngine
 from vnpy_ctp import CtpGateway
 from vnpy_portfoliostrategy import PortfolioStrategyApp
 from vnpy_portfoliostrategy.base import EVENT_PORTFOLIO_LOG
-from vnpy_self.ctp_setting import ctp_setting_uat, ctp_setting_live
+from vnpy_self.ctp_setting import *
 from vnpy_self.general import *
 from vnpy.trader.constant import Direction
 import json
@@ -32,12 +32,8 @@ def run(option:str, quickstart:str):
     main_engine.init_engines()
     main_engine.add_gateway(CtpGateway)
     ps_engine = main_engine.add_app(PortfolioStrategyApp)
-    if option == 'uat':
-        ctp_setting = ctp_setting_uat
-    elif option == 'live':
-        ctp_setting = ctp_setting_live
-    else:
-        main_engine.write_exception(f'Wrong option input {option}')   
+    ctp_setting = ctp_map(option)
+    main_engine.env = option
         
     main_engine.write_log("主引擎创建成功")
     log_engine = main_engine.get_engine("log")

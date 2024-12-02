@@ -50,7 +50,8 @@ class MainEngine:
     """
     Acts as the core of the trading platform.
     """
-
+    env = None
+    
     def __init__(self, event_engine: EventEngine = None) -> None:
         """"""
         if event_engine:

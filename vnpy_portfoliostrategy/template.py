@@ -122,7 +122,7 @@ class StrategyTemplate(ABC):
         """策略停止回调"""
         self.write_log(f"FINAL pos_data {self.nonzero_dict(self.pos_data)}")
         self.write_log(f"FINAL target_data {self.nonzero_dict(self.target_data)}")
-        self.email("Strategy2 successfully rebalance", "Strategy2 successfully rebalance")
+        self.email(f"Strategy2 successfully rebalance for env: {self.strategy_engine.main_engine.env}", "Strategy2 successfully rebalance")
         self.strategy_engine.dbservice.init_connection()
         self.strategy_engine.dbservice.update_pos(self.strategy_name, self.pos_data)
         self.strategy_engine.dbservice.close()
@@ -131,7 +131,7 @@ class StrategyTemplate(ABC):
     def on_tick(self, tick: TickData) -> bool:
         """行情推送回调"""
         # this part is to check whether the subscription is successful
-        if self.symbol_status[tick.vt_symbol].last_tick is not None:
+        if self.symbol_status[tick.vt_symbol].last_tick is None:
             self.write_log(f'first tick for {tick.vt_symbol} is {tick}')
             self.symbol_status[tick.vt_symbol].last_tick = tick
             
