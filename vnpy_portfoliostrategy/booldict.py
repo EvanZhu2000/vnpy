@@ -5,7 +5,7 @@ class BoolDict:
         self.data = {}
         self.true_count = 0
         for k in false_keys_list:
-            self.bool_dict.set(k, False)
+            self.set(k, False)
 
     def set(self, key, value):
         # If the value is being changed from False to True
