@@ -1,9 +1,11 @@
 # An efficient implementation tracking whether all positions have been adjusted to desire
 
 class BoolDict:
-    def __init__(self):
+    def __init__(self, false_keys_list: list):
         self.data = {}
         self.true_count = 0
+        for k in false_keys_list:
+            self.bool_dict.set(k, False)
 
     def set(self, key, value):
         # If the value is being changed from False to True
@@ -18,3 +20,6 @@ class BoolDict:
 
     def all_true(self):
         return self.true_count == len(self.data)
+    
+    def get_false_keys(self):
+        return [key for key, value in self.data.items() if not value]

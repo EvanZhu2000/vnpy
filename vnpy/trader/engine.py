@@ -119,9 +119,11 @@ class MainEngine:
         log: LogData = LogData(msg=msg, gateway_name=source)
         event: Event = Event(EVENT_LOG, log)
         self.event_engine.put(event)
-        
+    
+    # This method doesn't seem to work as expected as exceptions are not written in logs until the next restart
     def write_exception(self, msg: str, source: str = "") -> None:
         self.write_log(msg, source)
+        sleep(1)
         raise Exception(msg)
         
     def get_gateway(self, gateway_name: str) -> BaseGateway:

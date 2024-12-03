@@ -34,12 +34,11 @@ class SimpleBuyStrategy(StrategyTemplate):
     ) -> None:
         super().__init__(strategy_engine, strategy_name, vt_symbols, setting)
         
-        self.bool_dict = BoolDict()
+        self.bool_dict = BoolDict(vt_symbols)
         qty_list = self.quantity.split(',')
         if len(qty_list) != len(self.vt_symbols):
             raise Exception('wrong length of quantity and vt_symbols')
         for ix,symb in enumerate(self.vt_symbols):
-            self.bool_dict.set(symb, False)
             self.set_target(symb, int(qty_list[ix]))
             self.write_log(f"symb {symb} curpos = {self.get_pos(symb)}")
             self.write_log(f"symb {symb} tarpos = {self.get_target(symb)}")

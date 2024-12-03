@@ -91,7 +91,6 @@ def run(option:str, quickstart:str):
             allpos = omsEngine.get_all_positions()
             if allpos is not None and len(allpos) != 0:
                 break;  
-        allpos = omsEngine.get_all_positions()
         abc = pd.DataFrame([x.__dict__ for x in allpos])
         qwe = pd.concat([abc['vt_symbol'],
                         abc['direction'].map({Direction.LONG:1,Direction.SHORT:-1}) * abc['volume']], axis=1)

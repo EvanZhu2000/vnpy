@@ -40,6 +40,8 @@ class StrategyTemplate(ABC):
         """构造函数"""
         self.strategy_engine: "StrategyEngine" = strategy_engine
         self.strategy_name: str = strategy_name
+        self.starting_time = None
+        self.time_since_last_tick = timedelta(minutes=1) # Hard code to be 1 minute at the time being
         self.vt_symbols: list[str] = vt_symbols
 
         # 状态控制变量
@@ -115,6 +117,7 @@ class StrategyTemplate(ABC):
     @virtual
     def on_start(self) -> None:
         """策略启动回调"""
+        self.starting_time = datetime.now()
         pass
 
     @virtual
@@ -128,17 +131,24 @@ class StrategyTemplate(ABC):
         self.strategy_engine.dbservice.close()
 
     @virtual
+    # return False when the tick has some issues
     def on_tick(self, tick: TickData) -> bool:
         """行情推送回调"""
-        # this part is to check whether the subscription is successful
-        if self.symbol_status[tick.vt_symbol].last_tick is None:
-            self.write_log(f'first tick for {tick.vt_symbol} is {tick}')
-            self.symbol_status[tick.vt_symbol].last_tick = tick
-            
         if not self.check_valid_tick(tick):
             return False
         else:
             return True
+        
+        # this part is to check whether the subscription is successful
+        if self.symbol_status[tick.vt_symbol].last_tick is None:
+            self.write_log(f'first tick for {tick.vt_symbol} is {tick}')
+            self.symbol_status[tick.vt_symbol].last_tick = tick
+        elif tick.datetime - self.symbol_status[tick.vt_symbol].last_tick < 0:
+            return False
+        elif tick.datetime - self.symbol_status[tick.vt_symbol].last_tick > self.time_since_last_tick:
+            # TODO this should be a first-level warning instead
+            self.write_log(f'Too long since last tick for {tick.vt_symbol}')
+
 
     @virtual
     def on_bars(self, bars: dict[str, BarData]) -> None:
