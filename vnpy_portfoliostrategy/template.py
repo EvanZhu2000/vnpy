@@ -17,7 +17,7 @@ class SymbolStatus():
     can_counts = 0
     order_list = []
     stop_because_FAK_cancel = False
-    last_tick = None  # for now it is just used to record whether we at least received one tick
+    last_tick: Optional[TickData] = None  # for now it is just used to record whether we at least received one tick
     
     def is_stop(self):
         return self.stop_because_FAK_cancel
@@ -139,9 +139,9 @@ class StrategyTemplate(ABC):
         if self.symbol_status[tick.vt_symbol].last_tick is None:
             self.write_log(f'first tick for {tick.vt_symbol} is {tick}')
             self.symbol_status[tick.vt_symbol].last_tick = tick
-        elif tick.datetime - self.symbol_status[tick.vt_symbol].last_tick < 0:
+        elif tick.datetime - self.symbol_status[tick.vt_symbol].last_tick.datetime < 0:
             return False
-        elif tick.datetime - self.symbol_status[tick.vt_symbol].last_tick > self.time_since_last_tick:
+        elif tick.datetime - self.symbol_status[tick.vt_symbol].last_tick.datetime > self.time_since_last_tick:
             # TODO this should be a first-level warning instead
             self.write_log(f'Too long since last tick for {tick.vt_symbol}, breaching {self.time_since_last_tick}')
             
