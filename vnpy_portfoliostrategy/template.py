@@ -134,8 +134,6 @@ class StrategyTemplate(ABC):
         """行情推送回调"""
         if not self.check_valid_tick(tick):
             return False
-        else:
-            return True
         
         # this part is to check whether the subscription is successful
         if self.symbol_status[tick.vt_symbol].last_tick is None:
@@ -145,7 +143,9 @@ class StrategyTemplate(ABC):
             return False
         elif tick.datetime - self.symbol_status[tick.vt_symbol].last_tick > self.time_since_last_tick:
             # TODO this should be a first-level warning instead
-            self.write_log(f'Too long since last tick for {tick.vt_symbol}')
+            self.write_log(f'Too long since last tick for {tick.vt_symbol}, breaching {self.time_since_last_tick}')
+            
+        return True
 
 
     @virtual
