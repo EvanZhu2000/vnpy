@@ -56,7 +56,7 @@ class Strategy2(StrategyTemplate):
         if self.rebal_tracker.all_true():
             self.strategy_engine.stop_strategy(self.strategy_name,
                                                f"All have rebalanced. Stop the strategy {self.strategy_name} now",
-                                               f"Strategy2_success_{self.strategy_engine.main_engine.env}")
+                                               f"{self.strategy_name}_success_{self.strategy_engine.main_engine.env}")
             return
         
         self.tick_tracker.set(tick.vt_symbol, True)
@@ -64,7 +64,7 @@ class Strategy2(StrategyTemplate):
             # for this strategy, safe to stop the strategy if one ticker is not subscripable
             self.strategy_engine.stop_strategy(self.strategy_name,
                                             f"Cannot receive ticks after {self.time_since_first_tick} for instruments {self.tick_tracker.get_false_keys()}, starting {self.starting_time}",
-                                            f"Strategy2_fail_{self.strategy_engine.main_engine.env}")
+                                            f"{self.strategy_name}_fail_{self.strategy_engine.main_engine.env}")
             return 
 
         if (self.get_target(tick.vt_symbol) != self.get_pos(tick.vt_symbol)):
