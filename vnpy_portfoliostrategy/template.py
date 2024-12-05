@@ -139,7 +139,7 @@ class StrategyTemplate(ABC):
         if self.symbol_status[tick.vt_symbol].last_tick is None:
             self.write_log(f'first tick for {tick.vt_symbol} is {tick}')
             self.symbol_status[tick.vt_symbol].last_tick = tick
-        elif tick.datetime - self.symbol_status[tick.vt_symbol].last_tick.datetime < 0:
+        elif tick.datetime - self.symbol_status[tick.vt_symbol].last_tick.datetime < timedelta(minutes=0):
             return False
         elif tick.datetime - self.symbol_status[tick.vt_symbol].last_tick.datetime > self.time_since_last_tick:
             # TODO this should be a first-level warning instead
