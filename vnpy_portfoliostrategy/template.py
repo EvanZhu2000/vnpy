@@ -7,7 +7,6 @@ from vnpy.trader.constant import Interval, Direction, Offset, Status
 from vnpy.trader.object import BarData, TickData, OrderData, TradeData, OrderType
 from vnpy.trader.utility import virtual
 from vnpy_portfoliostrategy.base import EngineType
-from vnpy_self.alert_sender import *
 
 if TYPE_CHECKING:
     from vnpy_portfoliostrategy.engine import StrategyEngine
@@ -125,7 +124,6 @@ class StrategyTemplate(ABC):
         """策略停止回调"""
         self.write_log(f"FINAL pos_data {self.nonzero_dict(self.pos_data)}")
         self.write_log(f"FINAL target_data {self.nonzero_dict(self.target_data)}")
-        self.email(f"Strategy2 successfully rebalance for env: {self.strategy_engine.main_engine.env}", "Strategy2 successfully rebalance")
         self.strategy_engine.dbservice.init_connection()
         self.strategy_engine.dbservice.update_pos(self.strategy_name, self.pos_data)
         self.strategy_engine.dbservice.close()
@@ -299,7 +297,9 @@ class StrategyTemplate(ABC):
         # Something wrong with the system
         if rej_count >=3:
             self.on_stop()
-            self.strategy_engine.stop_strategy(self.strategy_name, f"reject counts >=3 for {vt_symbol}")\
+            self.strategy_engine.stop_strategy(self.strategy_name, 
+                                               f"reject counts >=3 for {vt_symbol}",
+                                               f"{self.strategy_name}_fail_{self.strategy_engine.main_engine.env}")
         # the book moved so fast
         if can_count >=3:
             self.symbol_status[vt_symbol].stop_because_FAK_cancel=True
@@ -491,9 +491,6 @@ class StrategyTemplate(ABC):
         """推送策略数据更新事件"""
         if self.inited:
             self.strategy_engine.put_strategy_event(self)
-    
-    def email(self, title: str, msg: str) -> None:
-        send_email(title, msg)
 
     def send_email(self, msg: str) -> None:
         """发送邮件信息"""
@@ -516,7 +513,8 @@ class StrategyTemplate(ABC):
         # Check whether the tick is in continuous trading hours
         if tick.vt_symbol not in self.trading_hours.keys():
             self.strategy_engine.stop_strategy(self.strategy_name, 
-                                               f"No trading hours provided for {tick.vt_symbol}. Stop the strategy {self.strategy_name} now")
+                                               f"No trading hours provided for {tick.vt_symbol}. Stop the strategy {self.strategy_name} now",
+                                               f"{self.strategy_name}_fail_{self.strategy_engine.main_engine.env}")
             return False
         else:
             continuous_trading_intervals = self.trading_hours[tick.vt_symbol]
