@@ -556,6 +556,8 @@ class StrategyTemplate(ABC):
     def get_open_time(self, intervals, start_time_minus_seconds=60) -> datetime:
         try:
             interval = intervals.split(',')[0]
+            print(interval)
+            print(intervals)
             start_str, _ = interval.split('-')
             start_time = datetime.strptime(start_str, '%H:%M').time()
             adjusted_start_time = (datetime.combine(datetime.today(), start_time) - timedelta(seconds=start_time_minus_seconds))
