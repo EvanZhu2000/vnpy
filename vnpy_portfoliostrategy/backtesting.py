@@ -35,12 +35,16 @@ import math
 #     Interval.DAILY: timedelta(days=1),
 # }
 
+class MainEngineMock():
+    def __init__(self):
+        self.env = 'BACKTEST'
 
 class BacktestingEngine(StrategyEngine):
     """组合策略回测引擎"""
 
     engine_type: EngineType = EngineType.BACKTESTING
     gateway_name: str = "BACKTESTING"
+    main_engine = MainEngineMock()
 
     def __init__(self) -> None:
         """构造函数"""
@@ -58,7 +62,7 @@ class BacktestingEngine(StrategyEngine):
         self.annual_days: int = 250
 
         self.strategy_class: StrategyTemplate = None
-        self.strategy: StrategyTemplate = None
+        self.strategy: StrategyTemplate = None  # there is only 1 strategy in backtest
         self.bars: dict[str, BarData] = {}
         self.ticks: dict[str, TickData] = {}
         self.datetime: datetime = None
@@ -150,7 +154,7 @@ class BacktestingEngine(StrategyEngine):
             self, strategy_class.__name__, copy(self.vt_symbols), setting
         )
         
-    def stop_strategy(self, strategy_name: str, message = None) -> None:
+    def stop_strategy(self, strategy_name: str, message = None, header = None) -> None:
         """停止策略"""
         if not self.strategy.trading:
             return
@@ -936,6 +940,7 @@ class BacktestingEngine(StrategyEngine):
                 ask_price_1 = l['ask_price_1'],
                 bid_volume_1 = l['bid_volume_1'],
                 ask_volume_1 = l['ask_volume_1'],
+                last_price = l['last_price']
             )
             res.append(tick)
         return res

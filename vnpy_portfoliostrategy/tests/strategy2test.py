@@ -42,10 +42,16 @@ if __name__ == "__main__":
     df = engine.calculate_result()
     trades = engine.get_all_trades(use_df=True)
     orders = pd.DataFrame([x.__dict__ for x in engine.get_all_orders()])
+    
+    print(pd.DataFrame(engine.strategy.trades))
+    print(pd.DataFrame([x.__dict__ for x in list(engine.strategy.trades.values())[0]],
+                        index = [engine.strategy.trades.keys()]*len(list(engine.strategy.trades.values())[0])))
     if not trades.empty:
         print(trades[['datetime','vt_symbol', 'vt_orderid','direction','offset','price', 'volume']])
     if not orders.empty:
         print(orders[['datetime','vt_symbol', 'vt_orderid','direction','offset','price', 'volume','type', 'traded', 'status']])
+    
+    print(','.join(engine.logs))
     
     # engine.calculate_statistics()
     # engine.show_chart()

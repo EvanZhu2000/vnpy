@@ -14,7 +14,7 @@ from vnpy.trader.constant import Direction, Status
 
 from vnpy_portfoliostrategy import StrategyTemplate, StrategyEngine
 from vnpy_portfoliostrategy.utility import PortfolioBarGenerator
-from vnpy_portfoliostrategy.booldict import BoolDict
+from vnpy_portfoliostrategy.helperclass import *
 
 # only to test FAK
 class SimpleBuyStrategy(StrategyTemplate):

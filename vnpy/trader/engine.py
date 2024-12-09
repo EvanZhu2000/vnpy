@@ -9,6 +9,7 @@ from email.message import EmailMessage
 from queue import Empty, Queue
 from threading import Thread
 from typing import Any, Type, Dict, List, Optional
+import time
 
 from vnpy.event import Event, EventEngine
 from .app import BaseApp
@@ -123,7 +124,7 @@ class MainEngine:
     # This method doesn't seem to work as expected as exceptions are not written in logs until the next restart
     def write_exception(self, msg: str, source: str = "") -> None:
         self.write_log(msg, source)
-        sleep(1)
+        time.sleep(1)
         raise Exception(msg)
         
     def get_gateway(self, gateway_name: str) -> BaseGateway:

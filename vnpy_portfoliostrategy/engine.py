@@ -686,6 +686,9 @@ class StrategyEngine(BaseEngine):
         event: Event = Event(type=EVENT_PORTFOLIO_LOG, data=log)
         self.event_engine.put(event)
         
+    def write_exception(self, msg: str, strategy: StrategyTemplate = None) -> None:
+        self.main_engine.write_exception(msg, strategy)
+        
     def email(self, title: str, msg: str) -> None:
         send_email(title, msg)
 
