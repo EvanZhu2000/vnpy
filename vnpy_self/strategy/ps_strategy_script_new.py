@@ -52,10 +52,16 @@ def run(option:str, quickstart:str):
     # === from db get stuff
     tmp = db.select('trading_schedule',today = datetime.today().date(), strategy = strategy_title)
     if tmp.empty:
+        # today is the second day
         tmp = db.select('trading_schedule', date = datetime.today().date(), strategy = strategy_title)
         current_day = pd.to_datetime(tmp['today'].iloc[0]).strftime('%Y-%m-%d')
+        settlement_dates_str = current_day+','+datetime.today().strftime('%Y-%m-%d')+':'+tmp['timezone'].iloc[0]
     else:
+        # today is the first day
         current_day = datetime.today().strftime('%Y-%m-%d')
+        next_day = pd.to_datetime(tmp['date'].iloc[0]).strftime('%Y-%m-%d')
+        settlement_dates_str = current_day+','+next_day+':'+tmp['timezone'].iloc[0]
+        
     # current_day is supposingly when the script should be start running, ideally 21:00 every settlement date
     main_engine.write_log(f"settlement date starting day is {current_day}")
     
@@ -82,7 +88,8 @@ def run(option:str, quickstart:str):
     
     vt_symbols = ans.index.values.tolist()
     settings = dict({'ans':json.dumps(ans.to_dict()),
-                     'trading_hours':json.dumps(trading_hours[['symbol','trading_hours']].set_index('symbol').to_dict()['trading_hours'])})
+                     'trading_hours':json.dumps(trading_hours[['symbol','trading_hours']].set_index('symbol').to_dict()['trading_hours']),
+                     'settlement_dates_str':settlement_dates_str})
     
     # ===== Examine positions if necessary
     if quickstart == 'False':
@@ -117,7 +124,7 @@ def run(option:str, quickstart:str):
     
     while True:
         sleep(60)
-        if not check_trading_period():
+        if not check_trading_period_chinafutures():
             main_engine.write_log("ps策略全部close")
             ps_engine.stop_all_strategies()
             main_engine.close()

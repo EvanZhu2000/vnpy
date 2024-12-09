@@ -21,6 +21,10 @@ class Strategy2(StrategyTemplate):
         # self.time_since_first_tick = timedelta(minutes=1)
         self.write_log(f"vt_symbols {vt_symbols}")
         
+        if 'settlement_dates_str' in setting:
+            self.settlement_dates_str = setting['settlement_dates_str']
+            self.write_log(f"settlement_dates_str: {self.settlement_dates_str}")
+        
         if 'ans' in setting:
             tarpos = json.loads(setting['ans'])['target']
             curpos = json.loads(setting['ans'])['pos']
@@ -70,15 +74,15 @@ class Strategy2(StrategyTemplate):
                                 f"{self.strategy_name}_attention_{self.strategy_engine.main_engine.env}")
             return
         
-        if tick.datetime - self.rebal_tracker.target_time_dict[tick.vt_symbol] > self.time_since_last_tick:
-            # for this strategy, stop the ticker if it is not subscripable
-            self.symbol_status[tick.vt_symbol].stop_late_tick_rebal = True
-            self.rebal_tracker.true_count += 1
-            
-            ### Stop the entire strategy
-            # self.strategy_engine.stop_strategy(self.strategy_name,
-            #                                 f"Cannot receive ticks after {self.time_since_first_tick} for instruments {self.tick_tracker.get_false_keys()},   starting {self.starting_time}",
-            #                                 f"{self.strategy_name}_fail_{self.strategy_engine.main_engine.env}")
+        # I don't think it is necessary to do check for late rebalance
+        
+        # Initial Check
+        if self.starting_time is not None and tick.datetime is not None \
+            and tick.datetime - self.starting_time > self.time_since_starting\
+            and self.symbol_status[tick.vt_symbol].last_tick is None:
+            self.strategy_engine.stop_strategy(self.strategy_name,
+                                    f"{tick.vt_symbol} didn't receive any ticks since start up",
+                                    f"{self.strategy_name}_fail_{self.strategy_engine.main_engine.env}")
             return
 
         if (self.get_target(tick.vt_symbol) != self.get_pos(tick.vt_symbol)):

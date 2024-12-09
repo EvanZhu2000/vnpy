@@ -10,6 +10,7 @@ from vnpy_portfoliostrategy.base import EngineType
 from vnpy_portfoliostrategy.helperclass import *
 from collections import defaultdict
 from typing import DefaultDict, List
+from vnpy_self.general import *
 import pytz
 
 if TYPE_CHECKING:
@@ -32,12 +33,16 @@ class StrategyTemplate(ABC):
         """构造函数"""
         self.strategy_engine: "StrategyEngine" = strategy_engine
         self.strategy_name: str = strategy_name
-        # self.starting_time = None
-        self.time_since_last_tick = timedelta(seconds=60) # Hard code
+        self.starting_time: datetime = None
         self.vt_symbols: list[str] = vt_symbols
         self.trading_hours: dict[str, str] = None  # symb: trading hours
         self.rebal_tracker: BoolDict = None
+        self.settlement_dates_str = None
 
+        # Hard code stuff
+        self.time_since_last_tick = timedelta(seconds=60) 
+        self.time_since_starting = timedelta(minutes=10) 
+        
         # 状态控制变量
         self.inited: bool = False
         self.trading: bool = False
@@ -112,7 +117,7 @@ class StrategyTemplate(ABC):
     @virtual
     def on_start(self) -> None:
         """策略启动回调"""
-        # self.starting_time = datetime.now()
+        self.starting_time = datetime.now()
         pass
 
     @virtual
@@ -136,6 +141,7 @@ class StrategyTemplate(ABC):
         if self.symbol_status[tick.vt_symbol].last_tick is None:
             self.write_log(f'first tick for {tick.vt_symbol} is {tick}')
             self.symbol_status[tick.vt_symbol].last_tick = tick
+        # feed check
         elif tick.datetime - self.symbol_status[tick.vt_symbol].last_tick.datetime < timedelta(minutes=0):
             return False
         elif tick.datetime - self.symbol_status[tick.vt_symbol].last_tick.datetime > self.time_since_last_tick:
@@ -556,12 +562,17 @@ class StrategyTemplate(ABC):
     
     def get_open_time(self, intervals, start_time_minus_seconds=60) -> datetime:
         try:
-            interval = intervals.split(',')[0]
-            start_str, _ = interval.split('-')
-            start_time = datetime.strptime(start_str, '%H:%M').time()
-            adjusted_start_time = (datetime.combine(datetime.today(), start_time) - timedelta(seconds=start_time_minus_seconds))
-            adjusted_start_time = pytz.timezone('Asia/Shanghai').localize(adjusted_start_time)
-            return adjusted_start_time
+            dates, zones = self.settlement_dates_str.split(':')
+            date_1, date_2 = dates.split(',')
+            
+            start_time_str = intervals.split(',')[0].split('-')[0]
+            start_time = datetime.strptime(start_time_str, '%H:%M').time()
+            adjusted_start_time = (datetime.combine(datetime.today(), start_time) - timedelta(seconds=start_time_minus_seconds)).time()
+            
+            date_to_use = date_2 if adjusted_start_time <= DAY_END_CHINAFUTURES else date_1
+            result = datetime.combine(datetime.strptime(date_to_use, '%Y-%m-%d'), adjusted_start_time)
+            # result = pytz.timezone(zones).localize(result)
+            return result
         except Exception as e:
             self.strategy_engine.write_exception(f'cannot get open time - exception {e}')
             

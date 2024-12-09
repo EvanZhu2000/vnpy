@@ -34,7 +34,8 @@ if __name__ == "__main__":
                         index=pd.Index(['fu2501.SHFE'],name='symbol'),
                         columns = ['target','pos'])
     settings = dict({'ans':json.dumps(ans.to_dict()),
-                     'trading_hours':json.dumps(trading_hours)})
+                     'trading_hours':json.dumps(trading_hours),
+                     'settlement_dates_str':'2024-11-14,2024-11-15:Asia/Shanghai'})
     engine.add_strategy(Strategy2, settings)
     engine.init_strategy()
     engine.load_data()
