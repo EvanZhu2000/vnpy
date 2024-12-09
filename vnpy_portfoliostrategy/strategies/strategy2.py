@@ -35,6 +35,7 @@ class Strategy2(StrategyTemplate):
             for symb,th in self.trading_hours.items():
                 if symb in vt_symbols:
                     target_time_collection[symb] = self.get_open_time(th)
+                    print(f"{symb}, {target_time_collection[symb]}")
             self.rebal_tracker = BoolDict(vt_symbols, target_time_collection)
     
     def on_init(self) -> None:
