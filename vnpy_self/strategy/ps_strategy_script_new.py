@@ -95,7 +95,7 @@ def run(option:str, quickstart:str):
         qwe = pd.concat([abc['vt_symbol'],
                         abc['direction'].map({Direction.LONG:1,Direction.SHORT:-1}) * abc['volume']], axis=1)
         qwe = qwe.groupby(qwe['vt_symbol']).sum()
-        qwe = qwe.loc[qwe[0]!=0].sort_index().squeeze().astype(int)
+        qwe = qwe.loc[qwe[0]!=0].sort_index().squeeze(axis=1).astype(int)
         if not pos_data[['symbol','pos']].groupby('symbol').sum().query("pos!=0").sort_index().squeeze(axis=1).astype(int).equals(qwe):
             main_engine.write_exception("Wrong database positions record compared to CTP record")
         main_engine.write_log("Matching succeed: CTP and database")
