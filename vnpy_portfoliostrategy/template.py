@@ -10,6 +10,7 @@ from vnpy_portfoliostrategy.base import EngineType
 from vnpy_portfoliostrategy.helperclass import *
 from collections import defaultdict
 from typing import DefaultDict, List
+import pytz
 
 if TYPE_CHECKING:
     from vnpy_portfoliostrategy.engine import StrategyEngine
@@ -559,6 +560,7 @@ class StrategyTemplate(ABC):
             start_str, _ = interval.split('-')
             start_time = datetime.strptime(start_str, '%H:%M').time()
             adjusted_start_time = (datetime.combine(datetime.today(), start_time) - timedelta(seconds=start_time_minus_seconds))
+            adjusted_start_time = pytz.timezone('Asia/Shanghai').localize(adjusted_start_time)
             return adjusted_start_time
         except Exception as e:
             self.strategy_engine.write_exception(f'cannot get open time - exception {e}')
