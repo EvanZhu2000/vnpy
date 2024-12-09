@@ -35,7 +35,7 @@ class Strategy2(StrategyTemplate):
             for symb,th in self.trading_hours.items():
                 if symb in vt_symbols:
                     target_time_collection[symb] = self.get_open_time(th)
-                    print(f"{symb}, {target_time_collection[symb]}")
+                    self.write_log(f"taget_time: {symb} - {target_time_collection[symb]}")
             self.rebal_tracker = BoolDict(vt_symbols, target_time_collection)
     
     def on_init(self) -> None:
@@ -61,7 +61,7 @@ class Strategy2(StrategyTemplate):
         
         if self.rebal_tracker.all_true():
             self.strategy_engine.stop_strategy(self.strategy_name,
-                                               f"All have rebalanced. Stop the strategy {self.strategy_name} now",
+                                               f"All have rebalanced. Stop the strategy {self.strategy_name} now, {self.rebal_tracker.get_false_keys()}",
                                                f"{self.strategy_name}_success_{self.strategy_engine.main_engine.env}")
             return
         
