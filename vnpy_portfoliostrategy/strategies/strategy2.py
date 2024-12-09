@@ -33,7 +33,8 @@ class Strategy2(StrategyTemplate):
             self.trading_hours = json.loads(setting['trading_hours'])
             target_time_collection = dict()
             for symb,th in self.trading_hours.items():
-                target_time_collection[symb] = self.get_open_time(th)
+                if symb in vt_symbols:
+                    target_time_collection[symb] = self.get_open_time(th)
             self.rebal_tracker = BoolDict(vt_symbols, target_time_collection)
     
     def on_init(self) -> None:
