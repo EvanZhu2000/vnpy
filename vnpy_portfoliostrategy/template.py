@@ -117,7 +117,7 @@ class StrategyTemplate(ABC):
     @virtual
     def on_start(self) -> None:
         """策略启动回调"""
-        self.starting_time = datetime.now()
+        self.starting_time = datetime.now(pytz.timezone('Asia/Shanghai'))
         pass
 
     @virtual
