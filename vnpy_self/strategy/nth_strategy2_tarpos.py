@@ -218,7 +218,7 @@ def run(today_date_str:str):
     w1 = weight(-settings_all(set_list,'x3&x4','x3&x4'), mul_mappings, pr88, sam, initial_capital=money, toRound=False, used_cap_limit=used_money)
     w2 = weight(-settings_all(set_list,'x0&x1&x3&x4','x0&x1&x3&x4'), mul_mappings, pr88, sam, initial_capital=money, toRound=False, used_cap_limit=used_money)
     w3 = weight(-settings_all(set_list,'x0&x3','x0&x3'), mul_mappings, pr88, sam, initial_capital=money, toRound=False, used_cap_limit=used_money)
-    w = (0.5*w1[0]+0.3*w2[0]+0.2*w3[0]).round(0)
+    w = -(0.5*w1[0]+0.3*w2[0]+0.2*w3[0]).round(0)
     d,m = bt_all(w,
              pro[w.columns],
             pr88[w.columns],
@@ -228,10 +228,8 @@ def run(today_date_str:str):
             initial_capital=used_money,
             commission=0.0001,toFormat=True)
     d.to_csv('~/miniconda3/envs/vnpy3/lib/python3.10/site-packages/vnpy_self/analysis/strategy2_expected_pnl.csv')
+    w.to_csv('~/miniconda3/envs/vnpy3/lib/python3.10/site-packages/vnpy_self/analysis/strategy2_positions.csv')
     balancing_list = w.replace(np.nan,0).iloc[-1]
-    
-    # in the research -1 means buy but in vnpy vice versa
-    balancing_list = -balancing_list
 
     # 4. insert balancing_list into database
     if today_date.date() != balancing_list.name.date():

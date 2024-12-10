@@ -135,11 +135,15 @@ def weight(g, mul_map, ori_price, sample_days, initial_capital=10000000,toRound=
     return g_df, used_capital
 
 def bt_all(g_df, ins_price, ori_price, mtm_price, mul_map, initial_capital=10000000, 
-           commission = 0.0001, exec_delay=0, to=None, toFormat=True,toValid=True):
+           commission = 0.0001, exec_delay=0, to=None, toFormat=True,toValid=True,toBreakdown=False):
     '''
     all of g_df, ins_price and ori_price need to be dataframe with columns as sequenced datetimes and index as names
     ori_price: the price to calculate fees, used in pairs trading, usually need to be 88
+    mtm_price: the price to calculate settlment, should use settlement price adjusted for rollover
     mul: dictionary
+    toFormat: to format the output
+    toValid: to validate the forms of different inputs
+    toBreakdown: to break down different components, easier to do risk check
     
     Explanation:
     to: if provided with turnover, can calculate maximum capacity
@@ -184,22 +188,22 @@ def bt_all(g_df, ins_price, ori_price, mtm_price, mul_map, initial_capital=10000
         ttl_capacity = (to.loc[to.index.intersection(g_df.index)].iloc[-60:].mean() / min_cash_needed_per_ins.describe().loc['max'] * min_cash_needed_per_ins).sum() / 1000000000
     
     holding_pnl = g_df.groupby(g_df.index.date).first() * mtm_price.diff().shift(-1)
-    trading_pnl = g_df.diff() * (mtm_price.reindex(ins_price.set_index(ins_price.index.date).index).set_index(ins_price.index) - ins_price)
+    closing_pnl = g_df.diff() * (mtm_price.reindex(ins_price.set_index(ins_price.index.date).index).set_index(ins_price.index) - ins_price)
     commission = g_df.diff().abs() * ori_price * commission
-    daily_pnl = (holding_pnl + trading_pnl - commission) *mul_series
+    
+    holding_pnl *= mul_series
+    holding_pnl.index = pd.to_datetime(holding_pnl.index)
+    closing_pnl *= mul_series
+    closing_pnl.index = pd.to_datetime(closing_pnl.index)
+    commission *= mul_series
+    commission.index = pd.to_datetime(commission.index)
+    
+    daily_pnl = holding_pnl + closing_pnl - commission
     daily_pnl.index = pd.to_datetime(daily_pnl.index)
     
-    # --------------  old calculation -------------
-    # # calculate commission
-    # comm_df = commission * g_df.diff().abs() * mulprice_fee
-    # # get daily settled pnl
-    # price_daily = ins_price.groupby(ins_price.index.date).last()
-    # g_daily = g_df.groupby(g_df.index.date).last()
-    # c_daily = c_df.groupby(c_df.index.date).last()
-    # comm_daily = comm_df.groupby(comm_df.index.date).sum()
-    # daily_pnl = ((g_daily.diff()*mul_series*price_daily - comm_daily).cumsum().reindex(price_daily.index).ffill() - c_daily).diff()
-    # daily_pnl.index = pd.to_datetime(daily_pnl.index)
-    # ----------------------------------------------
+    trade_records = pd.concat([g.diff(),ins_price],keys=['pos','price'],axis=1).stack()
+    trade_records = trade_records.loc[(trade_records['pos'].notna())&(trade_records['pos'] != 0)]
+    
         
     # summary of the backtest
     result = []
@@ -227,7 +231,13 @@ def bt_all(g_df, ins_price, ori_price, mtm_price, mul_map, initial_capital=10000
         result.append(min_cash_needed)
         result.append(ttl_capacity)
     summary_df = pd.DataFrame(result, index=['sharpe','annu_ret','mdd','sortino','calmar','turnover','#trades','period','min_cash','ttl_capcity']).T
-    return daily_pnl, summary_df
+    
+    holding_pnl.index = pd.to_datetime(holding_pnl.index)
+    closing_pnl.index = pd.to_datetime(closing_pnl.index)
+    if toBreakdown:
+        return daily_pnl, summary_df, holding_pnl, closing_pnl, commission, trade_records
+    else:
+        return daily_pnl, summary_df
 
 
 def bt(a_df, ins_price, ins_price_to_cal_fee, mul, mul_method = None, initial_capital=None, commission = 0.0003, exec_delay=0, conform=True):
