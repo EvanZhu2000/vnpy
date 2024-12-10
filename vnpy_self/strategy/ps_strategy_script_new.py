@@ -55,12 +55,12 @@ def run(option:str, quickstart:str):
         # today is the second day
         tmp = db.select('trading_schedule', date = datetime.today().date(), strategy = strategy_title)
         current_day = pd.to_datetime(tmp['today'].iloc[0]).strftime('%Y-%m-%d')
-        settlement_dates_str = current_day+','+datetime.today().strftime('%Y-%m-%d')+':'+tmp['timezone'].iloc[0]
+        settlement_dates_str = current_day+','+datetime.today().strftime('%Y-%m-%d')+':'+'Asia/Shanghai'
     else:
         # today is the first day
         current_day = datetime.today().strftime('%Y-%m-%d')
         next_day = pd.to_datetime(tmp['date'].iloc[0]).strftime('%Y-%m-%d')
-        settlement_dates_str = current_day+','+next_day+':'+tmp['timezone'].iloc[0]
+        settlement_dates_str = current_day+','+next_day+':'+'Asia/Shanghai'
         
     # current_day is supposingly when the script should be start running, ideally 21:00 every settlement date
     main_engine.write_log(f"settlement date starting day is {current_day}")
