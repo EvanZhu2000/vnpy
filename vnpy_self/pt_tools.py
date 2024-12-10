@@ -201,7 +201,7 @@ def bt_all(g_df, ins_price, ori_price, mtm_price, mul_map, initial_capital=10000
     daily_pnl = holding_pnl + closing_pnl - commission
     daily_pnl.index = pd.to_datetime(daily_pnl.index)
     
-    trade_records = pd.concat([g.diff(),ins_price],keys=['pos','price'],axis=1).stack()
+    trade_records = pd.concat([g_df.diff(),ins_price],keys=['pos','price'],axis=1).stack()
     trade_records = trade_records.loc[(trade_records['pos'].notna())&(trade_records['pos'] != 0)]
     
         
@@ -293,7 +293,7 @@ def bt(a_df, ins_price, ins_price_to_cal_fee, mul, mul_method = None, initial_ca
         
     # metrics
     if initial_capital is None:
-        initial_capital = o['ba_ins_fees'].abs().max()
+        initial_capital = order['ba_ins_fees'].abs().max()
     metrics = get_metrics(order, trade_pnl, daily_pnl, initial_capital, risk_free_rate=0)
     if conform==True and order.groupby(order.reset_index().index//2).sum()['q'].sum() != 0:
         starting_ind = order.groupby(order.reset_index().index//2).sum()['q'].loc[order.groupby(order.reset_index().index//2).sum()['q']!=0].index[0]
