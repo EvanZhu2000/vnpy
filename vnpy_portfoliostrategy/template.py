@@ -133,6 +133,7 @@ class StrategyTemplate(ABC):
                 for tr in trades
             ]
             trade_records = pd.DataFrame(rows, columns=['signal_datetime', 'datetime','vt_symbol', 'vt_orderid','direction','offset','price', 'volume'])
+            trade_records[['direction','offset']] = trade_records[['direction','offset']].astype(str)
             
             self.strategy_engine.dbservice.init_connection()
             self.strategy_engine.dbservice.update_pos(self.strategy_name, self.pos_data)

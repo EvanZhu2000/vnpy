@@ -50,8 +50,9 @@ if __name__ == "__main__":
             for date, trades in engine.strategy.trades.items()
             for tr in trades
         ]
-        print(type(rows[0]))
-        print(pd.DataFrame(rows, columns=['signal_datetime', 'datetime','vt_symbol', 'vt_orderid','direction','offset','price', 'volume']))
+        trade_records = pd.DataFrame(rows, columns=['signal_datetime', 'datetime','vt_symbol', 'vt_orderid','direction','offset','price', 'volume'])
+        trade_records[['direction','offset']] = trade_records[['direction','offset']].astype(str)
+        print(trade_records)
         # print(pd.DataFrame(engine.strategy.trades))
         # print(pd.DataFrame([x.__dict__ for x in list(engine.strategy.trades.values())[0]],
         #                     index = [engine.strategy.trades.keys()]*len(list(engine.strategy.trades.values())[0])))
