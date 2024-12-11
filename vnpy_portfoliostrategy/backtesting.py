@@ -26,7 +26,7 @@ from vnpy.trader.optimize import (
 from vnpy_portfoliostrategy.base import EngineType
 from vnpy_portfoliostrategy.template import StrategyTemplate
 from vnpy_portfoliostrategy.engine import StrategyEngine
-import math
+import pytz
 
 
 # INTERVAL_DELTA_MAP: dict[Interval, timedelta] = {
@@ -45,6 +45,7 @@ class BacktestingEngine(StrategyEngine):
     engine_type: EngineType = EngineType.BACKTESTING
     gateway_name: str = "BACKTESTING"
     main_engine = MainEngineMock()
+    tz = pytz.timezone('Asia/Shanghai')
 
     def __init__(self) -> None:
         """构造函数"""
@@ -933,7 +934,7 @@ class BacktestingEngine(StrategyEngine):
                 gateway_name = 'CTP',
                 symbol = l['symbol'],
                 exchange = Exchange(l['exchange']),
-                datetime = datetime.strptime(l['datetime'], "%Y-%m-%d %H:%M:%S"),
+                datetime = self.tz.localize(datetime.strptime(l['datetime'], "%Y-%m-%d %H:%M:%S")),
                 limit_up = l['limit_up'],
                 limit_down = l['limit_down'],
                 bid_price_1 = l['bid_price_1'],

@@ -44,15 +44,25 @@ if __name__ == "__main__":
     trades = engine.get_all_trades(use_df=True)
     orders = pd.DataFrame([x.__dict__ for x in engine.get_all_orders()])
     
-    print(pd.DataFrame(engine.strategy.trades))
-    print(pd.DataFrame([x.__dict__ for x in list(engine.strategy.trades.values())[0]],
-                        index = [engine.strategy.trades.keys()]*len(list(engine.strategy.trades.values())[0])))
-    if not trades.empty:
-        print(trades[['datetime','vt_symbol', 'vt_orderid','direction','offset','price', 'volume']])
-    if not orders.empty:
-        print(orders[['datetime','vt_symbol', 'vt_orderid','direction','offset','price', 'volume','type', 'traded', 'status']])
+    if engine.strategy.trades:
+        rows = [
+            (date, tr.datetime, tr.vt_symbol, tr.vt_orderid, tr.direction, tr.offset, tr.price, tr.volume)
+            for date, trades in engine.strategy.trades.items()
+            for tr in trades
+        ]
+        print(type(rows[0]))
+        print(pd.DataFrame(rows, columns=['signal_datetime', 'datetime','vt_symbol', 'vt_orderid','direction','offset','price', 'volume']))
+        # print(pd.DataFrame(engine.strategy.trades))
+        # print(pd.DataFrame([x.__dict__ for x in list(engine.strategy.trades.values())[0]],
+        #                     index = [engine.strategy.trades.keys()]*len(list(engine.strategy.trades.values())[0])))
+        
+        
+    # if not trades.empty:
+    #     print(trades[['datetime','vt_symbol', 'vt_orderid','direction','offset','price', 'volume']])
+    # if not orders.empty:
+    #     print(orders[['datetime','vt_symbol', 'vt_orderid','direction','offset','price', 'volume','type', 'traded', 'status']])
     
-    print(','.join(engine.logs))
+    # print(','.join(engine.logs))
     
     # engine.calculate_statistics()
     # engine.show_chart()

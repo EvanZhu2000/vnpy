@@ -12,6 +12,7 @@ from collections import defaultdict
 from typing import DefaultDict, List
 from vnpy_self.general import *
 import pytz
+import pandas as pd
 
 if TYPE_CHECKING:
     from vnpy_portfoliostrategy.engine import StrategyEngine
@@ -126,8 +127,16 @@ class StrategyTemplate(ABC):
         self.write_log(f"FINAL pos_data {self.nonzero_dict(self.pos_data)}")
         self.write_log(f"FINAL target_data {self.nonzero_dict(self.target_data)}")
         if self.strategy_engine.engine_type == EngineType.LIVE:
+            rows = [
+                (date, tr.datetime, tr.vt_symbol, tr.vt_orderid, tr.direction, tr.offset, tr.price, tr.volume)
+                for date, trades in self.trades.items()
+                for tr in trades
+            ]
+            trade_records = pd.DataFrame(rows, columns=['signal_datetime', 'datetime','vt_symbol', 'vt_orderid','direction','offset','price', 'volume'])
+            
             self.strategy_engine.dbservice.init_connection()
             self.strategy_engine.dbservice.update_pos(self.strategy_name, self.pos_data)
+            self.strategy_engine.dbservice.insert_rq(trade_records, 'trade_records', ignore=True)
             self.strategy_engine.dbservice.close()
 
     @virtual
@@ -571,7 +580,7 @@ class StrategyTemplate(ABC):
             
             date_to_use = date_2 if adjusted_start_time <= DAY_END_CHINAFUTURES else date_1
             result = datetime.combine(datetime.strptime(date_to_use, '%Y-%m-%d'), adjusted_start_time)
-            # result = pytz.timezone(zones).localize(result)
+            result = pytz.timezone(zones).localize(result)
             return result
         except Exception as e:
             self.strategy_engine.write_exception(f'cannot get open time - exception {e}')

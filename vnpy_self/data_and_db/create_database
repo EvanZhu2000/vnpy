@@ -159,6 +159,18 @@ CREATE TABLE `vnpy`.`current_pos` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+CREATE TABLE `vnpy`.`trade_records` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `signal_datetime` datetime NOT NULL,
+  `datetime` datetime NOT NULL,
+  `vt_symbol` varchar(255) NOT NULL,
+  `vt_orderid` varchar(255) NOT NULL,
+  `direction` varchar(255) NOT NULL,
+  `offset` varchar(255) NOT NULL,
+  `price` double NOT NULL,
+  `volume` double NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 
 -- This is for self-maintanance
