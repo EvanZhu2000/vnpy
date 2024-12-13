@@ -7,6 +7,7 @@ from types import ModuleType
 from typing import Type, Callable, Optional
 from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor
+from vnpy_self.alert_sender import *
 
 from vnpy.event import Event, EventEngine
 from vnpy.trader.engine import BaseEngine, MainEngine
@@ -505,7 +506,7 @@ class StrategyEngine(BaseEngine):
         # self.dbservice.close()
         self.put_strategy_event(strategy)
 
-    def stop_strategy(self, strategy_name: str, message = None) -> None:
+    def stop_strategy(self, strategy_name: str, message = None, header = None) -> None:
         """停止策略"""
         strategy: StrategyTemplate = self.strategies[strategy_name]
         if not strategy.trading:
@@ -528,6 +529,9 @@ class StrategyEngine(BaseEngine):
         
         if message is not None and type(message) == str:
             self.write_log(message)
+        
+        if message is not None and header is not None and type(message) == str and type(header) == str: 
+            self.email(header, message)
         
         ## Might be unnecessary
         # self.dbservice.init_connection()
@@ -681,6 +685,12 @@ class StrategyEngine(BaseEngine):
         log: LogData = LogData(msg=msg, gateway_name=APP_NAME)
         event: Event = Event(type=EVENT_PORTFOLIO_LOG, data=log)
         self.event_engine.put(event)
+        
+    def write_exception(self, msg: str, strategy: StrategyTemplate = None) -> None:
+        self.main_engine.write_exception(msg, strategy)
+        
+    def email(self, title: str, msg: str) -> None:
+        send_email(title, msg)
 
     def send_email(self, msg: str, strategy: StrategyTemplate = None) -> None:
         """发送邮件"""

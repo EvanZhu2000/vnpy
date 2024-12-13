@@ -134,12 +134,16 @@ def weight(g, mul_map, ori_price, sample_days, initial_capital=10000000,toRound=
         g_df = g_df.round(0)
     return g_df, used_capital
 
-def bt_all(g_df, ins_price, ori_price, mul_map, initial_capital=10000000, 
-           commission = 0.0001, exec_delay=0, to=None, toFormat=True):
+def bt_all(g_df, ins_price, ori_price, mtm_price, mul_map, initial_capital=10000000, 
+           commission = 0.0001, exec_delay=0, to=None, toFormat=True,toValid=True,toBreakdown=False):
     '''
     all of g_df, ins_price and ori_price need to be dataframe with columns as sequenced datetimes and index as names
     ori_price: the price to calculate fees, used in pairs trading, usually need to be 88
+    mtm_price: the price to calculate settlment, should use settlement price adjusted for rollover
     mul: dictionary
+    toFormat: to format the output
+    toValid: to validate the forms of different inputs
+    toBreakdown: to break down different components, easier to do risk check
     
     Explanation:
     to: if provided with turnover, can calculate maximum capacity
@@ -150,39 +154,30 @@ def bt_all(g_df, ins_price, ori_price, mul_map, initial_capital=10000000,
     ttl_capcity: needs to times 1/1000 for example to obtain the actual capacity
     '''
     # validation
-    if not (type(g_df) == pd.core.frame.DataFrame) \
-    or not (type(ins_price) == pd.core.frame.DataFrame) \
-    or not (type(ori_price) == pd.core.frame.DataFrame):
-        raise Exception('bad input format!')
-    
-    ins_price = ins_price.shift(-exec_delay).copy()
-    ori_price = ori_price.shift(-exec_delay).copy()
-    if exec_delay>0:
-        ins_price = ins_price.iloc[:-exec_delay]
-        ori_price = ori_price.iloc[:-exec_delay]
-    if not ins_price.index.equals(ori_price.index) or not ins_price.columns.equals(ori_price.columns):
-        raise Exception('unmatching ins_price & ori_price')
-    
-    intersec_index = g_df.index.intersection(ins_price.index)
-    g_df = g_df.loc[intersec_index].copy()
-    ins_price = ins_price.loc[intersec_index]
-    ori_price = ori_price.loc[intersec_index]
-    if len(set(g_df.index) - set(ins_price.index))!=0:
-        raise Exception('no price for some datetime')
-    if len(set(g_df.columns) - set(ins_price.columns))!=0:
-        raise Exception('no price for some symbols')
-    if len(set(g_df.columns) - set(mul_map.keys()))!=0:
-        raise Exception('no multiplier for some symbols')
-
-    # make the dataframes match with each other
-    ins_price = ins_price[g_df.columns]
-    ori_price = ori_price[g_df.columns]
-    g_df = g_df.reindex(ins_price.index).ffill()
-    mul_series = pd.Series(mul_map)[g_df.columns]
+    g_df = g_df.shift(exec_delay).copy()
+    if toValid:
+        if not (type(g_df) == pd.core.frame.DataFrame) \
+        or not (type(ins_price) == pd.core.frame.DataFrame) \
+        or not (type(ori_price) == pd.core.frame.DataFrame) \
+        or not (type(mtm_price) == pd.core.frame.DataFrame):
+            raise Exception('bad input format!')
+        
+        if not ins_price.index.equals(g_df.index) or not ins_price.columns.equals(g_df.columns):
+            raise Exception('unmatching ins_price & g_df')
+        
+        if not ins_price.index.equals(ori_price.index) or not ins_price.columns.equals(ori_price.columns):
+            raise Exception('unmatching ins_price & ori_price')
+        
+        if len(set(np.unique(ins_price.index.date)) - set(mtm_price.index.date)) !=0 or not ins_price.columns.equals(mtm_price.columns):
+            raise Exception('unmatching ins_price & mtm_price')
+        
+        if len(set(g_df.columns) - set(mul_map.keys()))!=0:
+            raise Exception('no multiplier for some symbols')
+        
     
     # statistics calculation
+    mul_series = pd.Series(mul_map)[g_df.columns]
     yrs = effective_year_count(g_df)
-    c_df = g_df * mul_series * ins_price
     trades_count = ((np.sign(g_df).diff()!=0).sum()/2).mean()
     turnover = (np.sign(g_df)/g_df.shape[1]).diff().abs().sum(1).mean() / 2
     mulprice_fee = (mul_series * ori_price).abs()
@@ -192,17 +187,24 @@ def bt_all(g_df, ins_price, ori_price, mul_map, initial_capital=10000000,
     if to is not None:
         ttl_capacity = (to.loc[to.index.intersection(g_df.index)].iloc[-60:].mean() / min_cash_needed_per_ins.describe().loc['max'] * min_cash_needed_per_ins).sum() / 1000000000
     
-    # calculate commission
-    comm_df = commission * g_df.diff().abs() * mulprice_fee
+    holding_pnl = g_df.groupby(g_df.index.date).first() * mtm_price.diff().shift(-1)
+    closing_pnl = g_df.diff() * (mtm_price.reindex(ins_price.set_index(ins_price.index.date).index).set_index(ins_price.index) - ins_price)
+    commission = g_df.diff().abs() * ori_price * commission
     
-    # get daily settled pnl
-    price_daily = ins_price.groupby(ins_price.index.date).last()
-    g_daily = g_df.groupby(g_df.index.date).last()
-    c_daily = c_df.groupby(c_df.index.date).last()
-    comm_daily = comm_df.groupby(comm_df.index.date).sum()
-    daily_pnl = ((g_daily.diff()*mul_series*price_daily - comm_daily).cumsum().reindex(price_daily.index).ffill() - c_daily).diff()
+    holding_pnl *= mul_series
+    holding_pnl.index = pd.to_datetime(holding_pnl.index)
+    closing_pnl *= mul_series
+    closing_pnl.index = pd.to_datetime(closing_pnl.index)
+    commission *= mul_series
+    commission.index = pd.to_datetime(commission.index)
+    
+    daily_pnl = holding_pnl + closing_pnl - commission
     daily_pnl.index = pd.to_datetime(daily_pnl.index)
     
+    trade_records = pd.concat([g_df.diff(),ins_price],keys=['pos','price'],axis=1).stack()
+    trade_records = trade_records.loc[(trade_records['pos'].notna())&(trade_records['pos'] != 0)]
+    
+        
     # summary of the backtest
     result = []
     sum_daily_pnl = daily_pnl.sum(1)
@@ -229,7 +231,13 @@ def bt_all(g_df, ins_price, ori_price, mul_map, initial_capital=10000000,
         result.append(min_cash_needed)
         result.append(ttl_capacity)
     summary_df = pd.DataFrame(result, index=['sharpe','annu_ret','mdd','sortino','calmar','turnover','#trades','period','min_cash','ttl_capcity']).T
-    return daily_pnl, summary_df
+    
+    holding_pnl.index = pd.to_datetime(holding_pnl.index)
+    closing_pnl.index = pd.to_datetime(closing_pnl.index)
+    if toBreakdown:
+        return daily_pnl, summary_df, holding_pnl, closing_pnl, commission, trade_records
+    else:
+        return daily_pnl, summary_df
 
 
 def bt(a_df, ins_price, ins_price_to_cal_fee, mul, mul_method = None, initial_capital=None, commission = 0.0003, exec_delay=0, conform=True):
@@ -285,7 +293,7 @@ def bt(a_df, ins_price, ins_price_to_cal_fee, mul, mul_method = None, initial_ca
         
     # metrics
     if initial_capital is None:
-        initial_capital = o['ba_ins_fees'].abs().max()
+        initial_capital = order['ba_ins_fees'].abs().max()
     metrics = get_metrics(order, trade_pnl, daily_pnl, initial_capital, risk_free_rate=0)
     if conform==True and order.groupby(order.reset_index().index//2).sum()['q'].sum() != 0:
         starting_ind = order.groupby(order.reset_index().index//2).sum()['q'].loc[order.groupby(order.reset_index().index//2).sum()['q']!=0].index[0]
@@ -1104,7 +1112,7 @@ def plot(ini_cap,d,m=None,t=None,rollingsharpe=False):
                 x=1
             )
         )
-        fig.show()
+        return fig
 
 def plota(ini_cap, df, sort=None, **mapping):
     color_discrete_map= {'股指期货': 'red',

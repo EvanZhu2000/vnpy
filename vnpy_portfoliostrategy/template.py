@@ -7,19 +7,15 @@ from vnpy.trader.constant import Interval, Direction, Offset, Status
 from vnpy.trader.object import BarData, TickData, OrderData, TradeData, OrderType
 from vnpy.trader.utility import virtual
 from vnpy_portfoliostrategy.base import EngineType
+from vnpy_portfoliostrategy.helperclass import *
+from collections import defaultdict
+from typing import DefaultDict, List
+from vnpy_self.general import *
+import pytz
+import pandas as pd
 
 if TYPE_CHECKING:
     from vnpy_portfoliostrategy.engine import StrategyEngine
-
-class SymbolStatus():
-    is_active = False
-    rej_counts = 0
-    can_counts = 0
-    order_list = []
-    stop_because_FAK_cancel = False
-    
-    def is_stop(self):
-        return self.stop_because_FAK_cancel
 
 class StrategyTemplate(ABC):
     """组合策略模板"""
@@ -38,8 +34,16 @@ class StrategyTemplate(ABC):
         """构造函数"""
         self.strategy_engine: "StrategyEngine" = strategy_engine
         self.strategy_name: str = strategy_name
+        self.starting_time: datetime = None
         self.vt_symbols: list[str] = vt_symbols
+        self.trading_hours: dict[str, str] = None  # symb: trading hours
+        self.rebal_tracker: BoolDict = None
+        self.settlement_dates_str = None
 
+        # Hard code stuff
+        self.time_since_last_tick = timedelta(seconds=60) 
+        self.time_since_starting = timedelta(minutes=10) 
+        
         # 状态控制变量
         self.inited: bool = False
         self.trading: bool = False
@@ -50,6 +54,7 @@ class StrategyTemplate(ABC):
 
         # 委托缓存容器
         self.orders: dict[str, OrderData] = {}
+        self.trades: DefaultDict[datetime, list[TradeData]] = defaultdict(list)
         self.active_orderids: set[str] = set()
         self.symbol_status: dict[str, SymbolStatus] = {}
         for v in self.vt_symbols:
@@ -64,7 +69,7 @@ class StrategyTemplate(ABC):
 
         # 设置策略参数
         self.update_setting(setting)
-
+    
     def update_setting(self, setting: dict) -> None:
         """设置策略参数"""
         for name in self.parameters:
@@ -113,6 +118,7 @@ class StrategyTemplate(ABC):
     @virtual
     def on_start(self) -> None:
         """策略启动回调"""
+        self.starting_time = datetime.now(pytz.timezone('Asia/Shanghai'))
         pass
 
     @virtual
@@ -120,17 +126,40 @@ class StrategyTemplate(ABC):
         """策略停止回调"""
         self.write_log(f"FINAL pos_data {self.nonzero_dict(self.pos_data)}")
         self.write_log(f"FINAL target_data {self.nonzero_dict(self.target_data)}")
-        self.strategy_engine.dbservice.init_connection()
-        self.strategy_engine.dbservice.update_pos(self.strategy_name, self.pos_data)
-        self.strategy_engine.dbservice.close()
+        if self.strategy_engine.engine_type == EngineType.LIVE:
+            rows = [
+                (date, tr.datetime, tr.vt_symbol, tr.vt_orderid, tr.direction, tr.offset, tr.price, tr.volume)
+                for date, trades in self.trades.items()
+                for tr in trades
+            ]
+            trade_records = pd.DataFrame(rows, columns=['signal_datetime', 'datetime','vt_symbol', 'vt_orderid','direction','offset','price', 'volume'])
+            trade_records[['direction','offset']] = trade_records[['direction','offset']].astype(str)
+            
+            self.strategy_engine.dbservice.init_connection()
+            self.strategy_engine.dbservice.update_pos(self.strategy_name, self.pos_data)
+            self.strategy_engine.dbservice.insert_rq(trade_records, 'trade_records', ignore=True)
+            self.strategy_engine.dbservice.close()
 
     @virtual
+    # return False when the tick has some issues
     def on_tick(self, tick: TickData) -> bool:
         """行情推送回调"""
         if not self.check_valid_tick(tick):
             return False
-        else:
-            return True
+        
+        # whether the subscription is successful
+        if self.symbol_status[tick.vt_symbol].last_tick is None:
+            self.write_log(f'first tick for {tick.vt_symbol} is {tick}')
+            self.symbol_status[tick.vt_symbol].last_tick = tick
+        # feed check
+        elif tick.datetime - self.symbol_status[tick.vt_symbol].last_tick.datetime < timedelta(minutes=0):
+            return False
+        elif tick.datetime - self.symbol_status[tick.vt_symbol].last_tick.datetime > self.time_since_last_tick:
+            # TODO this should be a first-level warning instead
+            self.write_log(f'Too long since last tick for {tick.vt_symbol}, breaching {self.time_since_last_tick}')
+            
+        return True
+
 
     @virtual
     def on_bars(self, bars: dict[str, BarData]) -> None:
@@ -143,6 +172,9 @@ class StrategyTemplate(ABC):
             self.pos_data[trade.vt_symbol] += trade.volume
         else:
             self.pos_data[trade.vt_symbol] -= trade.volume
+            
+        if self.rebal_tracker is not None and self.rebal_tracker.target_time_dict is not None:
+            self.trades[self.rebal_tracker.target_time_dict[trade.vt_symbol]].append(trade)
             
 
     def update_order(self, order: OrderData) -> None:
@@ -198,7 +230,7 @@ class StrategyTemplate(ABC):
             try:
                 # # order number check
                 # if len(self.symbol_status[vt_symbol].order_list) > 20:
-                #     raise Exception(f"Too much orders for {vt_symbol}, stop sending additional orders!")
+                #     self.strategy_engine.write_exception(f"Too much orders for {vt_symbol}, stop sending additional orders!")
                     
                 if isFAK:
                     vt_orderids: list = self.strategy_engine.send_order_FAK(
@@ -281,10 +313,13 @@ class StrategyTemplate(ABC):
         # Something wrong with the system
         if rej_count >=3:
             self.on_stop()
-            self.strategy_engine.stop_strategy(self.strategy_name, f"reject counts >=3 for {vt_symbol}")\
+            self.strategy_engine.stop_strategy(self.strategy_name, 
+                                               f"reject counts >=3 for {vt_symbol}",
+                                               f"{self.strategy_name}_fail_{self.strategy_engine.main_engine.env}")
         # the book moved so fast
         if can_count >=3:
-            self.symbol_status[vt_symbol].stop_because_FAK_cancel=True
+            self.symbol_status[vt_symbol].stop_FAK_cancel = True
+            self.rebal_tracker.true_count += 1
         
         min_tick:float = self.get_pricetick(tick.vt_symbol)
         tmp = min(int(can_count // 2), 2)
@@ -292,22 +327,22 @@ class StrategyTemplate(ABC):
         sp = tick.bid_price_1 - tmp * min_tick
         return (bp,sp)
     
-    # TODO After review, don't think the below is quite useful
-    def exe_FAK(self, tick:TickData, order:OrderData = None) -> tuple:
-        '''return (buy_price, sell_price) tuple'''
-        if order:
-            rej_count = order.rejection_count 
-        else:
-            rej_count = 0
+    ### TODO After review, don't think the below is quite useful
+    # def exe_FAK(self, tick:TickData, order:OrderData = None) -> tuple:
+    #     '''return (buy_price, sell_price) tuple'''
+    #     if order:
+    #         rej_count = order.rejection_count 
+    #     else:
+    #         rej_count = 0
             
-        if rej_count >=3:
-            raise Exception("FAK seems not able to work")
-            # In this case it would wait for the next on_bar to send orders
+    #     if rej_count >=3:
+    #         self.strategy_engine.write_exception("FAK seems not able to work")
+    #         # In this case it would wait for the next on_bar to send orders
         
-        min_tick:float = self.get_pricetick(tick.vt_symbol)
-        bp = tick.ask_price_1 + (rej_count // 2) * min_tick
-        sp = tick.bid_price_1 - (rej_count // 2) * min_tick
-        return (bp,sp)
+    #     min_tick:float = self.get_pricetick(tick.vt_symbol)
+    #     bp = tick.ask_price_1 + (rej_count // 2) * min_tick
+    #     sp = tick.bid_price_1 - (rej_count // 2) * min_tick
+    #     return (bp,sp)
 
     def rebalance(self, vt_symbol: str, buy_price:float, sell_price:float, net:bool=False, strategy:str=None, intention:str=None) -> None:
         """基于目标执行调仓交易"""
@@ -476,6 +511,7 @@ class StrategyTemplate(ABC):
 
     def send_email(self, msg: str) -> None:
         """发送邮件信息"""
+        # Below is the original vnpy way of sending order
         if self.inited:
             self.strategy_engine.send_email(msg, self)
 
@@ -491,10 +527,17 @@ class StrategyTemplate(ABC):
         return sorted_non_zero_items
     
     def check_valid_tick(self, tick) -> bool:
+        if self.trading_hours is None:
+            self.strategy_engine.stop_strategy(self.strategy_name, 
+                                               f"No trading hours. Stop the strategy {self.strategy_name} now",
+                                               f"{self.strategy_name}_fail_{self.strategy_engine.main_engine.env}")
+            return False
+        
         # Check whether the tick is in continuous trading hours
         if tick.vt_symbol not in self.trading_hours.keys():
             self.strategy_engine.stop_strategy(self.strategy_name, 
-                                               f"No trading hours provided for {tick.vt_symbol}. Stop the strategy {self.strategy_name} now")
+                                               f"No trading hours provided for {tick.vt_symbol}. Stop the strategy {self.strategy_name} now",
+                                               f"{self.strategy_name}_fail_{self.strategy_engine.main_engine.env}")
             return False
         else:
             continuous_trading_intervals = self.trading_hours[tick.vt_symbol]
@@ -509,19 +552,37 @@ class StrategyTemplate(ABC):
 
     # Check whether input_time is in intervals of time, along with minus seconds customization for start/end time
     def is_time_in_intervals(self, input_time, intervals, start_time_minus_seconds=60, end_time_minus_seconds=10) -> bool:
-        # Split intervals and check each one
+        '''
+        start_time_minus_seconds=60 : ricequant unique trading hours
+        end_time_minus_seconds=10 : last 10 seconds let's not trade
+        '''
         for interval in intervals.split(','):
             start_str, end_str = interval.split('-')
             
-            # Parse start and end times
             start_time = datetime.strptime(start_str, '%H:%M').time()
             end_time = datetime.strptime(end_str, '%H:%M').time()
             
             adjusted_start_time = (datetime.combine(datetime.today(), start_time) - timedelta(seconds=start_time_minus_seconds)).time()
             adjusted_end_time = (datetime.combine(datetime.today(), end_time) - timedelta(seconds=end_time_minus_seconds)).time()
             
-            # Check if the input time is within the adjusted interval
             if adjusted_start_time <= input_time <= adjusted_end_time:
                 return True
                 
         return False
+    
+    def get_open_time(self, intervals, start_time_minus_seconds=60) -> datetime:
+        try:
+            dates, zones = self.settlement_dates_str.split(':')
+            date_1, date_2 = dates.split(',')
+            
+            start_time_str = intervals.split(',')[0].split('-')[0]
+            start_time = datetime.strptime(start_time_str, '%H:%M').time()
+            adjusted_start_time = (datetime.combine(datetime.today(), start_time) - timedelta(seconds=start_time_minus_seconds)).time()
+            
+            date_to_use = date_2 if adjusted_start_time <= DAY_END_CHINAFUTURES else date_1
+            result = datetime.combine(datetime.strptime(date_to_use, '%Y-%m-%d'), adjusted_start_time)
+            result = pytz.timezone(zones).localize(result)
+            return result
+        except Exception as e:
+            self.strategy_engine.write_exception(f'cannot get open time - exception {e}')
+            

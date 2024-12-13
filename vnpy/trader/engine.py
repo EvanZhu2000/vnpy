@@ -9,6 +9,7 @@ from email.message import EmailMessage
 from queue import Empty, Queue
 from threading import Thread
 from typing import Any, Type, Dict, List, Optional
+import time
 
 from vnpy.event import Event, EventEngine
 from .app import BaseApp
@@ -50,7 +51,8 @@ class MainEngine:
     """
     Acts as the core of the trading platform.
     """
-
+    env = None
+    
     def __init__(self, event_engine: EventEngine = None) -> None:
         """"""
         if event_engine:
@@ -118,7 +120,13 @@ class MainEngine:
         log: LogData = LogData(msg=msg, gateway_name=source)
         event: Event = Event(EVENT_LOG, log)
         self.event_engine.put(event)
-
+    
+    # This method doesn't seem to work as expected as exceptions are not written in logs until the next restart
+    def write_exception(self, msg: str, source: str = "") -> None:
+        self.write_log(msg, source)
+        time.sleep(1)
+        raise Exception(msg)
+        
     def get_gateway(self, gateway_name: str) -> BaseGateway:
         """
         Return gateway object by name.

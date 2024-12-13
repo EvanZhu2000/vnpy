@@ -6,7 +6,8 @@ from vnpy.trader.engine import MainEngine
 from vnpy_ctp import CtpGateway
 from vnpy_portfoliostrategy import PortfolioStrategyApp
 from vnpy_portfoliostrategy.base import EVENT_PORTFOLIO_LOG
-from vnpy_self.ctp_setting import ctp_setting_uat, ctp_setting_live
+from vnpy_self.ctp_setting import *
+from vnpy_self.general import *
 from vnpy.trader.constant import Direction
 import json
 from datetime import datetime, time, date
@@ -25,18 +26,15 @@ SETTINGS["log.console"] = True
 
 def run(option:str, quickstart:str):
     SETTINGS["log.file"] = True
-    if option == 'uat':
-        ctp_setting = ctp_setting_uat
-    elif option == 'live':
-        ctp_setting = ctp_setting_live
-    else:
-        raise Exception(f'Wrong option input {option}')
-        
+    
     event_engine = EventEngine()
     main_engine = MainEngine(event_engine)
     main_engine.init_engines()
     main_engine.add_gateway(CtpGateway)
-    ps_engine = main_engine.add_app(PortfolioStrategyApp)   
+    ps_engine = main_engine.add_app(PortfolioStrategyApp)
+    ctp_setting = ctp_map(option)
+    main_engine.env = option
+        
     main_engine.write_log("主引擎创建成功")
     log_engine = main_engine.get_engine("log")
     event_engine.register(EVENT_PORTFOLIO_LOG, log_engine.process_log_event)
@@ -54,10 +52,16 @@ def run(option:str, quickstart:str):
     # === from db get stuff
     tmp = db.select('trading_schedule',today = datetime.today().date(), strategy = strategy_title)
     if tmp.empty:
+        # today is the second day
         tmp = db.select('trading_schedule', date = datetime.today().date(), strategy = strategy_title)
         current_day = pd.to_datetime(tmp['today'].iloc[0]).strftime('%Y-%m-%d')
+        settlement_dates_str = current_day+','+datetime.today().strftime('%Y-%m-%d')+':'+'Asia/Shanghai'
     else:
+        # today is the first day
         current_day = datetime.today().strftime('%Y-%m-%d')
+        next_day = pd.to_datetime(tmp['date'].iloc[0]).strftime('%Y-%m-%d')
+        settlement_dates_str = current_day+','+next_day+':'+'Asia/Shanghai'
+        
     # current_day is supposingly when the script should be start running, ideally 21:00 every settlement date
     main_engine.write_log(f"settlement date starting day is {current_day}")
     
@@ -71,7 +75,7 @@ def run(option:str, quickstart:str):
     
     # ===== fill positions and find target for today
     if trading_schedule.shape[0]!=1 or previous_trading_schedule.shape[0]!=1:
-        raise Exception(f'Wrong trading schedule for {strategy_title}')
+        main_engine.write_exception(f'Wrong trading schedule for {strategy_title}')
     to_trade_df = pd.concat([pd.Series(trading_schedule['symbol'].values[0].split(',')).str[:-4],
                              pd.Series(trading_schedule['symbol'].values[0].split(','))],axis=1,keys=['symbol','symb']
                             ).merge(trading_hours[['rqsymbol','symbol']],left_on='symb',right_on='rqsymbol',how='inner'
@@ -84,7 +88,8 @@ def run(option:str, quickstart:str):
     
     vt_symbols = ans.index.values.tolist()
     settings = dict({'ans':json.dumps(ans.to_dict()),
-                     'trading_hours':json.dumps(trading_hours[['symbol','trading_hours']].set_index('symbol').to_dict()['trading_hours'])})
+                     'trading_hours':json.dumps(trading_hours[['symbol','trading_hours']].set_index('symbol').to_dict()['trading_hours']),
+                     'settlement_dates_str':settlement_dates_str})
     
     # ===== Examine positions if necessary
     if quickstart == 'False':
@@ -93,14 +98,13 @@ def run(option:str, quickstart:str):
             allpos = omsEngine.get_all_positions()
             if allpos is not None and len(allpos) != 0:
                 break;  
-        allpos = omsEngine.get_all_positions()
         abc = pd.DataFrame([x.__dict__ for x in allpos])
         qwe = pd.concat([abc['vt_symbol'],
                         abc['direction'].map({Direction.LONG:1,Direction.SHORT:-1}) * abc['volume']], axis=1)
         qwe = qwe.groupby(qwe['vt_symbol']).sum()
-        qwe = qwe.loc[qwe[0]!=0].sort_index().squeeze().astype(int)
-        if not pos_data[['symbol','pos']].groupby('symbol').sum().query("pos!=0").sort_index().squeeze().astype(int).equals(qwe):
-            raise Exception("Wrong database positions record compared to CTP record")
+        qwe = qwe.loc[qwe[0]!=0].sort_index().squeeze(axis=1).astype(int)
+        if not pos_data[['symbol','pos']].groupby('symbol').sum().query("pos!=0").sort_index().squeeze(axis=1).astype(int).equals(qwe):
+            main_engine.write_exception("Wrong database positions record compared to CTP record")
         main_engine.write_log("Matching succeed: CTP and database")
     
     # ===== start strategy
@@ -117,9 +121,16 @@ def run(option:str, quickstart:str):
         sleep(1)
     ps_engine.start_strategy(strategy_title)
     main_engine.write_log("ps策略全部启动")
+    
+    while True:
+        sleep(60)
+        if not check_trading_period_chinafutures():
+            main_engine.write_log("ps策略全部close")
+            ps_engine.stop_all_strategies()
+            main_engine.close()
 
 if __name__ == "__main__":
-    if len(sys.argv)<3:
+    if len(sys.argv)!=3:
         raise Exception("Need to have two arguments, 1: CTP options 2: whether to quickstart")
     option = sys.argv[1]
     quickstart = sys.argv[2] #(Should be either True or False)
