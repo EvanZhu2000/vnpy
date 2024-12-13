@@ -227,8 +227,8 @@ def run(today_date_str:str):
             exec_delay=1,
             initial_capital=used_money,
             commission=0.0001,toFormat=True)
-    d.to_csv('~/miniconda3/envs/vnpy3/lib/python3.10/site-packages/vnpy_self/analysis/strategy2_expected_pnl.csv')
-    w.to_csv('~/miniconda3/envs/vnpy3/lib/python3.10/site-packages/vnpy_self/analysis/strategy2_positions.csv')
+    d.to_csv('~/miniconda3/envs/vnpy3/lib/python3.10/site-packages/vnpy_self/analysis/data/strategy2_expected_pnl.csv')
+    w.to_csv('~/miniconda3/envs/vnpy3/lib/python3.10/site-packages/vnpy_self/analysis/data/strategy2_positions.csv')
     balancing_list = w.replace(np.nan,0).iloc[-1]
 
     # 4. insert balancing_list into database
