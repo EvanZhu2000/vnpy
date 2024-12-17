@@ -24,7 +24,7 @@ SETTINGS["log.active"] = True
 SETTINGS["log.level"] = INFO
 SETTINGS["log.console"] = True
 
-def run(option:str, quickstart:str):
+def run(quickstart:str, option:str):
     SETTINGS["log.file"] = True
     
     event_engine = EventEngine()
@@ -130,11 +130,14 @@ def run(option:str, quickstart:str):
             main_engine.close()
 
 if __name__ == "__main__":
-    if len(sys.argv)!=3:
-        raise Exception("Need to have two arguments, 1: CTP options 2: whether to quickstart")
-    option = sys.argv[1]
-    quickstart = sys.argv[2] #(Should be either True or False)
-    run(option, quickstart)
+    quickstart = sys.argv[1] #(Should be either True or False)
+    if len(sys.argv) == 2:
+        run(quickstart, current_environment)
+    elif len(sys.argv) == 3:
+        # the second arguement should be the CTP options
+        run(quickstart, sys.argv[2])
+    else:
+        raise Exception("Need to have one or two arguments, 1: whether to quickstart, 2: CTP options")
 
         
         

@@ -12,8 +12,8 @@ mysqlservice = MysqlService()
 mysqlservice.init_connection()
 
 
-def run(option:str):
-    ctp_setting = ctp_map(option)
+def run():
+    ctp_setting = get_ctp_settings()
     
     event_engine = EventEngine()
     main_engine = MainEngine(event_engine)
@@ -48,6 +48,5 @@ def run(option:str):
 
 
 if __name__ == "__main__":
-    option = sys.argv[1]
-    run(option)
+    run()
     sys.exit(0)
