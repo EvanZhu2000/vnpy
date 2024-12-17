@@ -2,22 +2,25 @@ import pandas as pd
 import mysql.connector
 from dateutil.relativedelta import relativedelta
 from datetime import datetime
-from vnpy_self.data_and_db.db_setting import db_setting
+from vnpy_self.data_and_db.db_setting import *
 import warnings
 warnings.filterwarnings("ignore")
 
 class MysqlService():
     
-    def __init__(self) -> None:
-        pass
-        
-    def init_connection(self) -> None:
-        self.mydb = mysql.connector.connect(
-                host= db_setting['host'],
-                user= db_setting['user'],
-                password= db_setting['password']
-            )
-        self.mycursor = self.mydb.cursor()
+    def __init__(self):
+        self.db_config = get_db_settings()
+        self.connection = self.connect_to_db()
+
+    def connect_to_db(self):
+        # Example connection logic using db_config
+        import mysql.connector
+        conn = mysql.connector.connect(
+            host=self.db_config['host'],
+            user=self.db_config['user'],
+            password=self.db_config['password']
+        )
+        return conn
         
     def close(self) -> None:
         self.mycursor.close()
