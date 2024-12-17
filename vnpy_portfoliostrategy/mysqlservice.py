@@ -10,17 +10,14 @@ class MysqlService():
     
     def __init__(self):
         self.db_config = get_db_settings()
-        self.connection = self.connect_to_db()
 
-    def connect_to_db(self):
-        # Example connection logic using db_config
-        import mysql.connector
-        conn = mysql.connector.connect(
+    def init_connection(self):
+        self.mydb = mysql.connector.connect(
             host=self.db_config['host'],
             user=self.db_config['user'],
             password=self.db_config['password']
         )
-        return conn
+        self.mycursor = self.mydb.cursor()
         
     def close(self) -> None:
         self.mycursor.close()
