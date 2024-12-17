@@ -2,7 +2,7 @@
 from datetime import datetime
 import pandas as pd
 from dateutil.relativedelta import relativedelta
-from vnpy_self.data_and_db.db_setting import db_setting
+from vnpy_self.data_and_db.db_setting import *
 from vnpy_self.alert_sender import send_email
 
 from vnpy_portfoliostrategy.mysqlservice import MysqlService
