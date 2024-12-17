@@ -46,28 +46,28 @@ def run(today_str:str):
     for i in range(len(next_trading_day_dom_list)):
         symb = next_trading_day_dom_list[i]
         rq_symb = rq_next_trading_day_dom_list[i]
-        mysqlservice.insert('trading_hours', ignore=True, date = next_trading_day, 
+        mysqlservice.insert('trading_hours', replace=True, date = next_trading_day, 
                             rqsymbol = rq_symb, symbol = symb, 
                             trading_hours = get_trading_hours(rq_symb, next_trading_day), timezone = 'Asia/Shanghai')
         
     for i in range(len(next_trading_day_dom2_list)):
         symb = next_trading_day_dom2_list[i]
         rq_symb = rq_next_trading_day_dom2_list[i]
-        mysqlservice.insert('trading_hours', ignore=True, date = next_trading_day, 
+        mysqlservice.insert('trading_hours', replace=True, date = next_trading_day, 
                             rqsymbol = rq_symb, symbol = symb, 
                             trading_hours = get_trading_hours(rq_symb, next_trading_day), timezone = 'Asia/Shanghai')
         
     for i in range(len(today_dom_list)):
         symb = today_dom_list[i]
         rq_symb = rq_today_dom_list[i]
-        mysqlservice.insert('trading_hours', ignore=True, date = next_trading_day, 
+        mysqlservice.insert('trading_hours', replace=True, date = next_trading_day, 
                             rqsymbol = rq_symb, symbol = symb, 
                             trading_hours = get_trading_hours(rq_symb, next_trading_day), timezone = 'Asia/Shanghai')
         
     for i in range(len(today_dom2_list)):
         symb = today_dom2_list[i]
         rq_symb = rq_today_dom2_list[i]
-        mysqlservice.insert('trading_hours', ignore=True, date = next_trading_day, 
+        mysqlservice.insert('trading_hours', replace=True, date = next_trading_day, 
                             rqsymbol = rq_symb, symbol = symb, 
                             trading_hours = get_trading_hours(rq_symb, next_trading_day), timezone = 'Asia/Shanghai')
     mysqlservice.close()

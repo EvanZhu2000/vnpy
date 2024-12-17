@@ -31,11 +31,37 @@ class MysqlService():
         for key, value in d.items():
             result += f"{key} = '{value}' and "
         return result.rstrip(" and ")
+            
+    def insert(self, table, ignore=False, replace=False, **kwargs) -> None:
+        """
+        Insert data into table with options for IGNORE or REPLACE behavior
         
-    def insert(self,table,ignore=False,**kwargs) -> None:
-        self.mycursor.execute(f"INSERT {'IGNORE' if ignore else ''} INTO `vnpy`.`{table}` "+\
-                "(`" + "`, `".join(kwargs.keys()) + "`)" + \
-                "VALUES" + "('"+ "', '".join(map(str,kwargs.values())) + "');")
+        Args:
+            table (str): Table name
+            ignore (bool): Use INSERT IGNORE if True
+            replace (bool): Use INSERT ... ON DUPLICATE KEY UPDATE if True
+            **kwargs: Column names and values to insert
+        """
+        if ignore and replace:
+            raise ValueError("Cannot use both ignore and replace options simultaneously")
+        
+        if replace:
+            # Create the base INSERT part
+            query = f"INSERT INTO `vnpy`.`{table}` " + \
+                    "(`" + "`, `".join(kwargs.keys()) + "`)" + \
+                    "VALUES" + "('"+ "', '".join(map(str,kwargs.values())) + "')"
+            
+            # Add ON DUPLICATE KEY UPDATE part for all fields except the primary key (symbol)
+            update_fields = [key for key in kwargs.keys() if key != 'symbol']
+            update_pairs = [f"`{key}` = VALUES(`{key}`)" for key in update_fields]
+            query += " ON DUPLICATE KEY UPDATE " + ", ".join(update_pairs) + ";"
+        else:
+            # Original INSERT or INSERT IGNORE behavior
+            query = f"INSERT {'IGNORE' if ignore else ''} INTO `vnpy`.`{table}` " + \
+                    "(`" + "`, `".join(kwargs.keys()) + "`)" + \
+                    "VALUES" + "('"+ "', '".join(map(str,kwargs.values())) + "');"
+        
+        self.mycursor.execute(query)
         self.mydb.commit()
         
     def select(self,table,additional_query='',**where):
