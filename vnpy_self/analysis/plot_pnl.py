@@ -49,4 +49,5 @@ if __name__ == "__main__":
     # run(hostname, username, password, file_path)
     
     ### Example
-    run('192.168.91.124', 'uat', 'evan@cash1q2', '/home/uat/miniconda3/envs/vnpy3/lib/python3.10/site-packages/vnpy_self/analysis/data/strategy2_expected_pnl.csv')
+    env = 'evan' #'uat'
+    run('192.168.91.124', env, 'evan@cash1q2', f'/home/{env}/miniconda3/envs/vnpy3/lib/python3.10/site-packages/vnpy_self/analysis/data/strategy2_expected_pnl.csv')

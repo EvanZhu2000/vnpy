@@ -155,8 +155,7 @@ class StrategyTemplate(ABC):
         elif tick.datetime - self.symbol_status[tick.vt_symbol].last_tick.datetime < timedelta(minutes=0):
             return False
         elif tick.datetime - self.symbol_status[tick.vt_symbol].last_tick.datetime > self.time_since_last_tick:
-            # TODO this should be a first-level warning instead
-            self.write_log(f'Too long since last tick for {tick.vt_symbol}, breaching {self.time_since_last_tick}')
+            self.write_log_level1(f'Too long since last tick for {tick.vt_symbol}, breaching {self.time_since_last_tick}')
             
         return True
 
@@ -245,21 +244,6 @@ class StrategyTemplate(ABC):
                     self.active_orderids.add(vt_orderid)
                     self.symbol_status[vt_symbol].is_active = True
                     self.symbol_status[vt_symbol].order_list.append(vt_orderid)
-                
-                ## inserting this part requires too much time
-                # if strategy:
-                #     for vt_orderid in vt_orderids:
-                #         self.strategy_engine.dbservice.insert('strategy_order', 
-                #                                               datetime = datetime.strftime(datetime.today(),'%Y-%m-%d %H:%M:%S'),
-                #                                               vt_orderid = vt_orderid,
-                #                                               strategy = strategy,
-                #                                               symbol = vt_symbol,
-                #                                               intention = intention,
-                #                                               pos = pos,
-                #                                               tar = tar,
-                #                                               price = price,
-                #                                               tif = 'fak'if isFAK else 'day',
-                #                                               order_status = Status.SUBMITTING)
 
                 return vt_orderids
             except Exception as e:
@@ -273,11 +257,6 @@ class StrategyTemplate(ABC):
         try:
             if self.trading:
                 self.strategy_engine.cancel_order(self, vt_orderid)
-                # self.strategy_engine.dbservice.insert('strategy_order',
-                #                                       datetime = datetime.strftime(datetime.today(),'%Y-%m-%d %H:%M:%S'),
-                #                                       vt_orderid = vt_orderid,
-                #                                       intention = 'cancel',
-                #                                       order_status = Status.SUBMITTING)
         
         except Exception as e:
             self.strategy_engine.write_log(f"Exception when sending order - {e}")
@@ -317,9 +296,10 @@ class StrategyTemplate(ABC):
                                                f"reject counts >=3 for {vt_symbol}",
                                                f"{self.strategy_name}_fail_{self.strategy_engine.main_engine.env}")
         # the book moved so fast
-        if can_count >=3:
+        if can_count >=5:
             self.symbol_status[vt_symbol].stop_FAK_cancel = True
             self.rebal_tracker.true_count += 1
+            self.write_log_level1('can_count breaching limit, {vt_symbol} stop_FAK_cancel')
         
         min_tick:float = self.get_pricetick(tick.vt_symbol)
         tmp = min(int(can_count // 2), 2)
@@ -327,25 +307,9 @@ class StrategyTemplate(ABC):
         sp = tick.bid_price_1 - tmp * min_tick
         return (bp,sp)
     
-    ### TODO After review, don't think the below is quite useful
-    # def exe_FAK(self, tick:TickData, order:OrderData = None) -> tuple:
-    #     '''return (buy_price, sell_price) tuple'''
-    #     if order:
-    #         rej_count = order.rejection_count 
-    #     else:
-    #         rej_count = 0
-            
-    #     if rej_count >=3:
-    #         self.strategy_engine.write_exception("FAK seems not able to work")
-    #         # In this case it would wait for the next on_bar to send orders
-        
-    #     min_tick:float = self.get_pricetick(tick.vt_symbol)
-    #     bp = tick.ask_price_1 + (rej_count // 2) * min_tick
-    #     sp = tick.bid_price_1 - (rej_count // 2) * min_tick
-    #     return (bp,sp)
-
     def rebalance(self, vt_symbol: str, buy_price:float, sell_price:float, net:bool=False, strategy:str=None, intention:str=None) -> None:
         """基于目标执行调仓交易"""
+        self.write_log_trading(f"Attempting to rebalance {vt_symbol}: Buy Price={buy_price}, Sell Price={sell_price}, Net={net}")
         if self.symbol_status[vt_symbol].is_active:
             pass
 
@@ -482,6 +446,11 @@ class StrategyTemplate(ABC):
     def write_log(self, msg: str) -> None:
         """记录日志"""
         self.strategy_engine.write_log(msg, self)
+    
+    # write log along with level 1
+    def write_log_level1(self, msg: str) -> None:
+        self.strategy_engine.write_log(msg, self)
+        # TODO level 1 warning
         
     def write_log_trading(self, msg: str) -> None:
         "Recording debugging logs in trading period only"

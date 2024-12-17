@@ -64,11 +64,7 @@ class Strategy2(StrategyTemplate):
             return
         
         if self.rebal_tracker.all_true():
-            if len(self.rebal_tracker.get_false_keys()) == 0:
-                self.strategy_engine.stop_strategy(self.strategy_name,
-                                f"All have rebalanced. Stop the strategy {self.strategy_name} now",
-                                f"{self.strategy_name}_success_{self.strategy_engine.main_engine.env}")
-            else:
+            if len(self.rebal_tracker.get_false_keys()) != 0:
                 self.strategy_engine.stop_strategy(self.strategy_name,
                                 f"Missing {self.rebal_tracker.get_false_keys()}. Stop the strategy {self.strategy_name} now",
                                 f"{self.strategy_name}_attention_{self.strategy_engine.main_engine.env}")
