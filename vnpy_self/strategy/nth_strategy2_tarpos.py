@@ -230,12 +230,12 @@ def run(today_date_str:str):
             commission=0.0001,toFormat=True)
     d.to_csv('~/miniconda3/envs/vnpy3/lib/python3.10/site-packages/vnpy_self/analysis/data/strategy2_expected_pnl.csv')
     w.to_csv('~/miniconda3/envs/vnpy3/lib/python3.10/site-packages/vnpy_self/analysis/data/strategy2_positions.csv')
-    balancing_list = w.replace(np.nan,0).iloc[-1].astype(int).astype(str).rename('pos')
-    balancing_list = balancing_list.to_frame().reset_index().merge(vnpy_map, left_on='index', right_on='underlying_symbol', how='left')
-
-    # 4. insert balancing_list into database
+    balancing_list = w.replace(np.nan,0).iloc[-1].astype(int).astype(str)
     if today_date.date() != balancing_list.name.date():
         raise Exception(f'Wrong tar pos date! {today_date}, {balancing_list.name}')
+    
+    balancing_list = balancing_list.rename('pos').to_frame().reset_index().merge(vnpy_map, left_on='index', right_on='underlying_symbol', how='left')
+    # 4. insert balancing_list into database
     mysqlservice.insert("daily_rebalance_target", date=next_trading_date, today=today_date,
         symbol = ','.join(balancing_list['vnpy'].tolist()), 
         target = ','.join(balancing_list['pos'].tolist()),
