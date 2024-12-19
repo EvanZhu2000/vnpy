@@ -13,7 +13,7 @@ def run(today_date:str):
     set3 = {'bc.INE', 'br.SHFE', 'CJ.CZCE', 'ec.INE', 'IH.CFFEX', 'nr.INE', 'pb.SHFE', 'sc.INE', 'SH.CZCE', 'sn.SHFE', 'TL.CFFEX', 'TS.CFFEX'} # self definition
     to_drop_list = list(set1|set2|set3)
     df = mysqlservice.select('trading_schedule', today = today_date, strategy='dom').iloc[0]
-    potential_trading_series = pd.Series(df['symbol'].split(',')).str.split('.').str[0]
+    potential_trading_series = pd.Series(df['symbol'].split(','))
     trading_list = potential_trading_series.loc[~potential_trading_series.apply(get_rid_of_number).isin(to_drop_list)].values
     mysqlservice.insert('trading_schedule',ignore=True,
                         today = today_date,date = df['date'], 
