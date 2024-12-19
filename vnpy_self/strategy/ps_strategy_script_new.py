@@ -68,8 +68,8 @@ def run(quickstart:str, option:str):
     rebal_tar = db.select('daily_rebalance_target',today = current_day, strategy = strategy_title)
     rebal_tar = pd.concat([pd.Series(rebal_tar['symbol'].values[0].split(',')),
                         pd.Series(rebal_tar['target'].values[0].split(','))],axis=1,keys=['symbol','target'])
-    trading_schedule = db.select('trading_schedule',today = current_day, strategy = strategy_title).set_index('id').drop_duplicates()
-    previous_trading_schedule = db.select('trading_schedule',date = current_day, strategy = strategy_title).set_index('id').drop_duplicates()
+    trading_schedule = db.select('trading_schedule',today = current_day, strategy = strategy_title).drop_duplicates()
+    previous_trading_schedule = db.select('trading_schedule',date = current_day, strategy = strategy_title).drop_duplicates()
     trading_hours = db.select('trading_hours',date = trading_schedule['date'].iloc[0])
     db.close()
     
