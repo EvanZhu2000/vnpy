@@ -1,5 +1,5 @@
 import sys
-
+import re
 import rqdatac as rq
 from rqdatac import *
 rq.init('+85260983439','evan@cash')
@@ -44,29 +44,29 @@ def run(today_str:str):
     mysqlservice.insert('trading_schedule', ignore=True, today = today_str, date = next_trading_day, symbol = ','.join(rq_next_trading_day_dom2_list), strategy = 'dom2', sc_symbol = 'rq_dom2')
     
     for i in range(len(next_trading_day_dom_list)):
-        symb = next_trading_day_dom_list[i]
-        rq_symb = rq_next_trading_day_dom_list[i]
+        symb = re.sub(r'\d+', '', next_trading_day_dom_list[i])
+        rq_symb = re.sub(r'\d+', '', rq_next_trading_day_dom_list[i])
         mysqlservice.insert('trading_hours', replace=True, date = next_trading_day, 
                             rqsymbol = rq_symb, symbol = symb, 
                             trading_hours = get_trading_hours(rq_symb, next_trading_day), timezone = 'Asia/Shanghai')
         
     for i in range(len(next_trading_day_dom2_list)):
-        symb = next_trading_day_dom2_list[i]
-        rq_symb = rq_next_trading_day_dom2_list[i]
+        symb = re.sub(r'\d+', '', next_trading_day_dom2_list[i])
+        rq_symb = re.sub(r'\d+', '', rq_next_trading_day_dom2_list[i])
         mysqlservice.insert('trading_hours', replace=True, date = next_trading_day, 
                             rqsymbol = rq_symb, symbol = symb, 
                             trading_hours = get_trading_hours(rq_symb, next_trading_day), timezone = 'Asia/Shanghai')
         
     for i in range(len(today_dom_list)):
-        symb = today_dom_list[i]
-        rq_symb = rq_today_dom_list[i]
+        symb = re.sub(r'\d+', '', today_dom_list[i])
+        rq_symb = re.sub(r'\d+', '', rq_today_dom_list[i])
         mysqlservice.insert('trading_hours', replace=True, date = next_trading_day, 
                             rqsymbol = rq_symb, symbol = symb, 
                             trading_hours = get_trading_hours(rq_symb, next_trading_day), timezone = 'Asia/Shanghai')
         
     for i in range(len(today_dom2_list)):
-        symb = today_dom2_list[i]
-        rq_symb = rq_today_dom2_list[i]
+        symb = re.sub(r'\d+', '', today_dom2_list[i])
+        rq_symb = re.sub(r'\d+', '', rq_today_dom2_list[i])
         mysqlservice.insert('trading_hours', replace=True, date = next_trading_day, 
                             rqsymbol = rq_symb, symbol = symb, 
                             trading_hours = get_trading_hours(rq_symb, next_trading_day), timezone = 'Asia/Shanghai')
