@@ -12,9 +12,6 @@ mysqlservice.init_connection()
 from vnpy_self.strategy.rq_api_masker import RQ_API_MASKER
 masker = RQ_API_MASKER()
 
-def symbol_rq2vnpy(l, all_data):
-    return all_data.loc[all_data['underlying_symbol'].isin(l)][['trading_code','exchange']].apply(lambda x: '.'.join(x), axis = 1).values
-
 def retrieve_price(trading_list, price_start, today_date):
     def get_clean_day_data(df,total_turnover_thres = 1e+8, open_interest_thres = 1000, volume_thres = 1000):
         df = df.copy()
@@ -191,7 +188,8 @@ def run(today_date_str:str):
     if tmp1['date'][0]!=tmp2['date'][0]:
         raise Exception('Unmatching dates for vnpy.strategies & vnpy.trading_schedule')
     # trading_list = (pd.Series(tmp2['symbol'][0].split(',')).str[:-4]).tolist()
-    trading_list = pd.Series(id_convert(tmp2['symbol'][0].split(','))).str[:-4].tolist()
+    vnpy_map = pd.DataFrame([tmp2['symbol'][0].split(','),pd.Series(id_convert(tmp2['symbol'][0].split(','))).str[:-4].tolist()],index=['vnpy','underlying_symbol']).T
+    trading_list = vnpy_map['underlying_symbol'].tolist()
 
     # 2. get stats
     pro,pr,pr88 = retrieve_price(trading_list, price_start, today_date)
@@ -232,14 +230,15 @@ def run(today_date_str:str):
             commission=0.0001,toFormat=True)
     d.to_csv('~/miniconda3/envs/vnpy3/lib/python3.10/site-packages/vnpy_self/analysis/data/strategy2_expected_pnl.csv')
     w.to_csv('~/miniconda3/envs/vnpy3/lib/python3.10/site-packages/vnpy_self/analysis/data/strategy2_positions.csv')
-    balancing_list = w.replace(np.nan,0).iloc[-1]
+    balancing_list = w.replace(np.nan,0).iloc[-1].astype(int).astype(str).rename('pos')
+    balancing_list = balancing_list.to_frame().reset_index().merge(vnpy_map, left_on='index', right_on='underlying_symbol', how='left')
 
     # 4. insert balancing_list into database
     if today_date.date() != balancing_list.name.date():
         raise Exception(f'Wrong tar pos date! {today_date}, {balancing_list.name}')
     mysqlservice.insert("daily_rebalance_target", date=next_trading_date, today=today_date,
-        symbol = ','.join(symbol_rq2vnpy(balancing_list.astype(int).astype(str).index, all_data)), 
-        target = ','.join(balancing_list.astype(int).astype(str).values),
+        symbol = ','.join(balancing_list['vnpy'].tolist()), 
+        target = ','.join(balancing_list['pos'].tolist()),
         strategy = 'strategy2')
     mysqlservice.close()
     

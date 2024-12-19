@@ -8,8 +8,11 @@ warnings.filterwarnings("ignore")
 
 class MysqlService():
     
-    def __init__(self):
-        self.db_config = get_db_settings()
+    def __init__(self, option=None):
+        if option is None:
+            self.db_config = get_db_settings()
+        else:
+            self.db_config = db_map(option)
 
     def init_connection(self):
         self.mydb = mysql.connector.connect(
