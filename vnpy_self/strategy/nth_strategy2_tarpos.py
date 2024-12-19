@@ -12,6 +12,8 @@ mysqlservice.init_connection()
 from vnpy_self.strategy.rq_api_masker import RQ_API_MASKER
 masker = RQ_API_MASKER()
 
+def symbol_rq2vnpy(l, all_data):
+    return all_data.loc[all_data['underlying_symbol'].isin(l)][['trading_code','exchange']].apply(lambda x: '.'.join(x), axis = 1).values
 
 def retrieve_price(trading_list, price_start, today_date):
     def get_clean_day_data(df,total_turnover_thres = 1e+8, open_interest_thres = 1000, volume_thres = 1000):
@@ -159,6 +161,7 @@ def get_stats(trading_list, lookback_days, pro, today_date):
     return l_df_everyday,s_df_everyday,l_df_delta_everyday,s_df_delta_everyday,l_dom_everyday,s_dom_everyday,l_dom_delta_everyday,s_dom_delta_everyday,l_dom2_everyday,s_dom2_everyday,l_dom2_delta_everyday,s_dom2_delta_everyday
 
 def run(today_date_str:str): 
+    all_data = all_instruments(type='Future', market='cn', date=None)
     xxx = {
     'x0':('(-s_dom.loc[:, symb,:]).diff().mean(1)',(1.4,5,5)),
     'x1':('(-s_dom.loc[:, symb,:]).diff().mean(1)',(1.4,20,5)),
@@ -181,7 +184,6 @@ def run(today_date_str:str):
     if tmp1.shape[0]!=1:
         raise Exception('Wrong vnpy.strategies table for today!')
     money = float(tmp1['cash'][0]) * float(tmp1['leverage'][0])
-    used_money = 2000000
 
     tmp2 = mysqlservice.select('trading_schedule', today = today_date.strftime('%Y-%m-%d'), strategy='strategy2')
     if tmp2.shape[0]!=1:
@@ -235,7 +237,7 @@ def run(today_date_str:str):
     if today_date.date() != balancing_list.name.date():
         raise Exception(f'Wrong tar pos date! {today_date}, {balancing_list.name}')
     mysqlservice.insert("daily_rebalance_target", date=next_trading_date, today=today_date,
-        symbol = ','.join(balancing_list.astype(int).astype(str).index), 
+        symbol = ','.join(symbol_rq2vnpy(balancing_list.astype(int).astype(str).index, all_data)), 
         target = ','.join(balancing_list.astype(int).astype(str).values),
         strategy = 'strategy2')
     mysqlservice.close()

@@ -5,9 +5,9 @@ import pandas as pd
 import sys
 
 def run(today_date:str): 
-    set1 = {'IF','IH','IC','IM','T','TS','TF','TL'}
-    set2 = {'AG','AU','SC','EC','CU'}
-    set3 = {'BC', 'BR', 'CJ', 'EC', 'IH', 'NR', 'PB', 'SC', 'SH', 'SN', 'TL', 'TS'} # self definition
+    set1 = {'IF.CFFEX','IH.CFFEX','IC.CFFEX','IM.CFFEX','T.CFFEX','TS.CFFEX','TF.CFFEX','TL.CFFEX'}
+    set2 = {'ag.SHFE','au.SHFE','sc.INE','ec.INE','cu.SHFE'}
+    set3 = {'bc.INE', 'br.SHFE', 'CJ.CZCE', 'ec.INE', 'IH.CFFEX', 'nr.INE', 'pb.SHFE', 'sc.INE', 'SH.CZCE', 'sn.SHFE', 'TL.CFFEX', 'TS.CFFEX'} # self definition
     to_drop_list = list(set1|set2|set3)
     df = mysqlservice.select('trading_schedule', today = today_date, strategy='dom').iloc[0]
     potential_trading_series = pd.Series(df['symbol'].split(',')).str.split('.').str[0]

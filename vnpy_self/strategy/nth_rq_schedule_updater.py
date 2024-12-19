@@ -8,6 +8,9 @@ from vnpy_portfoliostrategy.mysqlservice import MysqlService
 mysqlservice = MysqlService()
 mysqlservice.init_connection()
 
+from vnpy_self.strategy.rq_api_masker import RQ_API_MASKER
+masker = RQ_API_MASKER()
+
 def symbol_rq2vnpy(l, all_data):
     return all_data.loc[all_data['order_book_id'].isin(l)][['trading_code','exchange']].apply(lambda x: '.'.join(x), axis = 1).values
 
@@ -25,23 +28,23 @@ def run(today_str:str):
     rq_next_trading_day_dom_list,rq_next_trading_day_dom2_list = [],[]
     
     for i in all_futures_df['underlying_symbol'].values:
-        dom_contract_next_day = futures.get_dominant(i,next_trading_day,rule=0,rank=1).values[0]
+        dom_contract_next_day = masker.get_dominant(i,next_trading_day,next_trading_day,rule=0,rank=1).values[0]
         rq_next_trading_day_dom_list.append(dom_contract_next_day)
-        dom_contract_today = futures.get_dominant(i,today_str,rule=0,rank=1).values[0]
+        dom_contract_today = masker.get_dominant(i,today_str,today_str,rule=0,rank=1).values[0]
         rq_today_dom_list.append(dom_contract_today)
         
         if i in symb_list:
-            dom2_contract_next_day = futures.get_dominant(i,next_trading_day,rule=0,rank=2).values[0]
+            dom2_contract_next_day = masker.get_dominant(i,next_trading_day,next_trading_day,rule=0,rank=2).values[0]
             rq_next_trading_day_dom2_list.append(dom2_contract_next_day)
-            dom2_contract_today = futures.get_dominant(i,today_str,rule=0,rank=2).values[0]
+            dom2_contract_today = masker.get_dominant(i,today_str,today_str,rule=0,rank=2).values[0]
             rq_today_dom2_list.append(dom2_contract_today)
 
     next_trading_day_dom_list = symbol_rq2vnpy(rq_next_trading_day_dom_list, all_data)
     next_trading_day_dom2_list = symbol_rq2vnpy(rq_next_trading_day_dom2_list, all_data)
     today_dom_list =  symbol_rq2vnpy(rq_today_dom_list, all_data)
     today_dom2_list = symbol_rq2vnpy(rq_today_dom2_list, all_data)
-    mysqlservice.insert('trading_schedule', ignore=True, today = today_str, date = next_trading_day, symbol = ','.join(rq_next_trading_day_dom_list), strategy = 'dom', sc_symbol = 'rq_dom')
-    mysqlservice.insert('trading_schedule', ignore=True, today = today_str, date = next_trading_day, symbol = ','.join(rq_next_trading_day_dom2_list), strategy = 'dom2', sc_symbol = 'rq_dom2')
+    mysqlservice.insert('trading_schedule', ignore=True, today = today_str, date = next_trading_day, symbol = ','.join(next_trading_day_dom_list), strategy = 'dom', sc_symbol = 'rq_dom')
+    mysqlservice.insert('trading_schedule', ignore=True, today = today_str, date = next_trading_day, symbol = ','.join(next_trading_day_dom2_list), strategy = 'dom2', sc_symbol = 'rq_dom2')
     
     def get_rid_of_number(s):
         return re.sub(r'\d+', '', s)
@@ -50,7 +53,7 @@ def run(today_str:str):
         symb = next_trading_day_dom_list[i]
         rq_symb = rq_next_trading_day_dom_list[i]
         mysqlservice.insert('trading_hours', replace=True,
-                            rqsymbol = get_rid_of_number(rq_symb), symbol = get_rid_of_number(symb), 
+                            symbol = get_rid_of_number(symb), 
                             trading_hours = get_trading_hours(rq_symb, next_trading_day), 
                             timezone = 'Asia/Shanghai')
         
@@ -58,7 +61,7 @@ def run(today_str:str):
         symb = next_trading_day_dom2_list[i]
         rq_symb = rq_next_trading_day_dom2_list[i]
         mysqlservice.insert('trading_hours', replace=True, 
-                            rqsymbol = get_rid_of_number(rq_symb)   , symbol = get_rid_of_number(symb), 
+                            symbol = get_rid_of_number(symb), 
                             trading_hours = get_trading_hours(rq_symb, next_trading_day), 
                             timezone = 'Asia/Shanghai')
         
@@ -66,7 +69,7 @@ def run(today_str:str):
         symb = today_dom_list[i]
         rq_symb = rq_today_dom_list[i]
         mysqlservice.insert('trading_hours', replace=True,
-                            rqsymbol = get_rid_of_number(rq_symb), symbol = get_rid_of_number(symb), 
+                            symbol = get_rid_of_number(symb), 
                             trading_hours = get_trading_hours(rq_symb, next_trading_day), 
                             timezone = 'Asia/Shanghai')
         
@@ -74,7 +77,7 @@ def run(today_str:str):
         symb = today_dom2_list[i]
         rq_symb = rq_today_dom2_list[i]
         mysqlservice.insert('trading_hours', replace=True,
-                            rqsymbol = get_rid_of_number(rq_symb), symbol = get_rid_of_number(symb), 
+                            symbol = get_rid_of_number(symb), 
                             trading_hours = get_trading_hours(rq_symb, next_trading_day), 
                             timezone = 'Asia/Shanghai')
     mysqlservice.close()

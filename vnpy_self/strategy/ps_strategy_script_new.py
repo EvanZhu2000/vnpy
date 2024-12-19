@@ -70,7 +70,7 @@ def run(quickstart:str, option:str):
                         pd.Series(rebal_tar['target'].values[0].split(','))],axis=1,keys=['symbol','target'])
     trading_schedule = db.select('trading_schedule',today = current_day, strategy = strategy_title).drop_duplicates()
     previous_trading_schedule = db.select('trading_schedule',date = current_day, strategy = strategy_title).drop_duplicates()
-    trading_hours = db.select('trading_hours',date = trading_schedule['date'].iloc[0])
+    trading_hours = db.select('trading_hours')
     db.close()
     
     # ===== fill positions and find target for today
