@@ -42,6 +42,7 @@ class StrategyTemplate(ABC):
 
         # Hard code stuff
         self.time_since_last_tick = timedelta(seconds=60) 
+        self.alarm_time_since_last_tick = None
         self.time_since_starting = timedelta(minutes=10) 
         
         # 状态控制变量
@@ -154,8 +155,10 @@ class StrategyTemplate(ABC):
         # feed check
         elif tick.datetime - self.symbol_status[tick.vt_symbol].last_tick.datetime < timedelta(minutes=0):
             return False
-        elif tick.datetime - self.symbol_status[tick.vt_symbol].last_tick.datetime > self.time_since_last_tick:
-            self.write_log_level1(f'Too long since last tick for {tick.vt_symbol}, breaching {self.time_since_last_tick}')
+        elif tick.datetime - self.symbol_status[tick.vt_symbol].last_tick.datetime > self.time_since_last_tick \
+            and (self.alarm_time_since_last_tick is None or tick.datetime - self.alarm_time_since_last_tick > self.time_since_last_tick):
+            self.write_log_level1(f'Too long since last tick for {tick.vt_symbol}, breaching {self.time_since_last_tick}, last tick time: {self.symbol_status[tick.vt_symbol].last_tick.datetime}')
+            self.alarm_time_since_last_tick = tick.datetime
             
         return True
 
