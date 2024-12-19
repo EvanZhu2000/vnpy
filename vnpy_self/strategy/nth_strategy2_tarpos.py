@@ -190,7 +190,8 @@ def run(today_date_str:str):
         raise Exception('Wrong vnpy.trading_schedule table for today!')
     if tmp1['date'][0]!=tmp2['date'][0]:
         raise Exception('Unmatching dates for vnpy.strategies & vnpy.trading_schedule')
-    trading_list = id_convert(tmp2['symbol'][0].split(','))
+    # trading_list = (pd.Series(tmp2['symbol'][0].split(',')).str[:-4]).tolist()
+    trading_list = pd.Series(id_convert(tmp2['symbol'][0].split(','))).str[:-4].tolist()
 
     # 2. get stats
     pro,pr,pr88 = retrieve_price(trading_list, price_start, today_date)
