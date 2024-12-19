@@ -85,4 +85,21 @@ def run(today_str:str):
 if __name__ == "__main__":
     # The input today_date needs to be the real date at next settlement date start, in the format of YYYY-MM-DD
     today_date = sys.argv[1]
-    run(today_date)
+    import logging
+    import os
+    from datetime import datetime
+    
+    log_filename = f'python_script_{datetime.now().strftime("%Y%m%d")}.log'
+    log_path = f'/home/{os.getenv("APP_ENV", "uat")}/.vntrader/python_scripts_logs/{log_filename}'
+    
+    logging.basicConfig(
+        filename=log_path,
+        level=logging.ERROR,
+        format='%(asctime)s %(levelname)s %(message)s'
+    )
+
+    try:
+        run(today_date)
+    except Exception as e:
+        logging.error("An error occurred", exc_info=True)
+        sys.exit(1)
