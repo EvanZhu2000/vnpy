@@ -65,25 +65,15 @@ def run(quickstart:str, option:str):
     # current_day is supposingly when the script should be start running, ideally 21:00 every settlement date
     main_engine.write_log(f"settlement date starting day is {current_day}")
     
-    rebal_tar = db.select('daily_rebalance_target',today = current_day, strategy = strategy_title)
-    rebal_tar = pd.concat([pd.Series(rebal_tar['symbol'].values[0].split(',')),
-                        pd.Series(rebal_tar['target'].values[0].split(','))],axis=1,keys=['symbol','target'])
-    trading_schedule = db.select('trading_schedule',today = current_day, strategy = strategy_title).drop_duplicates()
-    previous_trading_schedule = db.select('trading_schedule',date = current_day, strategy = strategy_title).drop_duplicates()
+    to_trade_df = db.select('daily_rebalance_target',today = current_day, strategy = strategy_title)
+    to_trade_df = pd.concat([pd.Series(to_trade_df['symbol'].values[0].split(',')),
+                        pd.Series(to_trade_df['target'].values[0].split(','))],axis=1,keys=['symbol','target'])
     trading_hours = db.select('trading_hours')
     db.close()
     
-    # ===== fill positions and find target for today
-    if trading_schedule.shape[0]!=1 or previous_trading_schedule.shape[0]!=1:
-        main_engine.write_exception(f'Wrong trading schedule for {strategy_title}')
-    to_trade_df = pd.concat([pd.Series(trading_schedule['symbol'].values[0].split(',')).str[:-4],
-                             pd.Series(trading_schedule['symbol'].values[0].split(','))],axis=1,keys=['symbol','symb']
-                            ).merge(trading_hours[['rqsymbol','symbol']],left_on='symb',right_on='rqsymbol',how='inner'
-                                    ).merge(rebal_tar,left_on='symbol_x',right_on='symbol',how='inner'
-                                            )[['symbol_y','target']]
     to_trade_df['target'] = pd.to_numeric(to_trade_df['target'])
     pos_data = ps_engine.get_pos(strategy_title)
-    ans = pos_data[['symbol','pos']].set_index('symbol').replace(0,np.nan).dropna().join(to_trade_df.drop_duplicates().set_index('symbol_y'),how='outer')
+    ans = pos_data[['symbol','pos']].set_index('symbol').replace(0,np.nan).dropna().join(to_trade_df.drop_duplicates().set_index('symbol'),how='outer')
     ans = ans.replace(0,np.nan).dropna(how='all').replace(np.nan,0)
     
     vt_symbols = ans.index.values.tolist()
