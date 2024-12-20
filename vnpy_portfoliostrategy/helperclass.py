@@ -37,6 +37,7 @@ class SymbolStatus():
     order_list = []
     last_tick: Optional[TickData] = None  # for now it is just used to record whether we at least received one tick
     stop_FAK_cancel = False
+    alarm_time_since_last_tick = None
     
     def is_stop(self):
         return self.stop_FAK_cancel
