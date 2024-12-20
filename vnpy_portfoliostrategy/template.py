@@ -1,6 +1,6 @@
 from abc import ABC
 from copy import copy
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional,DefaultDict, List
 from collections import defaultdict
 from datetime import datetime, timedelta
 from vnpy.trader.constant import Interval, Direction, Offset, Status
@@ -9,7 +9,7 @@ from vnpy.trader.utility import virtual
 from vnpy_portfoliostrategy.base import EngineType
 from vnpy_portfoliostrategy.helperclass import *
 from collections import defaultdict
-from typing import DefaultDict, List
+import re
 from vnpy_self.general import *
 import pytz
 import pandas as pd
@@ -506,13 +506,14 @@ class StrategyTemplate(ABC):
             return False
         
         # Check whether the tick is in continuous trading hours
-        if tick.vt_symbol not in self.trading_hours.keys():
+        effective_symbol = re.sub(r'\d+', '', tick.vt_symbol)
+        if effective_symbol not in self.trading_hours.keys():
             self.strategy_engine.stop_strategy(self.strategy_name, 
-                                               f"No trading hours provided for {tick.vt_symbol}. Stop the strategy {self.strategy_name} now",
+                                               f"No trading hours provided for {tick.vt_symbol}, effective symbol is {effective_symbol}. Stop the strategy {self.strategy_name} now",
                                                f"{self.strategy_name}_fail_{self.strategy_engine.main_engine.env}")
             return False
         else:
-            continuous_trading_intervals = self.trading_hours[tick.vt_symbol]
+            continuous_trading_intervals = self.trading_hours[effective_symbol]
             if not self.is_time_in_intervals(tick.datetime.time(), continuous_trading_intervals):
                 # Then this tick is not a continuous trading tick
                 return False
