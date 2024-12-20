@@ -19,7 +19,7 @@ class Strategy2(StrategyTemplate):
         super().__init__(strategy_engine, strategy_name, vt_symbols, setting)
         # self.tick_tracker = BoolDict(vt_symbols)
         # self.time_since_first_tick = timedelta(minutes=1)
-        self.write_log(f"vt_symbols {vt_symbols}")
+        self.write_log(f"vt_symbols {vt_symbols}") # Note: vt_symbols should be covering both curpos and tarpos
         
         if 'settlement_dates_str' in setting:
             self.settlement_dates_str = setting['settlement_dates_str']
@@ -30,9 +30,11 @@ class Strategy2(StrategyTemplate):
             curpos = json.loads(setting['ans'])['pos']
             self.write_log(f"curpos {self.nonzero_dict(curpos)}")
             self.write_log(f"tarpos {self.nonzero_dict(tarpos)}")
-            without_month_symbols_mapping = dict()  # e.g. fu.SHFE -> fu2501.SHFE
             for symb,tar in tarpos.items():
                 self.set_target(symb, tar)
+            
+            without_month_symbols_mapping = dict()  # e.g. fu.SHFE -> fu2501.SHFE
+            for symb in vt_symbols:
                 without_month_symbols_mapping[re.sub(r'\d+', '', symb)] = symb
                 
         if 'trading_hours' in setting:

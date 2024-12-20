@@ -312,7 +312,6 @@ class StrategyTemplate(ABC):
     
     def rebalance(self, vt_symbol: str, buy_price:float, sell_price:float, net:bool=False, strategy:str=None, intention:str=None) -> None:
         """基于目标执行调仓交易"""
-        self.write_log_trading(f"Attempting to rebalance {vt_symbol}: Buy Price={buy_price}, Sell Price={sell_price}, Net={net}")
         if self.symbol_status[vt_symbol].is_active:
             pass
 
