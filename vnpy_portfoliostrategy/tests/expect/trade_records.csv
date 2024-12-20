@@ -1,0 +1,3 @@
+signal_datetime,datetime,vt_symbol,vt_orderid,direction,offset,price,volume
+2024-11-14 21:00:00+08:00,2024-11-14 21:00:02+08:00,fu2501.SHFE,BACKTESTING.1,Direction.LONG,Offset.OPEN,3060,5
+2024-11-14 21:00:00+08:00,2024-11-14 21:00:07+08:00,fu2501.SHFE,BACKTESTING.6,Direction.LONG,Offset.OPEN,3069,5
