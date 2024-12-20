@@ -2,22 +2,17 @@ from datetime import datetime
 import json
 import os
 import pandas as pd
-from importlib import reload
-import vnpy_portfoliostrategy
-reload(vnpy_portfoliostrategy)
 from vnpy_portfoliostrategy import BacktestingEngine
 from vnpy.trader.constant import Interval
-import vnpy_portfoliostrategy.strategies.strategy2 as stg
-reload(stg)
 from vnpy_portfoliostrategy.strategies.strategy2 import Strategy2
 import unittest
 
 
-class TestStrategy2Alert(unittest.TestCase):
+class TestStrategy2(unittest.TestCase):
     def setUp(self):
         self.vt_symbols = ["fu2501.SHFE"]
         current_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-        self.csv_file_path = os.path.join(current_dir, 'tests', 'testfiles', 'stg2ticks.csv')
+        self.csv_file_path = os.path.join(current_dir, 'vnpy_portfoliostrategy', 'tests', 'testfiles', 'stg2ticks.csv')
         
         self.engine = BacktestingEngine()
         self.engine.set_parameters(
@@ -68,7 +63,7 @@ class TestStrategy2Alert(unittest.TestCase):
 
         # Load expected results from expect folder
         current_dir = os.path.dirname(os.path.dirname(__file__))
-        expect_dir = os.path.join(current_dir, 'expect')
+        expect_dir = os.path.join(current_dir, 'tests','expect')
 
         expected_trades = pd.read_csv(os.path.join(expect_dir, 'trades.csv')).astype(str)   
         expected_orders = pd.read_csv(os.path.join(expect_dir, 'orders.csv')).astype(str)
