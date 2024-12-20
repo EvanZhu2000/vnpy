@@ -89,14 +89,14 @@ if __name__ == "__main__":
     import os
     from datetime import datetime
     
-    log_filename = f'python_script_{datetime.now().strftime("%Y%m%d")}.log'
-    log_path = f'/home/{os.getenv("APP_ENV", "uat")}/.vntrader/python_scripts_logs/{log_filename}'
-    
-    logging.basicConfig(
-        filename=log_path,
-        level=logging.ERROR,
-        format='%(asctime)s %(levelname)s %(message)s'
-    )
+    log_dir = f'/home/{os.getenv("APP_ENV", "uat")}/.vntrader/python_scripts_logs'
+    os.makedirs(log_dir, exist_ok=True)
+
+    # Configure logging
+    log_file = os.path.join(log_dir, f'python_script_{datetime.now().strftime("%Y%m%d")}.log')
+    logging.basicConfig(filename=log_file, level=logging.ERROR, 
+                        format='%(asctime)s %(levelname)s %(message)s')
+
 
     try:
         run(today_date)
