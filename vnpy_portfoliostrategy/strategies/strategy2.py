@@ -3,6 +3,7 @@ from vnpy_portfoliostrategy import StrategyTemplate, StrategyEngine
 from vnpy_portfoliostrategy.helperclass import *
 from vnpy.trader.object import TickData
 from datetime import datetime, timedelta
+from collections import defaultdict
 import json
 import re
 
@@ -33,17 +34,18 @@ class Strategy2(StrategyTemplate):
             for symb,tar in tarpos.items():
                 self.set_target(symb, tar)
             
-            without_month_symbols_mapping = dict()  # e.g. fu.SHFE -> fu2501.SHFE
+            without_month_symbols_mapping: dict[str, list[str]] = defaultdict(list)  # e.g. fu.SHFE -> [fu2501.SHFE, fu2502.SHFE, ...]
             for symb in vt_symbols:
-                without_month_symbols_mapping[re.sub(r'\d+', '', symb)] = symb
+                without_month_symbols_mapping[re.sub(r'\d+', '', symb)].append(symb)
                 
         if 'trading_hours' in setting:
             self.trading_hours = json.loads(setting['trading_hours'])
             target_time_collection = dict()
             for symb,th in self.trading_hours.items():
                 if symb in without_month_symbols_mapping.keys():
-                    target_time_collection[without_month_symbols_mapping[symb]] = self.get_open_time(th)
-                    self.write_log(f"taget_time: {without_month_symbols_mapping[symb]} - {target_time_collection[without_month_symbols_mapping[symb]]}")
+                    for actual_symb in without_month_symbols_mapping[symb]:
+                        target_time_collection[actual_symb] = self.get_open_time(th)
+                        self.write_log(f"taget_time: {actual_symb} - {target_time_collection[actual_symb]}")
             self.rebal_tracker = BoolDict(vt_symbols, target_time_collection)
     
     def on_init(self) -> None:
