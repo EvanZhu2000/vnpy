@@ -12,7 +12,7 @@ def run(date_str:str):
         tmp.iloc[11:25][['Unnamed: 0', 'Unnamed: 3']].rename(columns={'Unnamed: 0':'fields','Unnamed: 3':'values'}),
         tmp.iloc[11:25][['Unnamed: 6', 'Unnamed: 9']].rename(columns={'Unnamed: 6':'fields','Unnamed: 9':'values'})
     ]).dropna().set_index('fields')
-    settlement_total_df['values'].loc['风 险 度 Risk Degree:'] = float(settlement_total_df['values'].loc['风 险 度 Risk Degree:'].strip('%').strip())/100
+    settlement_total_df.loc['风 险 度 Risk Degree:','values'] = float(settlement_total_df.loc['风 险 度 Risk Degree:','values'].strip('%').strip())/100
     settlement_total_df = settlement_total_df.astype(float).round(4)
 
     # ========= 成交记录 =============
@@ -36,9 +36,8 @@ def run(date_str:str):
     pnl_HKD = round(pnl_CNY / hkdcny,2)
     pnl_percentage = round((pnl_CNY / pre_bal), 4)
     cum_pnl_percentage += round(pnl_percentage, 4)
-    date = datetime.today().strftime("%Y-%m-%d")
     
-    records.loc[len(records)] = [date, cur_bal, pnl_CNY, pnl_HKD, pnl_percentage, cum_pnl_percentage]
+    records.loc[len(records)] = [date_str, cur_bal, pnl_CNY, pnl_HKD, pnl_percentage, cum_pnl_percentage]
     records.set_index('Date', inplace=True)
 
     ### write csv
