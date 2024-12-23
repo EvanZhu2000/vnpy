@@ -45,7 +45,7 @@ class Strategy2(StrategyTemplate):
                 if symb in without_month_symbols_mapping.keys():
                     for actual_symb in without_month_symbols_mapping[symb]:
                         target_time_collection[actual_symb] = self.get_open_time(th)
-                        self.write_log(f"taget_time: {actual_symb} - {target_time_collection[actual_symb]}")
+                        self.write_log(f"target_time: {actual_symb} - {target_time_collection[actual_symb]}")
             self.rebal_tracker = BoolDict(vt_symbols, target_time_collection)
     
     def on_init(self) -> None:

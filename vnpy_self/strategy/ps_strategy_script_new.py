@@ -15,7 +15,7 @@ import sys
 from time import sleep
 import pandas as pd
 import numpy as np
-
+import signal
 from vnpy_portfoliostrategy.mysqlservice import MysqlService
 db = MysqlService()
 db.init_connection()
@@ -24,7 +24,15 @@ SETTINGS["log.active"] = True
 SETTINGS["log.level"] = INFO
 SETTINGS["log.console"] = True
 
+
+
+
 def run(quickstart:str, option:str):
+    def signal_handler(signum, frame):
+        main_engine.write_log("Received shutdown signal, closing ps策略")
+        ps_engine.stop_all_strategies()
+        main_engine.close()
+        
     SETTINGS["log.file"] = True
     
     event_engine = EventEngine()
@@ -112,6 +120,7 @@ def run(quickstart:str, option:str):
     ps_engine.start_strategy(strategy_title)
     main_engine.write_log("ps策略全部启动")
     
+    signal.signal(signal.SIGTERM, signal_handler)
     while True:
         sleep(60)
         if not check_trading_period_chinafutures():

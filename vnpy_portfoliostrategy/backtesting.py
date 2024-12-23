@@ -70,7 +70,7 @@ class BacktestingEngine(StrategyEngine):
 
         self.interval: Interval = None
         self.days: int = 0
-        self.history_data: dict[tuple, BarData] = {}
+        self.history_data = {}
         self.dts: set[datetime] = set()
 
         self.limit_order_count: int = 0
@@ -189,50 +189,49 @@ class BacktestingEngine(StrategyEngine):
         # total_delta: timedelta = self.end - self.start
         # interval_delta: timedelta = INTERVAL_DELTA_MAP[self.interval]
 
-        for vt_symbol in self.vt_symbols:
-            
-            # if self.interval == Interval.MINUTE:
-            #     start: datetime = self.start
-            #     end: datetime = self.start + progress_delta
-            #     progress = 0
+        if self.interval == Interval.TICK:
+            self.history_data = self.load_data_from_cache()
+            data_count = len(self.history_data)
+            self.output(f"历史数据加载完成，数据量：{data_count}")
+        else:
+            for vt_symbol in self.vt_symbols:
+                
+                # if self.interval == Interval.MINUTE:
+                #     start: datetime = self.start
+                #     end: datetime = self.start + progress_delta
+                #     progress = 0
 
-            #     data_count = 0
-            #     while start < self.end:
-            #         end = min(end, self.end)
+                #     data_count = 0
+                #     while start < self.end:
+                #         end = min(end, self.end)
 
-            #         data: list[BarData] = load_bar_data(
-            #             vt_symbol,
-            #             self.interval,
-            #             start,
-            #             end
-            #         )
+                #         data: list[BarData] = load_bar_data(
+                #             vt_symbol,
+                #             self.interval,
+                #             start,
+                #             end
+                #         )
 
-            #         for bar in data:
-            #             self.dts.add(bar.datetime)
-            #             self.history_data[(bar.datetime, vt_symbol)] = bar
-            #             data_count += 1
+                #         for bar in data:
+                #             self.dts.add(bar.datetime)
+                #             self.history_data[(bar.datetime, vt_symbol)] = bar
+                #             data_count += 1
 
-            #         progress += progress_delta / total_delta
-            #         progress = min(progress, 1)
-            #         progress_bar = "#" * int(progress * 10)
-            #         self.output(f"{vt_symbol}加载进度：{progress_bar} [{progress:.0%}]")
+                #         progress += progress_delta / total_delta
+                #         progress = min(progress, 1)
+                #         progress_bar = "#" * int(progress * 10)
+                #         self.output(f"{vt_symbol}加载进度：{progress_bar} [{progress:.0%}]")
 
-            #         start = end + interval_delta
-            #         end += (progress_delta + interval_delta)
-            # else:
-            
-            if self.interval == Interval.TICK:
-                data: list[TickData] = self.load_data_from_cache()
+                #         start = end + interval_delta
+                #         end += (progress_delta + interval_delta)
+                # else:
+                
 
-                for dat in data:
-                    self.dts.add(dat.datetime)
-                    self.history_data[(dat.datetime, vt_symbol)] = dat
-            else:
-                data: list[BarData] = self.load_data_from_cache()
+                    data: list[BarData] = self.load_data_from_cache()
 
-                for bar in data:
-                    self.dts.add(bar.datetime)
-                    self.history_data[(bar.datetime, vt_symbol)] = bar
+                    for bar in data:
+                        self.dts.add(bar.datetime)
+                        self.history_data[(bar.datetime, vt_symbol)] = bar
 
             data_count = len(data)
 
@@ -242,6 +241,25 @@ class BacktestingEngine(StrategyEngine):
 
     def run_backtesting(self) -> None:
         """开始回测"""
+        
+        self.strategy.on_start()
+        self.strategy.trading = True
+        self.output("开始回放历史数据")
+        
+        # this should be the way
+        if self.interval == Interval.TICK:
+            try:
+                for tick in self.history_data:
+                    self.datetime = tick.datetime
+                    self.ticks[tick.vt_symbol] = tick
+                    self.cross_order()
+                    self.strategy.on_tick(tick)
+            except Exception:
+                self.output("触发异常，回测终止")
+                self.output(traceback.format_exc())
+            return
+        
+        # ==========================
 
         dts: list = list(self.dts)
         dts.sort()
@@ -249,9 +267,6 @@ class BacktestingEngine(StrategyEngine):
         # 使用指定时间的历史数据初始化策略
         day_count: int = 0
         ix: int = 0
-        self.strategy.on_start()
-        self.strategy.trading = True
-        self.output("开始回放历史数据")
 
         for ix, dt in enumerate(dts):
             if self.datetime and dt.day != self.datetime.day:
