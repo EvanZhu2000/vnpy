@@ -3,16 +3,6 @@ from datetime import datetime
 import pandas as pd
 import sys
 
-from vnpy.event import EventEngine
-from vnpy.trader.engine import MainEngine
-from vnpy_ctp import CtpGateway
-from vnpy_self.ctp_setting import *
-
-from vnpy_portfoliostrategy.mysqlservice import MysqlService
-mysqlservice = MysqlService()
-mysqlservice.init_connection()
-
-
 def run(date_str:str):
     pnl_directory = '//192.168.91.128/share_folder/Evan/PNL.csv'
     tmp =  pd.read_excel(f'G:\My Drive\\2520000355逐笔_{date_str}.xls')
@@ -57,5 +47,5 @@ def run(date_str:str):
 
 
 if __name__ == "__main__":
-    date_str = sys.argv[1]
+    date_str = datetime.today().strftime("%Y%m%d")
     run(date_str)
