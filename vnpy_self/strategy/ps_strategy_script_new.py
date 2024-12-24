@@ -7,7 +7,6 @@ from vnpy_ctp import CtpGateway
 from vnpy_portfoliostrategy import PortfolioStrategyApp
 from vnpy_portfoliostrategy.base import EVENT_PORTFOLIO_LOG
 from vnpy_self.ctp_setting import *
-from vnpy_self.general import *
 from vnpy.trader.constant import Direction
 import json
 from datetime import datetime, time, date
@@ -25,11 +24,9 @@ SETTINGS["log.level"] = INFO
 SETTINGS["log.console"] = True
 
 
-
-
 def run(quickstart:str, option:str):
     def signal_handler(signum, frame):
-        main_engine.write_log("Received shutdown signal, closing ps策略")
+        main_engine.write_log("Received shutdown signal, closing ps strategy")
         ps_engine.stop_all_strategies()
         main_engine.close()
         
@@ -121,13 +118,7 @@ def run(quickstart:str, option:str):
     main_engine.write_log("ps策略全部启动")
     
     signal.signal(signal.SIGTERM, signal_handler)
-    while True:
-        sleep(60)
-        if not check_trading_period_chinafutures():
-            main_engine.write_log("ps策略全部close")
-            ps_engine.stop_all_strategies()
-            main_engine.close()
-
+    
 if __name__ == "__main__":
     quickstart = sys.argv[1] #(Should be either True or False)
     if len(sys.argv) == 2:
