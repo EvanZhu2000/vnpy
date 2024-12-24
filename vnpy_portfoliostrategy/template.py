@@ -10,7 +10,6 @@ from vnpy_portfoliostrategy.base import EngineType
 from vnpy_portfoliostrategy.helperclass import *
 from collections import defaultdict
 import re
-from vnpy_self.general import *
 import pytz
 import pandas as pd
 
