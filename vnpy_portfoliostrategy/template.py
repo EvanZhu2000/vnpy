@@ -2,7 +2,7 @@ from abc import ABC
 from copy import copy
 from typing import TYPE_CHECKING, Optional,DefaultDict, List
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from vnpy.trader.constant import Interval, Direction, Offset, Status
 from vnpy.trader.object import BarData, TickData, OrderData, TradeData, OrderType
 from vnpy.trader.utility import virtual
@@ -554,7 +554,7 @@ class StrategyTemplate(ABC):
             start_time = datetime.strptime(start_time_str, '%H:%M').time()
             adjusted_start_time = (datetime.combine(datetime.today(), start_time) - timedelta(seconds=start_time_minus_seconds)).time()
             
-            date_to_use = date_2 if adjusted_start_time <= DAY_END_CHINAFUTURES else date_1
+            date_to_use = date_2 if adjusted_start_time <= time(15,30) else date_1
             result = datetime.combine(datetime.strptime(date_to_use, '%Y-%m-%d'), adjusted_start_time)
             result = pytz.timezone(zones).localize(result)
             return result
