@@ -1,3 +1,4 @@
 timestamp,message
-2024-11-14 21:01:10+08:00,"Too long since last tick for fu2501.SHFE, breaching 0:01:00, last tick time: 2024-11-14 21:00:01+08:00"
-2024-11-14 21:03:15+08:00,"Too long since last tick for fu2501.SHFE, breaching 0:01:00, last tick time: 2024-11-14 21:00:01+08:00"
+2024-11-14 21:01:10+08:00,"Too long since last tick for fu2501.SHFE, breaching 0:01:00, last tick time: 2024-11-14 21:00:01+08:00, current time: 2024-11-14 21:01:10+08:00"
+2024-11-14 21:03:15+08:00,"Too long since last tick for fu2501.SHFE, breaching 0:01:00, last tick time: 2024-11-14 21:00:01+08:00, current time: 2024-11-14 21:03:15+08:00"
+

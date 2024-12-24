@@ -511,6 +511,15 @@ class StrategyEngine(BaseEngine):
         strategy: StrategyTemplate = self.strategies[strategy_name]
         if not strategy.trading:
             return
+        
+        if message is not None and type(message) == str:
+            self.write_log(message)
+        
+        if message is not None and header is not None and type(message) == str and type(header) == str:
+            try:
+                self.email(header, message)
+            except Exception as e:
+                self.write_log(f"Failed to send email: {e}")
 
         # 调用策略on_stop函数
         self.call_strategy_func(strategy, strategy.on_stop)
@@ -526,12 +535,6 @@ class StrategyEngine(BaseEngine):
 
         # 推送策略事件通知停止完成状态
         self.put_strategy_event(strategy)
-        
-        if message is not None and type(message) == str:
-            self.write_log(message)
-        
-        if message is not None and header is not None and type(message) == str and type(header) == str: 
-            self.email(header, message)
         
         ## Might be unnecessary
         # self.dbservice.init_connection()

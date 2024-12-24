@@ -66,9 +66,24 @@ class Strategy2(StrategyTemplate):
         self.put_event()
         
     def on_tick(self, tick: TickData) -> None:
-        if not self.trading or not super().on_tick(tick):
+        
+        if not self.trading:
             return
         
+        # No tick alert
+        if self.starting_time is not None and tick.datetime is not None \
+            and tick.datetime - self.starting_time > self.time_since_starting\
+            and self.symbol_status[tick.vt_symbol].last_tick is None:
+            self.strategy_engine.stop_strategy(self.strategy_name,
+                                    f"{tick.vt_symbol} didn't receive any ticks since start up",
+                                    f"{self.strategy_name}_fail_{self.strategy_engine.main_engine.env}")
+            return
+        
+        # Check if the tick is valid
+        if not super().on_tick(tick):
+            return
+        
+        # Rebalance check
         if self.rebal_tracker.all_true():
             if len(self.rebal_tracker.get_false_keys()) != 0:
                 self.strategy_engine.stop_strategy(self.strategy_name,
@@ -81,15 +96,6 @@ class Strategy2(StrategyTemplate):
         
         # I don't think it is necessary to do check for late rebalance
         
-        # Initial Check
-        if self.starting_time is not None and tick.datetime is not None \
-            and tick.datetime - self.starting_time > self.time_since_starting\
-            and self.symbol_status[tick.vt_symbol].last_tick is None:
-            self.strategy_engine.stop_strategy(self.strategy_name,
-                                    f"{tick.vt_symbol} didn't receive any ticks since start up",
-                                    f"{self.strategy_name}_fail_{self.strategy_engine.main_engine.env}")
-            return
-
         if (self.get_target(tick.vt_symbol) != self.get_pos(tick.vt_symbol)):
             if (not self.symbol_status[tick.vt_symbol].is_active and not self.symbol_status[tick.vt_symbol].is_stop()):
                 bp,ap = self.get_retry_price(tick)

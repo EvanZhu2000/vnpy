@@ -46,6 +46,7 @@ class BacktestingEngine(StrategyEngine):
     gateway_name: str = "BACKTESTING"
     main_engine = MainEngineMock()
     tz = pytz.timezone('Asia/Shanghai')
+    starting_time: datetime = None
 
     def __init__(self) -> None:
         """构造函数"""
@@ -159,7 +160,10 @@ class BacktestingEngine(StrategyEngine):
         """停止策略"""
         if not self.strategy.trading:
             return
-
+        
+        if message is not None and type(message) == str:
+            self.write_log(message)
+            
         # 调用策略on_stop函数
         self.call_strategy_func(self.strategy, self.strategy.on_stop)
 

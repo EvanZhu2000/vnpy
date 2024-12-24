@@ -118,7 +118,12 @@ class StrategyTemplate(ABC):
     @virtual
     def on_start(self) -> None:
         """策略启动回调"""
-        self.starting_time = datetime.now(pytz.timezone('Asia/Shanghai'))
+        if self.strategy_engine.engine_type == EngineType.LIVE:
+            self.starting_time = datetime.now(pytz.timezone('Asia/Shanghai'))
+        elif self.strategy_engine.engine_type == EngineType.BACKTESTING:
+            self.starting_time = self.strategy_engine.starting_time  # specific for backtesting
+            
+        self.write_log(f"Strategy {self.strategy_name} started at {self.starting_time}")
         pass
 
     @virtual
@@ -156,7 +161,7 @@ class StrategyTemplate(ABC):
             return False
         elif tick.datetime - self.symbol_status[tick.vt_symbol].last_tick.datetime > self.time_since_last_tick \
             and (self.symbol_status[tick.vt_symbol].alarm_time_since_last_tick is None or tick.datetime - self.symbol_status[tick.vt_symbol].alarm_time_since_last_tick > self.time_since_last_tick):
-            self.write_log_level1(f'Too long since last tick for {tick.vt_symbol}, breaching {self.time_since_last_tick}, last tick time: {self.symbol_status[tick.vt_symbol].last_tick.datetime}')
+            self.write_log_level1(f'Too long since last tick for {tick.vt_symbol}, breaching {self.time_since_last_tick}, last tick time: {self.symbol_status[tick.vt_symbol].last_tick.datetime}, current time: {tick.datetime}')
             self.symbol_status[tick.vt_symbol].alarm_time_since_last_tick = tick.datetime
             
         return True
