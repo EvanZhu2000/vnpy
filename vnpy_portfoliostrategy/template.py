@@ -130,6 +130,7 @@ class StrategyTemplate(ABC):
         """策略停止回调"""
         self.write_log(f"FINAL pos_data {self.nonzero_dict(self.pos_data)}")
         self.write_log(f"FINAL target_data {self.nonzero_dict(self.target_data)}")
+        self.write_log(pd.concat([pd.Series(self.pos_data),pd.Series(self.target_data)],axis=1,keys=['pos','tar']).query('pos!=tar').to_dict())
         if self.strategy_engine.engine_type == EngineType.LIVE:
             rows = [
                 (date, tr.datetime, tr.vt_symbol, tr.vt_orderid, tr.direction, tr.offset, tr.price, tr.volume)
