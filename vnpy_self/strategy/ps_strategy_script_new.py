@@ -87,7 +87,6 @@ def run(option:str):
                     abc['direction'].map({Direction.LONG:1,Direction.SHORT:-1}) * abc['volume']], axis=1)
     qwe = qwe.groupby(qwe['vt_symbol']).sum()
     pos_data = qwe.loc[qwe[0]!=0].sort_index().squeeze(axis=1).astype(int)
-    main_engine.write_log(f"pos_data: {pos_data}")
     
     # ==== calculate positions
     to_trade_df['target'] = pd.to_numeric(to_trade_df['target'])
