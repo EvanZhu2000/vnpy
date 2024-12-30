@@ -127,6 +127,8 @@ class StrategyEngine(BaseEngine):
         for strategy in strategies:
             if strategy.inited:
                 self.call_strategy_func(strategy, strategy.on_tick, tick)
+                
+        # TODO need a separate rebalancer
 
     def process_order_event(self, event: Event) -> None:
         """委托数据推送"""
@@ -420,11 +422,11 @@ class StrategyEngine(BaseEngine):
         self.save_strategy_setting()
         self.put_strategy_event(strategy)
 
-    def get_pos(self, strategy_name:str):
-        self.dbservice.init_connection()
-        pos_data = self.dbservice.select('current_pos', strategy = strategy_name)
-        self.dbservice.close()
-        return pos_data
+    # def get_pos(self, strategy_name:str):
+    #     self.dbservice.init_connection()
+    #     pos_data = self.dbservice.select('current_pos', strategy = strategy_name)
+    #     self.dbservice.close()
+    #     return pos_data
         
     def init_strategy(self, strategy_name: str) -> None:
         """初始化策略"""
@@ -462,11 +464,11 @@ class StrategyEngine(BaseEngine):
                 if name not in {"pos_data", "target_data"}:
                     setattr(strategy, name, value)
                     
-        # my way of retrieving pos_data and target_data, please ignore the above from now
-        pos_data = self.get_pos(strategy_name=strategy_name)
-        for r in pos_data.iterrows():
-            if r[1]['symbol'] in strategy.vt_symbols:
-                strategy.set_pos(r[1]['symbol'], r[1]['pos'])
+        # # my way of retrieving pos_data and target_data, please ignore the above from now
+        # pos_data = self.get_pos(strategy_name=strategy_name)
+        # for r in pos_data.iterrows():
+        #     if r[1]['symbol'] in strategy.vt_symbols:
+        #         strategy.set_pos(r[1]['symbol'], r[1]['pos'])
 
         # 订阅行情
         for vt_symbol in strategy.vt_symbols:
@@ -511,6 +513,15 @@ class StrategyEngine(BaseEngine):
         strategy: StrategyTemplate = self.strategies[strategy_name]
         if not strategy.trading:
             return
+        
+        if message is not None and type(message) == str:
+            self.write_log(message)
+        
+        if message is not None and header is not None and type(message) == str and type(header) == str:
+            try:
+                self.email(header, message)
+            except Exception as e:
+                self.write_log(f"Failed to send email: {e}")
 
         # 调用策略on_stop函数
         self.call_strategy_func(strategy, strategy.on_stop)
@@ -526,12 +537,6 @@ class StrategyEngine(BaseEngine):
 
         # 推送策略事件通知停止完成状态
         self.put_strategy_event(strategy)
-        
-        if message is not None and type(message) == str:
-            self.write_log(message)
-        
-        if message is not None and header is not None and type(message) == str and type(header) == str: 
-            self.email(header, message)
         
         ## Might be unnecessary
         # self.dbservice.init_connection()

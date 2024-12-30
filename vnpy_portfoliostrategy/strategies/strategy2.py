@@ -3,8 +3,9 @@ from vnpy_portfoliostrategy import StrategyTemplate, StrategyEngine
 from vnpy_portfoliostrategy.helperclass import *
 from vnpy.trader.object import TickData
 from datetime import datetime, timedelta
+from collections import defaultdict
 import json
-
+import re
 
 class Strategy2(StrategyTemplate):
    
@@ -19,7 +20,7 @@ class Strategy2(StrategyTemplate):
         super().__init__(strategy_engine, strategy_name, vt_symbols, setting)
         # self.tick_tracker = BoolDict(vt_symbols)
         # self.time_since_first_tick = timedelta(minutes=1)
-        self.write_log(f"vt_symbols {vt_symbols}")
+        self.write_log(f"vt_symbols {vt_symbols}") # Note: vt_symbols should be covering both curpos and tarpos
         
         if 'settlement_dates_str' in setting:
             self.settlement_dates_str = setting['settlement_dates_str']
@@ -32,14 +33,19 @@ class Strategy2(StrategyTemplate):
             self.write_log(f"tarpos {self.nonzero_dict(tarpos)}")
             for symb,tar in tarpos.items():
                 self.set_target(symb, tar)
+            
+            without_month_symbols_mapping: dict[str, list[str]] = defaultdict(list)  # e.g. fu.SHFE -> [fu2501.SHFE, fu2502.SHFE, ...]
+            for symb in vt_symbols:
+                without_month_symbols_mapping[re.sub(r'\d+', '', symb)].append(symb)
                 
         if 'trading_hours' in setting:
             self.trading_hours = json.loads(setting['trading_hours'])
             target_time_collection = dict()
             for symb,th in self.trading_hours.items():
-                if symb in vt_symbols:
-                    target_time_collection[symb] = self.get_open_time(th)
-                    self.write_log(f"taget_time: {symb} - {target_time_collection[symb]}")
+                if symb in without_month_symbols_mapping.keys():
+                    for actual_symb in without_month_symbols_mapping[symb]:
+                        target_time_collection[actual_symb] = self.get_open_time(th)
+                        self.write_log(f"target_time: {actual_symb} - {target_time_collection[actual_symb]}")
             self.rebal_tracker = BoolDict(vt_symbols, target_time_collection)
     
     def on_init(self) -> None:
@@ -60,23 +66,11 @@ class Strategy2(StrategyTemplate):
         self.put_event()
         
     def on_tick(self, tick: TickData) -> None:
-        if not self.trading or not super().on_tick(tick):
+        
+        if not self.trading:
             return
         
-        if self.rebal_tracker.all_true():
-            if len(self.rebal_tracker.get_false_keys()) == 0:
-                self.strategy_engine.stop_strategy(self.strategy_name,
-                                f"All have rebalanced. Stop the strategy {self.strategy_name} now",
-                                f"{self.strategy_name}_success_{self.strategy_engine.main_engine.env}")
-            else:
-                self.strategy_engine.stop_strategy(self.strategy_name,
-                                f"Missing {self.rebal_tracker.get_false_keys()}. Stop the strategy {self.strategy_name} now",
-                                f"{self.strategy_name}_attention_{self.strategy_engine.main_engine.env}")
-            return
-        
-        # I don't think it is necessary to do check for late rebalance
-        
-        # Initial Check
+        # No tick alert
         if self.starting_time is not None and tick.datetime is not None \
             and tick.datetime - self.starting_time > self.time_since_starting\
             and self.symbol_status[tick.vt_symbol].last_tick is None:
@@ -84,7 +78,24 @@ class Strategy2(StrategyTemplate):
                                     f"{tick.vt_symbol} didn't receive any ticks since start up",
                                     f"{self.strategy_name}_fail_{self.strategy_engine.main_engine.env}")
             return
-
+        
+        # Check if the tick is valid
+        if not super().on_tick(tick):
+            return
+        
+        # Rebalance check
+        if self.rebal_tracker.all_true():
+            if len(self.rebal_tracker.get_false_keys()) != 0:
+                self.strategy_engine.stop_strategy(self.strategy_name,
+                                f"Missing {self.rebal_tracker.get_false_keys()}. Stop the strategy {self.strategy_name} now",
+                                f"{self.strategy_name}_attention_{self.strategy_engine.main_engine.env}")
+            else:
+                self.strategy_engine.stop_strategy(self.strategy_name,
+                                f"All have rebalanced. Stop the strategy {self.strategy_name} now")
+            return
+        
+        # I don't think it is necessary to do check for late rebalance
+        
         if (self.get_target(tick.vt_symbol) != self.get_pos(tick.vt_symbol)):
             if (not self.symbol_status[tick.vt_symbol].is_active and not self.symbol_status[tick.vt_symbol].is_stop()):
                 bp,ap = self.get_retry_price(tick)

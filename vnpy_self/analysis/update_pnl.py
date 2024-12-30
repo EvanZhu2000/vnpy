@@ -3,32 +3,25 @@ from datetime import datetime
 import pandas as pd
 import sys
 
-from vnpy.event import EventEngine
-from vnpy.trader.engine import MainEngine
-from vnpy_ctp import CtpGateway
-from vnpy_self.ctp_setting import *
-
-from vnpy_portfoliostrategy.mysqlservice import MysqlService
-mysqlservice = MysqlService()
-mysqlservice.init_connection()
-
-
-def run(option:str):
-    ctp_setting = ctp_map(option)
+def run(date_str:str):
     pnl_directory = '//192.168.91.128/share_folder/Evan/PNL.csv'
+    tmp =  pd.read_excel(f'G:\My Drive\\2520000355逐笔_{date_str}.xls')
     
-    event_engine = EventEngine()
-    main_engine = MainEngine(event_engine)
-    main_engine.add_gateway(CtpGateway)
-    main_engine.write_log("主引擎创建成功")
-    main_engine.connect(ctp_setting, "CTP")
-    main_engine.write_log("连接CTP接口")
-    omsEngine = main_engine.get_engine('oms')
-    while(1):
-        cur_bal = omsEngine.get_all_accounts()
-        if cur_bal is not None and len(cur_bal) != 0:
-            break;  
-    cur_bal = omsEngine.get_all_accounts()[0].balance
+    # ========= 资金状况 =============
+    settlement_total_df = pd.concat([
+        tmp.iloc[11:25][['Unnamed: 0', 'Unnamed: 3']].rename(columns={'Unnamed: 0':'fields','Unnamed: 3':'values'}),
+        tmp.iloc[11:25][['Unnamed: 6', 'Unnamed: 9']].rename(columns={'Unnamed: 6':'fields','Unnamed: 9':'values'})
+    ]).dropna().set_index('fields')
+    settlement_total_df.loc['风 险 度 Risk Degree:','values'] = float(settlement_total_df.loc['风 险 度 Risk Degree:','values'].strip('%').strip())/100
+    settlement_total_df = settlement_total_df.astype(float).round(4)
+
+    # ========= 成交记录 =============
+    settlement_trades_df = tmp.iloc[tmp.loc[tmp['Unnamed: 0'] == '成交记录'].index[0]:tmp.loc[tmp['Unnamed: 0'] == '平仓明细'].index[0]].dropna()
+    settlement_trades_df.columns = settlement_trades_df.iloc[0]
+    settlement_trades_df = settlement_trades_df.iloc[1:].reset_index(drop=True)
+
+
+    cur_bal = settlement_total_df.to_dict()['values']['客户权益 Client Equity:']
     
     fx_spot_quote_df = ak.fx_spot_quote()
     hkdcny = fx_spot_quote_df.loc[fx_spot_quote_df['货币对'] == 'HKD/CNY'].eval('(买报价+卖报价)/2').values[0]
@@ -43,17 +36,15 @@ def run(option:str):
     pnl_HKD = round(pnl_CNY / hkdcny,2)
     pnl_percentage = round((pnl_CNY / pre_bal), 4)
     cum_pnl_percentage += round(pnl_percentage, 4)
-    date = datetime.today().strftime("%Y-%m-%d")
     
-    records.loc[len(records)] = [date, cur_bal, pnl_CNY, pnl_HKD, pnl_percentage, cum_pnl_percentage]
+    records.loc[len(records)] = [date_str, cur_bal, pnl_CNY, pnl_HKD, pnl_percentage, cum_pnl_percentage]
     records.set_index('Date', inplace=True)
 
     ### write csv
     records.to_csv(pnl_directory)
     print('all finished')
-    main_engine.close()
 
 
 if __name__ == "__main__":
-    option = sys.argv[1]
-    run(option)
+    date_str = datetime.today().strftime("%Y%m%d")
+    run(date_str)

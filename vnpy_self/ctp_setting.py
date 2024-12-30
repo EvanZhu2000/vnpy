@@ -1,4 +1,6 @@
+import os
 
+current_environment = os.getenv('APP_ENV', 'uat')
 
 ctp_setting_uat = {
     "用户名": "224829",
@@ -43,3 +45,6 @@ def ctp_map(option):
     else:
         raise Exception(f'Wrong option input {option}')
     return ctp_setting
+
+def get_ctp_settings():
+    return ctp_map(current_environment)

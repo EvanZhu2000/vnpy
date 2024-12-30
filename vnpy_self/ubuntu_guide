@@ -61,3 +61,6 @@ may need to chown access to user
 
 6. For service file
 need to add User= to specify user
+
+7. add APP_ENV to env variable
+add this line to the .bashrc/.zshrc file: 'export APP_ENV=uat'

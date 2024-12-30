@@ -12,7 +12,6 @@ mysqlservice.init_connection()
 from vnpy_self.strategy.rq_api_masker import RQ_API_MASKER
 masker = RQ_API_MASKER()
 
-
 def retrieve_price(trading_list, price_start, today_date):
     def get_clean_day_data(df,total_turnover_thres = 1e+8, open_interest_thres = 1000, volume_thres = 1000):
         df = df.copy()
@@ -159,6 +158,7 @@ def get_stats(trading_list, lookback_days, pro, today_date):
     return l_df_everyday,s_df_everyday,l_df_delta_everyday,s_df_delta_everyday,l_dom_everyday,s_dom_everyday,l_dom_delta_everyday,s_dom_delta_everyday,l_dom2_everyday,s_dom2_everyday,l_dom2_delta_everyday,s_dom2_delta_everyday
 
 def run(today_date_str:str): 
+    all_data = all_instruments(type='Future', market='cn', date=None)
     xxx = {
     'x0':('(-s_dom.loc[:, symb,:]).diff().mean(1)',(1.4,5,5)),
     'x1':('(-s_dom.loc[:, symb,:]).diff().mean(1)',(1.4,20,5)),
@@ -181,14 +181,15 @@ def run(today_date_str:str):
     if tmp1.shape[0]!=1:
         raise Exception('Wrong vnpy.strategies table for today!')
     money = float(tmp1['cash'][0]) * float(tmp1['leverage'][0])
-    used_money = 2000000
 
     tmp2 = mysqlservice.select('trading_schedule', today = today_date.strftime('%Y-%m-%d'), strategy='strategy2')
     if tmp2.shape[0]!=1:
         raise Exception('Wrong vnpy.trading_schedule table for today!')
     if tmp1['date'][0]!=tmp2['date'][0]:
         raise Exception('Unmatching dates for vnpy.strategies & vnpy.trading_schedule')
-    trading_list = (pd.Series(tmp2['symbol'][0].split(',')).str[:-4]).tolist()
+    # trading_list = (pd.Series(tmp2['symbol'][0].split(',')).str[:-4]).tolist()
+    vnpy_map = pd.DataFrame([tmp2['symbol'][0].split(','),pd.Series(id_convert(tmp2['symbol'][0].split(','))).str[:-4].tolist()],index=['vnpy','underlying_symbol']).T
+    trading_list = vnpy_map['underlying_symbol'].tolist()
 
     # 2. get stats
     pro,pr,pr88 = retrieve_price(trading_list, price_start, today_date)
@@ -229,18 +230,38 @@ def run(today_date_str:str):
             commission=0.0001,toFormat=True)
     d.to_csv('~/miniconda3/envs/vnpy3/lib/python3.10/site-packages/vnpy_self/analysis/data/strategy2_expected_pnl.csv')
     w.to_csv('~/miniconda3/envs/vnpy3/lib/python3.10/site-packages/vnpy_self/analysis/data/strategy2_positions.csv')
-    balancing_list = w.replace(np.nan,0).iloc[-1]
-
-    # 4. insert balancing_list into database
+    balancing_list = w.replace(np.nan,0).iloc[-1].astype(int).astype(str)
     if today_date.date() != balancing_list.name.date():
         raise Exception(f'Wrong tar pos date! {today_date}, {balancing_list.name}')
+    
+    balancing_list = balancing_list.rename('pos').to_frame().reset_index().merge(vnpy_map, left_on='index', right_on='underlying_symbol', how='left')
+    # 4. insert balancing_list into database
     mysqlservice.insert("daily_rebalance_target", date=next_trading_date, today=today_date,
-        symbol = ','.join(balancing_list.astype(int).astype(str).index), 
-        target = ','.join(balancing_list.astype(int).astype(str).values),
+        symbol = ','.join(balancing_list['vnpy'].tolist()), 
+        target = ','.join(balancing_list['pos'].tolist()),
         strategy = 'strategy2')
     mysqlservice.close()
     
 if __name__ == "__main__":
     # The input today_date needs to be the real date at next settlement date start, in the format of YYYY-MM-DD
     today_date_str = sys.argv[1]
-    run(today_date_str)
+    
+        
+    import logging
+    import os
+    from datetime import datetime
+    
+    log_dir = f'/home/{os.getenv("APP_ENV", "uat")}/.vntrader/python_scripts_logs'
+    os.makedirs(log_dir, exist_ok=True)
+
+    # Configure logging
+    log_file = os.path.join(log_dir, f'python_script_{datetime.now().strftime("%Y%m%d")}.log')
+    logging.basicConfig(filename=log_file, level=logging.ERROR, 
+                        format='%(asctime)s %(levelname)s %(message)s')
+
+    
+    try:
+        run(today_date_str)
+    except Exception as e:
+        logging.error("An error occurred", exc_info=True)
+        sys.exit(1)
