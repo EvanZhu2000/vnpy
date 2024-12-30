@@ -1,6 +1,6 @@
 import os
 
-current_environment = os.getenv('APP_ENV', 'uat')
+current_environment = os.getenv('APP_ENV')
 
 ctp_setting_uat = {
     "用户名": "224829",

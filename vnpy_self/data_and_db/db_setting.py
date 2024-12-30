@@ -1,6 +1,6 @@
 import os
 
-current_environment = os.getenv('APP_ENV', 'uat')
+current_environment = os.getenv('APP_ENV')
 
 
 db_setting_evan = {
