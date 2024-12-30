@@ -27,7 +27,7 @@ class TestStrategy2(unittest.TestCase):
             file_path=self.csv_file_path
         )
         
-        trading_hours = {"fu.SHFE":'21:01-23:00,09:01-10:15,10:31-11:30,13:31-15:00'}
+        trading_hours = {"fu.SHFE":'21:01-03:00,09:01-10:15,10:31-11:30,13:31-15:00'}
         ans = pd.DataFrame([[10,0]],
                           index=pd.Index(['fu2501.SHFE'],name='symbol'),
                           columns = ['target','pos'])

@@ -541,8 +541,15 @@ class StrategyTemplate(ABC):
             adjusted_start_time = (datetime.combine(datetime.today(), start_time) - timedelta(seconds=start_time_minus_seconds)).time()
             adjusted_end_time = (datetime.combine(datetime.today(), end_time) - timedelta(seconds=end_time_minus_seconds)).time()
             
-            if adjusted_start_time <= input_time <= adjusted_end_time:
-                return True
+            # Handle overnight trading periods
+            if adjusted_start_time > adjusted_end_time:
+                # For overnight trading (e.g. 21:00-03:00), check if time is after start or before end
+                if adjusted_start_time <= input_time or input_time <= adjusted_end_time:
+                    return True
+            else:
+                # Normal trading period within same day
+                if adjusted_start_time <= input_time <= adjusted_end_time:
+                    return True
                 
         return False
     
