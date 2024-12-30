@@ -90,18 +90,13 @@ class MysqlService():
     def delete_rq(self, table_name: str, dt_name, num_of_months=1):
         self.mycursor.execute(f"DELETE FROM vnpy.{table_name} WHERE {dt_name} < '{(datetime.now() - relativedelta(months=num_of_months)).strftime('%Y-%m-%d %H:%M:%S')}'")
         self.mydb.commit()
-        
-    # def get_pos(self, strategy_name):
-    #     return pd.read_sql_query(f"select * from vnpy.strategy_order as sp join(SELECT symbol as latest_symbol, MAX(datetime) AS latest_timestamp, MAX(id) as max_id FROM vnpy.strategy_order where strategy = '{strategy_name}' and order_status = 'Status.ALLTRADED' GROUP BY symbol) as latest on sp.symbol = latest.latest_symbol and sp.datetime = latest.latest_timestamp and sp.id = latest.max_id;", self.mydb)[['symbol','tar']]
-    
-    def delete_pos(self, strategy):
-        self.mycursor.execute(f"DELETE FROM vnpy.current_pos WHERE strategy='{strategy}';")
-        self.mydb.commit()
 
-    def update_pos(self, strategy_name, positions:dict[str, int]):
-        self.delete_pos(strategy=strategy_name)
+
+    def update_pos(self,  positions:dict[str, int]):
+        self.mycursor.execute(f"DELETE FROM vnpy.current_pos;")
+        self.mydb.commit()
         for symbol,pos in positions.items():
-            self.insert(table = 'current_pos', symbol = symbol, strategy = strategy_name, datetime = datetime.now(), pos = pos)
+            self.insert(table = 'current_pos', symbol = symbol, datetime = datetime.now(), pos = pos)
             
     
     # whenever there is an order update

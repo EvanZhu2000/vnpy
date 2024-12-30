@@ -130,7 +130,7 @@ class StrategyTemplate(ABC):
         """策略停止回调"""
         self.write_log(f"FINAL pos_data {self.nonzero_dict(self.pos_data)}")
         self.write_log(f"FINAL target_data {self.nonzero_dict(self.target_data)}")
-        self.write_log(pd.concat([pd.Series(self.pos_data),pd.Series(self.target_data)],axis=1,keys=['pos','tar']).query('pos!=tar').to_dict())
+        self.write_log(f"FINAL diff {pd.concat([pd.Series(self.pos_data),pd.Series(self.target_data)],axis=1,keys=['pos','tar']).query('pos!=tar').to_dict()}")
         if self.strategy_engine.engine_type == EngineType.LIVE:
             rows = [
                 (date, tr.datetime, tr.vt_symbol, tr.vt_orderid, tr.direction, tr.offset, tr.price, tr.volume)
@@ -141,7 +141,7 @@ class StrategyTemplate(ABC):
             trade_records[['direction','offset']] = trade_records[['direction','offset']].astype(str)
             
             self.strategy_engine.dbservice.init_connection()
-            self.strategy_engine.dbservice.update_pos(self.strategy_name, self.pos_data)
+            self.strategy_engine.dbservice.update_pos(self.pos_data)  # only to update pos_data
             self.strategy_engine.dbservice.insert_rq(trade_records, 'trade_records', ignore=True)
             self.strategy_engine.dbservice.close()
 

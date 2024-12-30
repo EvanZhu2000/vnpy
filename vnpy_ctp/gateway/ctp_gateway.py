@@ -288,7 +288,7 @@ class CtpMdApi(MdApi):
     def onRspSubMarketData(self, data: dict, error: dict, reqid: int, last: bool) -> None:
         """订阅行情回报"""
         if not error or not error["ErrorID"]:
-            self.gateway.write_log(f"行情订阅成功: {data['InstrumentID']},{error},{last},{reqid}")
+            # self.gateway.write_log(f"行情订阅成功: {data['InstrumentID']},{error},{last},{reqid}")
             return
 
         self.gateway.write_error("行情订阅失败", error)

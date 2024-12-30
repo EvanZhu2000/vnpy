@@ -24,7 +24,7 @@ SETTINGS["log.level"] = INFO
 SETTINGS["log.console"] = True
 
 
-def run(quickstart:str, option:str):
+def run(option:str):
     def signal_handler(signum, frame):
         main_engine.write_log("Received shutdown signal, closing ps strategy")
         ps_engine.stop_all_strategies()
@@ -67,7 +67,7 @@ def run(quickstart:str, option:str):
         next_day = pd.to_datetime(tmp['date'].iloc[0]).strftime('%Y-%m-%d')
         settlement_dates_str = current_day+','+next_day+':'+'Asia/Shanghai'
         
-    # current_day is supposingly when the script should be start running, ideally 21:00 every settlement date
+    # === current_day is supposingly when the script should be start running, ideally 21:00 every settlement date
     main_engine.write_log(f"settlement date starting day is {current_day}")
     
     to_trade_df = db.select('daily_rebalance_target',today = current_day, strategy = strategy_title)
@@ -76,8 +76,21 @@ def run(quickstart:str, option:str):
     trading_hours = db.select('trading_hours')
     db.close()
     
+    # ===== from CTP get pos_data
+    omsEngine = main_engine.get_engine('oms')
+    while(1):
+        allpos = omsEngine.get_all_positions()
+        if allpos is not None and len(allpos) != 0:
+            break  
+    abc = pd.DataFrame([x.__dict__ for x in allpos])
+    qwe = pd.concat([abc['vt_symbol'],
+                    abc['direction'].map({Direction.LONG:1,Direction.SHORT:-1}) * abc['volume']], axis=1)
+    qwe = qwe.groupby(qwe['vt_symbol']).sum()
+    pos_data = qwe.loc[qwe[0]!=0].sort_index().squeeze(axis=1).astype(int)
+    main_engine.write_log(f"pos_data: {pos_data}")
+    
+    # ==== calculate positions
     to_trade_df['target'] = pd.to_numeric(to_trade_df['target'])
-    pos_data = ps_engine.get_pos(strategy_title)
     ans = pos_data[['symbol','pos']].set_index('symbol').replace(0,np.nan).dropna().join(to_trade_df.drop_duplicates().set_index('symbol'),how='outer')
     ans = ans.replace(0,np.nan).dropna(how='all').replace(np.nan,0)
     
@@ -85,22 +98,6 @@ def run(quickstart:str, option:str):
     settings = dict({'ans':json.dumps(ans.to_dict()),
                      'trading_hours':json.dumps(trading_hours[['symbol','trading_hours']].set_index('symbol').to_dict()['trading_hours']),
                      'settlement_dates_str':settlement_dates_str})
-    
-    # ===== Examine positions if necessary
-    if quickstart == 'False':
-        omsEngine = main_engine.get_engine('oms')
-        while(1):
-            allpos = omsEngine.get_all_positions()
-            if allpos is not None and len(allpos) != 0:
-                break;  
-        abc = pd.DataFrame([x.__dict__ for x in allpos])
-        qwe = pd.concat([abc['vt_symbol'],
-                        abc['direction'].map({Direction.LONG:1,Direction.SHORT:-1}) * abc['volume']], axis=1)
-        qwe = qwe.groupby(qwe['vt_symbol']).sum()
-        qwe = qwe.loc[qwe[0]!=0].sort_index().squeeze(axis=1).astype(int)
-        if not pos_data[['symbol','pos']].groupby('symbol').sum().query("pos!=0").sort_index().squeeze(axis=1).astype(int).equals(qwe):
-            main_engine.write_exception("Wrong database positions record compared to CTP record")
-        main_engine.write_log("Matching succeed: CTP and database")
     
     # ===== start strategy
     if strategy_title in ps_engine.strategies.keys():
@@ -111,23 +108,27 @@ def run(quickstart:str, option:str):
         ps_engine.add_strategy(strategy_class_name, strategy_title, vt_symbols, settings)
            
     ps_engine.init_strategy(strategy_title)
-    main_engine.write_log("ps策略全部初始化")
     while not ps_engine.strategies[strategy_title].inited:
         sleep(1)
+    
+    # ==== set pos_data
+    strategy = ps_engine.strategies[strategy_title]
+    for r in pos_data.iterrows():
+        if r[1]['symbol'] in strategy.vt_symbols:
+            strategy.set_pos(r[1]['symbol'], r[1]['pos'])
+        
+    main_engine.write_log("ps策略全部初始化")
     ps_engine.start_strategy(strategy_title)
     main_engine.write_log("ps策略全部启动")
     
     signal.signal(signal.SIGTERM, signal_handler)
     
 if __name__ == "__main__":
-    quickstart = sys.argv[1] #(Should be either True or False)
-    if len(sys.argv) == 2:
-        run(quickstart, current_environment)
-    elif len(sys.argv) == 3:
-        # the second arguement should be the CTP options
-        run(quickstart, sys.argv[2])
+    if len(sys.argv) == 1:
+        run(current_environment)
+    elif len(sys.argv) == 2:
+        # the argument should be the CTP options
+        run(sys.argv[1])
     else:
-        raise Exception("Need to have one or two arguments, 1: whether to quickstart, 2: CTP options")
+        raise Exception("Need to have zero or one argument for CTP options")
 
-        
-        
