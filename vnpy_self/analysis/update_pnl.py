@@ -16,9 +16,12 @@ def run(date_str:str):
     settlement_total_df = settlement_total_df.astype(float).round(4)
 
     # ========= 成交记录 =============
-    settlement_trades_df = tmp.iloc[tmp.loc[tmp['Unnamed: 0'] == '成交记录'].index[0]:tmp.loc[tmp['Unnamed: 0'] == '平仓明细'].index[0]].dropna()
-    settlement_trades_df.columns = settlement_trades_df.iloc[0]
-    settlement_trades_df = settlement_trades_df.iloc[1:].reset_index(drop=True)
+    try:
+        settlement_trades_df = tmp.iloc[tmp.loc[tmp['Unnamed: 0'] == '成交记录'].index[0]:tmp.loc[(tmp['Unnamed: 0'].str.contains('共'))&(tmp['Unnamed: 0'].str.contains('条'))].index[0]].dropna()
+        settlement_trades_df.columns = settlement_trades_df.iloc[0]
+        settlement_trades_df = settlement_trades_df.iloc[1:].reset_index(drop=True)
+    except:
+        settlement_trades_df = pd.DataFrame()
 
 
     cur_bal = settlement_total_df.to_dict()['values']['客户权益 Client Equity:']
@@ -46,5 +49,6 @@ def run(date_str:str):
 
 
 if __name__ == "__main__":
-    date_str = datetime.today().strftime("%Y%m%d")
+    # date_str = datetime.today().strftime("%Y%m%d")
+    date_str = '20241227'
     run(date_str)
