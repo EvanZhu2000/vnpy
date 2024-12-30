@@ -91,7 +91,7 @@ def run(option:str):
     
     # ==== calculate positions
     to_trade_df['target'] = pd.to_numeric(to_trade_df['target'])
-    ans = pos_data[['symbol','pos']].set_index('symbol').replace(0,np.nan).dropna().join(to_trade_df.drop_duplicates().set_index('symbol'),how='outer')
+    ans = pos_data.join(to_trade_df.drop_duplicates().set_index('symbol'),how='outer')
     ans = ans.replace(0,np.nan).dropna(how='all').replace(np.nan,0)
     
     vt_symbols = ans.index.values.tolist()
@@ -131,4 +131,5 @@ if __name__ == "__main__":
         run(sys.argv[1])
     else:
         raise Exception("Need to have zero or one argument for CTP options")
+    
 
