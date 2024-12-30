@@ -91,7 +91,7 @@ def run(option:str):
     
     # ==== calculate positions
     to_trade_df['target'] = pd.to_numeric(to_trade_df['target'])
-    ans = pos_data.join(to_trade_df.drop_duplicates().set_index('symbol'),how='outer')
+    ans = pos_data.rename('pos').to_frame().join(to_trade_df.drop_duplicates().set_index('symbol'),how='outer')
     ans = ans.replace(0,np.nan).dropna(how='all').replace(np.nan,0)
     
     vt_symbols = ans.index.values.tolist()
@@ -113,9 +113,9 @@ def run(option:str):
     
     # ==== set pos_data
     strategy = ps_engine.strategies[strategy_title]
-    for r in pos_data.iterrows():
-        if r[1]['symbol'] in strategy.vt_symbols:
-            strategy.set_pos(r[1]['symbol'], r[1]['pos'])
+    for symbol, pos in pos_data.items():
+        if symbol in strategy.vt_symbols:
+            strategy.set_pos(symbol, pos)
         
     main_engine.write_log("ps策略全部初始化")
     ps_engine.start_strategy(strategy_title)
