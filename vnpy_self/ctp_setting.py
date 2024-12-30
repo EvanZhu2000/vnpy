@@ -13,7 +13,7 @@ ctp_setting_uat = {
     "产品信息": ""
 }
 
-ctp_setting_live = {
+ctp_setting_evan = {
     "用户名": "2520000355",
     "密码": "jacky83611",
     "经纪商代码": "4040",
@@ -38,8 +38,8 @@ ctp_setting_dev = {
 def ctp_map(option):
     if option == 'uat':
         ctp_setting = ctp_setting_uat
-    elif option == 'live':
-        ctp_setting = ctp_setting_live
+    elif option == 'evan':
+        ctp_setting = ctp_setting_evan
     elif option == 'dev':
         ctp_setting = ctp_setting_dev
     else:

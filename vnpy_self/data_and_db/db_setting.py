@@ -3,7 +3,7 @@ import os
 current_environment = os.getenv('APP_ENV', 'uat')
 
 
-db_setting_live = {
+db_setting_evan = {
     'host': "192.168.91.124",
     'user': "evan",
     'password': "Evan@cash1q2"
@@ -18,8 +18,8 @@ db_setting_uat = {
 def db_map(option):
     if option == 'uat':
         db_setting = db_setting_uat
-    elif option == 'live':
-        db_setting = db_setting_live
+    elif option == 'evan':
+        db_setting = db_setting_evan
     else:
         raise Exception(f'Unsupported environment option: {option}')
     return db_setting
