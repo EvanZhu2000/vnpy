@@ -49,6 +49,6 @@ def run(date_str:str):
 
 
 if __name__ == "__main__":
-    # date_str = datetime.today().strftime("%Y%m%d")
-    date_str = '20241227'
+    date_str = datetime.today().strftime("%Y%m%d")
+    # date_str = '20241227'
     run(date_str)

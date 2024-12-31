@@ -8,7 +8,7 @@ from vnpy_portfoliostrategy.strategies.strategy2 import Strategy2
 import unittest
 
 
-class TestStrategy2(unittest.TestCase):
+class TestRebalance(unittest.TestCase):
     def setUp(self):
         self.vt_symbols = ["fu2501.SHFE"]
         current_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -28,7 +28,7 @@ class TestStrategy2(unittest.TestCase):
         )
         
         trading_hours = {"fu.SHFE":'21:01-03:00,09:01-10:15,10:31-11:30,13:31-15:00'}
-        ans = pd.DataFrame([[10,0]],
+        ans = pd.DataFrame([[5,-5]],
                           index=pd.Index(['fu2501.SHFE'],name='symbol'),
                           columns = ['target','pos'])
         self.settings = dict({
@@ -42,13 +42,13 @@ class TestStrategy2(unittest.TestCase):
         self.engine.run_backtesting()
 
 
-
-
-    def test_strategy_execution(self):
+    def test_rebalance(self):
         # Test if trades were generated
         # Get actual results
         trades = self.engine.get_all_trades(use_df=True).reset_index(drop=True).astype(str)
         orders = pd.DataFrame([x.__dict__ for x in self.engine.get_all_orders()]).reset_index(drop=True).astype(str)
+        print(trades[['datetime','direction','price','volume']])
+        print(orders[['datetime','direction','price','volume']])
         
         # Create trade records if they exist
         trade_records = pd.DataFrame()

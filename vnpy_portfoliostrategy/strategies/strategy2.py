@@ -70,14 +70,14 @@ class Strategy2(StrategyTemplate):
         if not self.trading:
             return
         
-        # No tick alert
-        if self.starting_time is not None and tick.datetime is not None \
-            and tick.datetime - self.starting_time > self.time_since_starting\
-            and self.symbol_status[tick.vt_symbol].last_tick is None:
-            self.strategy_engine.stop_strategy(self.strategy_name,
-                                    f"{tick.vt_symbol} didn't receive any ticks since start up",
-                                    f"{self.strategy_name}_fail_{self.strategy_engine.main_engine.env}")
-            return
+        # # No tick alert
+        # if self.starting_time is not None and tick.datetime is not None \
+        #     and tick.datetime - self.starting_time > self.time_since_starting\
+        #     and self.symbol_status[tick.vt_symbol].last_tick is None:
+        #     self.strategy_engine.stop_strategy(self.strategy_name,
+        #                             f"{tick.vt_symbol} didn't receive any ticks since start up",
+        #                             f"{self.strategy_name}_fail_{self.strategy_engine.main_engine.env}")
+        #     return
         
         # Check if the tick is valid
         if not super().on_tick(tick):
