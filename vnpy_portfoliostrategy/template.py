@@ -157,10 +157,13 @@ class StrategyTemplate(ABC):
             self.write_log(f'first tick for {tick.vt_symbol} is {tick}')
             self.symbol_status[tick.vt_symbol].last_tick = tick
         # feed check
-        elif tick.datetime - self.symbol_status[tick.vt_symbol].last_tick.datetime < timedelta(minutes=0):
+        elif tick.datetime < self.symbol_status[tick.vt_symbol].last_tick.datetime  \
+            or tick.datetime < self.starting_time:
             return False
         elif tick.datetime - self.symbol_status[tick.vt_symbol].last_tick.datetime > self.time_since_last_tick \
-            and (self.symbol_status[tick.vt_symbol].alarm_time_since_last_tick is None or tick.datetime - self.symbol_status[tick.vt_symbol].alarm_time_since_last_tick > self.time_since_last_tick):
+            and self.symbol_status[tick.vt_symbol].last_tick.datetime >= self.starting_time \
+            and (self.symbol_status[tick.vt_symbol].alarm_time_since_last_tick is None \
+            or tick.datetime - self.symbol_status[tick.vt_symbol].alarm_time_since_last_tick > self.time_since_last_tick):
             self.write_log_level1(f'Too long since last tick for {tick.vt_symbol}, breaching {self.time_since_last_tick}, last tick time: {self.symbol_status[tick.vt_symbol].last_tick.datetime}, current time: {tick.datetime}')
             self.symbol_status[tick.vt_symbol].alarm_time_since_last_tick = tick.datetime
             

@@ -31,7 +31,7 @@ class TestStrategy2(unittest.TestCase):
             capital=10000000,
             file_path=self.csv_file_path
         )
-        
+        self.engine.starting_time = datetime(2024, 11, 14, 20, 55, 0).astimezone(pytz.timezone('Asia/Shanghai'))
         trading_hours = {"fu.SHFE":'21:01-23:00,09:01-10:15,10:31-11:30,13:31-15:00',
                          "cs.DCE":'21:01-23:00,09:01-10:15,10:31-11:30,13:31-15:00'}
         ans = pd.DataFrame([[100,0],[0,50]],
