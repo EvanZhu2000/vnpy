@@ -27,8 +27,20 @@ class Strategy2(StrategyTemplate):
             self.write_log(f"settlement_dates_str: {self.settlement_dates_str}")
         
         if 'ans' in setting:
-            tarpos = json.loads(setting['ans'])['target']
-            curpos = json.loads(setting['ans'])['pos']
+            ans = json.loads(setting['ans'])
+            tarpos, curpos = defaultdict(list), defaultdict(list)
+            # change the type of tarpos and curpos to PositionInfo
+            for symb in vt_symbols:
+                if len(ans['pos'][symb]) == 1 and len(ans['target'][symb]) == 1:
+                    curpos[symb] = PositionInfo(ans['pos'][symb][0])
+                    tarpos[symb] = PositionInfo(ans['target'][symb][0])
+                elif len(ans['pos'][symb]) == 2 and len(ans['target'][symb]) == 1:
+                    tmp = sorted(ans['pos'][symb], reverse=True)
+                    curpos[symb] = PositionInfo.from_long_short(tmp[0],tmp[1])
+                    tarpos[symb] = PositionInfo(ans['target'][symb][0])
+                else:
+                    self.write_exception(f"ans is not valid: {ans}, {ans['pos'][symb]}, {ans['target'][symb]}")
+            
             self.write_log(f"curpos {self.nonzero_dict(curpos)}")
             self.write_log(f"tarpos {self.nonzero_dict(tarpos)}")
             for symb,tar in tarpos.items():

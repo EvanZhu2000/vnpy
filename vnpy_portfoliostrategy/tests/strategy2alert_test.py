@@ -34,11 +34,18 @@ class TestStrategy2(unittest.TestCase):
         self.engine.starting_time = datetime(2024, 11, 14, 20, 55, 0).astimezone(pytz.timezone('Asia/Shanghai'))
         trading_hours = {"fu.SHFE":'21:01-23:00,09:01-10:15,10:31-11:30,13:31-15:00',
                          "cs.DCE":'21:01-23:00,09:01-10:15,10:31-11:30,13:31-15:00'}
-        ans = pd.DataFrame([[100,0],[0,50]],
-                          index=pd.Index(['fu2501.SHFE','cs2501.DCE'],name='symbol'),
-                          columns = ['target','pos'])
+        # ans = pd.DataFrame([[100,0],[0,50]],
+        #                   index=pd.Index(['fu2501.SHFE','cs2501.DCE'],name='symbol'),
+        #                   columns = ['target','pos'])
+        ans = {'pos':  {'fu2501.SHFE': [0],
+                        'cs2501.DCE': [50]
+                            },
+               'target': {'fu2501.SHFE': [100],
+                        'cs2501.DCE': [0]
+                        }
+               }
         self.settings = dict({
-            'ans':json.dumps(ans.to_dict()),
+            'ans':json.dumps(ans),
             'trading_hours':json.dumps(trading_hours),
             'settlement_dates_str':'2024-11-14,2024-11-15:Asia/Shanghai'
         })

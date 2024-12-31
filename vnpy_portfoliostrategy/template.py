@@ -1,6 +1,6 @@
 from abc import ABC
 from copy import copy
-from typing import TYPE_CHECKING, Optional,DefaultDict, List
+from typing import TYPE_CHECKING, Optional, DefaultDict, List, Union, Tuple
 from collections import defaultdict
 from datetime import datetime, timedelta, time
 from vnpy.trader.constant import Interval, Direction, Offset, Status
@@ -15,6 +15,7 @@ import pandas as pd
 
 if TYPE_CHECKING:
     from vnpy_portfoliostrategy.engine import StrategyEngine
+
 
 class StrategyTemplate(ABC):
     """组合策略模板"""
@@ -47,9 +48,9 @@ class StrategyTemplate(ABC):
         self.inited: bool = False
         self.trading: bool = False
 
-        # 持仓数据字典
-        self.pos_data: dict[str, int] = defaultdict(int)        # 实际持仓
-        self.target_data: dict[str, int] = defaultdict(int)     # 目标持仓
+        # 持仓数据字典 - using PositionInfo instead of int
+        self.pos_data: dict[str, PositionInfo] = defaultdict(PositionInfo)        # 实际持仓
+        self.target_data: dict[str, PositionInfo] = defaultdict(PositionInfo)     # 目标持仓
 
         # 委托缓存容器
         self.orders: dict[str, OrderData] = {}
@@ -178,9 +179,15 @@ class StrategyTemplate(ABC):
     def update_trade(self, trade: TradeData) -> None:
         """成交数据更新"""
         if trade.direction == Direction.LONG:
-            self.pos_data[trade.vt_symbol] += trade.volume
-        else:
-            self.pos_data[trade.vt_symbol] -= trade.volume
+            if trade.offset == Offset.OPEN:
+                self.pos_data[trade.vt_symbol].long += trade.volume
+            else:  # CLOSE
+                self.pos_data[trade.vt_symbol].short -= trade.volume
+        else:  # SHORT
+            if trade.offset == Offset.OPEN:
+                self.pos_data[trade.vt_symbol].short += trade.volume
+            else:  # CLOSE
+                self.pos_data[trade.vt_symbol].long -= trade.volume
             
         if self.rebal_tracker is not None and self.rebal_tracker.target_time_dict is not None:
             self.trades[self.rebal_tracker.target_time_dict[trade.vt_symbol]].append(trade)
@@ -278,21 +285,21 @@ class StrategyTemplate(ABC):
         for k,_ in self.symbol_status.items():
             self.symbol_status[k].is_active = False
 
-    def get_pos(self, vt_symbol: str) -> int:
+    def get_pos(self, vt_symbol: str) -> PositionInfo:
         """查询当前持仓"""
-        return self.pos_data.get(vt_symbol, 0)
+        return self.pos_data.get(vt_symbol, PositionInfo())
 
-    def get_target(self, vt_symbol: str) -> int:
+    def get_target(self, vt_symbol: str) -> PositionInfo:
         """查询目标仓位"""
         return self.target_data[vt_symbol]
     
-    def set_pos(self, vt_symbol: str, pos: int) -> None:
+    def set_pos(self, vt_symbol: str, pos: Union[int, PositionInfo]) -> None:
         """when we restart the strategy we want to sync db for positions"""
-        self.pos_data[vt_symbol] = pos
+        self.pos_data[vt_symbol] = PositionInfo(pos)
 
-    def set_target(self, vt_symbol: str, target: int) -> None:
+    def set_target(self, vt_symbol: str, target: Union[int, PositionInfo]) -> None:
         """设置目标仓位"""
-        self.target_data[vt_symbol] = target
+        self.target_data[vt_symbol] = PositionInfo(target)
 
     def get_retry_price(self, tick:TickData) -> tuple:
         '''return (buy_price, sell_price) tuple'''
@@ -317,60 +324,29 @@ class StrategyTemplate(ABC):
         sp = tick.bid_price_1 - tmp * min_tick
         return (bp,sp)
     
-    # always 先平后开
     def rebalance(self, vt_symbol: str, buy_price:float, sell_price:float, net:bool=False, strategy:str=None, intention:str=None) -> None:
         """基于目标执行调仓交易"""
         if self.symbol_status[vt_symbol].is_active:
             pass
 
-        target: int = self.get_target(vt_symbol)
-        pos: int = self.get_pos(vt_symbol)
-        diff: int = target - pos
+        target: PositionInfo = self.get_target(vt_symbol)
+        pos: PositionInfo = self.get_pos(vt_symbol)
+        actions = pos.minus(target)
 
-        # 多头
-        if diff > 0:
+        for direction, offset, volume in actions:
             order_price: float = self.calculate_price(
                 vt_symbol,
-                Direction.LONG,
-                buy_price
+                direction,
+                buy_price if direction == Direction.LONG else sell_price
             )
-
-            cover_volume: int = 0
-            buy_volume: int = 0
-
-            if pos < 0:
-                cover_volume = min(diff, abs(pos))
-                buy_volume = diff - cover_volume
-            else:
-                buy_volume = diff
-
-            if cover_volume:
-                self.cover(vt_symbol, order_price, cover_volume, net=net, isFAK=True, strategy=strategy,intention=intention,pos=pos,tar=target)
-
-            if buy_volume:
-                self.buy(vt_symbol, order_price, buy_volume, net=net, isFAK=True, strategy=strategy,intention=intention,pos=pos,tar=target)
-        # 空头
-        elif diff < 0:
-            order_price: float = self.calculate_price(
-                vt_symbol,
-                Direction.SHORT,
-                sell_price
-            )
-
-            sell_volume: int = 0
-            short_volume: int = 0
-
-            if pos > 0:
-                sell_volume = min(abs(diff), pos)
-                short_volume = abs(diff) - sell_volume
-            else:
-                short_volume = abs(diff)
-
-            if sell_volume:
-                self.sell(vt_symbol, order_price, sell_volume, net=net, isFAK=True, strategy=strategy,intention=intention,pos=pos,tar=target)
-
-            if short_volume:
-                self.short(vt_symbol, order_price, short_volume, net=net, isFAK=True, strategy=strategy,intention=intention,pos=pos,tar=target)
+            if direction == Direction.LONG and offset == Offset.OPEN:
+                self.buy(vt_symbol, order_price, volume, net=net, isFAK=True, strategy=strategy, intention=intention, pos=pos, tar=target)
+            elif direction == Direction.LONG and offset == Offset.CLOSE:
+                self.cover(vt_symbol, order_price, volume, net=net, isFAK=True, strategy=strategy, intention=intention, pos=pos, tar=target)
+            elif direction == Direction.SHORT and offset == Offset.OPEN:
+                self.short(vt_symbol, order_price, volume, net=net, isFAK=True, strategy=strategy, intention=intention, pos=pos, tar=target)
+            elif direction == Direction.SHORT and offset == Offset.CLOSE:
+                self.sell(vt_symbol, order_price, volume, net=net, isFAK=True, strategy=strategy, intention=intention, pos=pos, tar=target)
 
 
     def rebalance_portfolio(self, bars: dict[str, BarData]) -> None:
@@ -466,6 +442,9 @@ class StrategyTemplate(ABC):
         "Recording debugging logs in trading period only"
         if self.trading:
             self.write_log(msg=msg)
+            
+    def write_exception(self, msg: str) -> None:
+        self.strategy_engine.write_exception(msg, self)
 
     def get_engine_type(self) -> EngineType:
         """查询引擎类型"""
@@ -501,7 +480,7 @@ class StrategyTemplate(ABC):
     
     # return nonzero version of a dict (usually refers to dict of positions)      
     def nonzero_dict(self, d) -> dict:
-        non_zero_items = {k: v for k, v in d.items() if v != 0}
+        non_zero_items = {k: v for k, v in d.items() if v.net_pos() != 0}
         sorted_non_zero_items = dict(sorted(non_zero_items.items()))
         return sorted_non_zero_items
     
@@ -572,4 +551,3 @@ class StrategyTemplate(ABC):
             return result
         except Exception as e:
             self.strategy_engine.write_exception(f'cannot get open time - exception {e}')
-            

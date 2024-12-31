@@ -93,8 +93,15 @@ def run(option:str):
     ans = pos_data.rename('pos').to_frame().join(to_trade_df.drop_duplicates().set_index('symbol'),how='outer')
     ans = ans.replace(0,np.nan).dropna(how='all').replace(np.nan,0)
     
-    vt_symbols = ans.index.values.tolist()
-    settings = dict({'ans':json.dumps(ans.to_dict()),
+    vt_symbols = ans.index.unique().values.tolist() # as there might be l/s positions for same name
+    
+    result = defaultdict(lambda: defaultdict(list))
+    # Add values while preserving duplicates
+    for index, row in ans.iterrows():
+        result['pos'][index].append(row['pos'])
+        result['target'][index].append(row['target']) if not row['target'] in result['target'][index] else None
+    
+    settings = dict({'ans':json.dumps(result),
                      'trading_hours':json.dumps(trading_hours[['symbol','trading_hours']].set_index('symbol').to_dict()['trading_hours']),
                      'settlement_dates_str':settlement_dates_str})
     

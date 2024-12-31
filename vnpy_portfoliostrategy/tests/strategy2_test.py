@@ -6,7 +6,7 @@ from vnpy_portfoliostrategy import BacktestingEngine
 from vnpy.trader.constant import Interval
 from vnpy_portfoliostrategy.strategies.strategy2 import Strategy2
 import unittest
-
+import pytz
 
 class TestStrategy2(unittest.TestCase):
     def setUp(self):
@@ -26,13 +26,13 @@ class TestStrategy2(unittest.TestCase):
             capital=10000000,
             file_path=self.csv_file_path
         )
-        
+        self.engine.starting_time = datetime(2024, 11, 14, 20, 55, 0).astimezone(pytz.timezone('Asia/Shanghai'))
         trading_hours = {"fu.SHFE":'21:01-03:00,09:01-10:15,10:31-11:30,13:31-15:00'}
-        ans = pd.DataFrame([[10,0]],
-                          index=pd.Index(['fu2501.SHFE'],name='symbol'),
-                          columns = ['target','pos'])
+        ans = {'pos':  {'fu2501.SHFE': [0]},
+               'target': {'fu2501.SHFE': [10]}
+               }
         self.settings = dict({
-            'ans':json.dumps(ans.to_dict()),
+            'ans':json.dumps(ans),
             'trading_hours':json.dumps(trading_hours),
             'settlement_dates_str':'2024-11-14,2024-11-15:Asia/Shanghai'
         })
@@ -40,8 +40,6 @@ class TestStrategy2(unittest.TestCase):
         self.engine.init_strategy()
         self.engine.load_data()
         self.engine.run_backtesting()
-
-
 
 
     def test_strategy_execution(self):
