@@ -38,9 +38,7 @@ def run():
                         qwe['direction'].map({Direction.LONG:1,Direction.SHORT:-1}) * qwe['volume']], axis=1)
         ans = ans.groupby(ans['vt_symbol']).sum()
         
-        strategy_title = 'strategy2'
-        mysqlservice.delete_pos(strategy_title)
-        mysqlservice.update_pos(strategy_title, ans.to_dict()[0])
+        mysqlservice.update_pos(ans.to_dict()[0])
         print("All finished")
     
     mysqlservice.close()

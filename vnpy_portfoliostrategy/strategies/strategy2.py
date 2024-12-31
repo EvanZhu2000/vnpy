@@ -33,6 +33,9 @@ class Strategy2(StrategyTemplate):
             self.write_log(f"tarpos {self.nonzero_dict(tarpos)}")
             for symb,tar in tarpos.items():
                 self.set_target(symb, tar)
+                
+            for symb, pos in curpos.items():
+                self.set_pos(symb, pos)
             
             without_month_symbols_mapping: dict[str, list[str]] = defaultdict(list)  # e.g. fu.SHFE -> [fu2501.SHFE, fu2502.SHFE, ...]
             for symb in vt_symbols:

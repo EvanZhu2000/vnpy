@@ -109,12 +109,6 @@ def run(option:str):
     ps_engine.init_strategy(strategy_title)
     while not ps_engine.strategies[strategy_title].inited:
         sleep(1)
-    
-    # ==== set pos_data
-    strategy = ps_engine.strategies[strategy_title]
-    for symbol, pos in pos_data.items():
-        if symbol in strategy.vt_symbols:
-            strategy.set_pos(symbol, pos)
         
     main_engine.write_log("ps策略全部初始化")
     ps_engine.start_strategy(strategy_title)

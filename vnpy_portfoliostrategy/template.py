@@ -317,6 +317,7 @@ class StrategyTemplate(ABC):
         sp = tick.bid_price_1 - tmp * min_tick
         return (bp,sp)
     
+    # always 先平后开
     def rebalance(self, vt_symbol: str, buy_price:float, sell_price:float, net:bool=False, strategy:str=None, intention:str=None) -> None:
         """基于目标执行调仓交易"""
         if self.symbol_status[vt_symbol].is_active:
