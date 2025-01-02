@@ -1,3 +1,0 @@
-gateway_name,symbol,exchange,orderid,tradeid,direction,offset,price,volume,datetime,vt_symbol,vt_orderid,vt_tradeid
-BACKTESTING,fu2501,Exchange.SHFE,1,1,Direction.LONG,Offset.OPEN,3060,5,2024-11-14 21:00:02+08:00,fu2501.SHFE,BACKTESTING.1,BACKTESTING.1
-BACKTESTING,fu2501,Exchange.SHFE,6,2,Direction.LONG,Offset.OPEN,3069,5,2024-11-14 21:00:07+08:00,fu2501.SHFE,BACKTESTING.6,BACKTESTING.2

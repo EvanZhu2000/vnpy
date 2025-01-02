@@ -10,6 +10,9 @@ import pytz
 
 class TestStrategy2(unittest.TestCase):
     def setUp(self):
+        pass
+
+    def test_strategy_execution1(self):
         self.vt_symbols = ["fu2501.SHFE"]
         current_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         self.csv_file_path = os.path.join(current_dir, 'vnpy_portfoliostrategy', 'tests', 'testfiles', 'stg2ticks.csv')
@@ -21,7 +24,8 @@ class TestStrategy2(unittest.TestCase):
             start=datetime(2024, 11, 14),
             end=datetime(2024, 11, 14),
             sizes={
-                "fu2501.SHFE": 10
+                "fu2501.SHFE": 10,
+                "cs2501.DCE": 10
             },
             capital=10000000,
             file_path=self.csv_file_path
@@ -40,9 +44,7 @@ class TestStrategy2(unittest.TestCase):
         self.engine.init_strategy()
         self.engine.load_data()
         self.engine.run_backtesting()
-
-
-    def test_strategy_execution(self):
+        
         # Test if trades were generated
         # Get actual results
         trades = self.engine.get_all_trades(use_df=True).reset_index(drop=True).astype(str)
@@ -82,6 +84,69 @@ class TestStrategy2(unittest.TestCase):
             print(e)
             raise
 
+        try:
+            pd.testing.assert_frame_equal(trade_records, expected_trade_records, check_dtype=False)
+        except AssertionError as e:
+            print("\nTrade records comparison failed:")
+            print(e)
+            raise
+
+    def test_strategy_execution2(self):
+        self.vt_symbols = ["fu2501.SHFE","cs2501.DCE"]
+        current_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        self.csv_file_path = os.path.join(current_dir, 'vnpy_portfoliostrategy', 'tests', 'testfiles', 'stg2ticks2.csv')
+        
+        self.engine = BacktestingEngine()
+        self.engine.set_parameters(
+            vt_symbols=self.vt_symbols,
+            interval=Interval.TICK,
+            start=datetime(2024, 11, 14),
+            end=datetime(2024, 11, 14),
+            sizes={
+                "fu2501.SHFE": 10,
+                "cs2501.DCE": 10
+            },
+            capital=10000000,
+            file_path=self.csv_file_path
+        )
+        self.engine.starting_time = datetime(2024, 11, 14, 20, 55, 0).astimezone(pytz.timezone('Asia/Shanghai'))
+        trading_hours = {"fu.SHFE":'21:01-03:00,09:01-10:15,10:31-11:30,13:31-15:00',
+                         "cs.DCE":'21:01-03:00,09:01-10:15,10:31-11:30,13:31-15:00'}
+        ans = {'pos':  {'fu2501.SHFE': [0],
+                        'cs2501.DCE': [-6]
+                        },
+               'target': {'fu2501.SHFE': [10],
+                          'cs2501.DCE': [4]
+                          }
+               }
+        self.settings = dict({
+            'ans':json.dumps(ans),
+            'trading_hours':json.dumps(trading_hours),
+            'settlement_dates_str':'2024-11-14,2024-11-15:Asia/Shanghai'
+        })
+        self.engine.add_strategy(Strategy2, self.settings)
+        self.engine.init_strategy()
+        self.engine.load_data()
+        self.engine.run_backtesting()
+            
+        # Create trade records if they exist
+        trade_records = pd.DataFrame()
+        if self.engine.strategy.trades:
+            rows = [
+                (date, tr.datetime, tr.vt_symbol, tr.direction, tr.offset, tr.price, tr.volume)
+                for date, trades in self.engine.strategy.trades.items()
+                for tr in trades
+            ]
+            trade_records = pd.DataFrame(rows, columns=['signal_datetime', 'datetime','vt_symbol','direction','offset','price', 'volume'])
+            trade_records = trade_records.reset_index(drop=True).astype(str)
+
+        # Load expected results from expect folder
+        current_dir = os.path.dirname(os.path.dirname(__file__))
+        expect_dir = os.path.join(current_dir, 'tests','expect')
+
+        expected_trade_records = pd.read_csv(os.path.join(expect_dir, 'trade_records2.csv')).astype(str)
+        
+        # Compare actual and expected results
         try:
             pd.testing.assert_frame_equal(trade_records, expected_trade_records, check_dtype=False)
         except AssertionError as e:

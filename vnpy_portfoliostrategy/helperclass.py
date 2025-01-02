@@ -74,26 +74,30 @@ class PositionInfo:
         """
         Returns:
             actions: List of (Direction, Offset, volume) tuples representing required trades
+            
+        Note:
+            need to change from self -> others
+            sell平多是Direction.SHORT,Offset.CLOSE,不是Direction.LONG,Offset.CLOSE,cover是Direction.Short,Offset.Close
         """
         if isinstance(other, int):
             other = PositionInfo(other)
             
         # Calculate differences in each direction
-        long_diff = self.long - other.long
-        short_diff = self.short - other.short
+        long_diff = other.long - self.long
+        short_diff = other.short - self.short
         
         actions = []
         
         # Handle long side changes
-        if long_diff > 0:  # Need to reduce longs
-            actions.append((Direction.SHORT, Offset.CLOSE, long_diff))
-        elif long_diff < 0:  # Need to increase longs
+        if long_diff > 0:  
             actions.append((Direction.LONG, Offset.OPEN, abs(long_diff)))
+        elif long_diff < 0:  
+            actions.append((Direction.SHORT, Offset.CLOSE, abs(long_diff)))
             
         # Handle short side changes    
-        if short_diff > 0:  # Need to reduce shorts
-            actions.append((Direction.LONG, Offset.CLOSE, short_diff))
-        elif short_diff < 0:  # Need to increase shorts
+        if short_diff > 0:  
             actions.append((Direction.SHORT, Offset.OPEN, abs(short_diff)))
+        elif short_diff < 0:  
+            actions.append((Direction.LONG, Offset.CLOSE, abs(short_diff)))
             
         return actions
