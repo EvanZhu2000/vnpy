@@ -187,6 +187,7 @@ class StrategyEngine(BaseEngine):
             reference=f"{APP_NAME}_{strategy.strategy_name}"
         )
 
+        # NOTE:上期所在平仓的时候需要分别发出平今和平昨指令，而其他交易所平仓指令会自动转换（优先平今）。这个发送是指发给交易所。策略里下单会通过vnpy.trader.converter来自动转换。上期所大概原理是当要求手数少于昨仓，全部平昨。当要求手数多于昨仓，先平昨，剩下的平今
         req_list: list[OrderRequest] = self.main_engine.convert_order_request(
             original_req,
             contract.gateway_name,
@@ -280,8 +281,8 @@ class StrategyEngine(BaseEngine):
         """委托撤单"""
         for vt_orderid in list(strategy.active_orderids):
             self.cancel_order(strategy, vt_orderid)
-        for k,_ in strategy.symbol_status.items():
-            strategy.symbol_status[k].is_active = False
+        # for k,_ in strategy.symbol_status.items():
+        #     strategy.symbol_status[k].is_active = False
 
     def get_engine_type(self) -> EngineType:
         """获取引擎类型"""

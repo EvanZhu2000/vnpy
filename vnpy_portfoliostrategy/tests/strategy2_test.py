@@ -113,7 +113,7 @@ class TestStrategy2(unittest.TestCase):
         trading_hours = {"fu.SHFE":'21:01-03:00,09:01-10:15,10:31-11:30,13:31-15:00',
                          "cs.DCE":'21:01-03:00,09:01-10:15,10:31-11:30,13:31-15:00'}
         ans = {'pos':  {'fu2501.SHFE': [0],
-                        'cs2501.DCE': [-6]
+                        'cs2501.DCE': [-9,3]
                         },
                'target': {'fu2501.SHFE': [10],
                           'cs2501.DCE': [4]
@@ -140,6 +140,9 @@ class TestStrategy2(unittest.TestCase):
             trade_records = pd.DataFrame(rows, columns=['signal_datetime', 'datetime','vt_symbol','direction','offset','price', 'volume'])
             trade_records = trade_records.reset_index(drop=True).astype(str)
 
+        # for i in range(len(trade_records)):
+        #     print(trade_records.iloc[i])
+        
         # Load expected results from expect folder
         current_dir = os.path.dirname(os.path.dirname(__file__))
         expect_dir = os.path.join(current_dir, 'tests','expect')

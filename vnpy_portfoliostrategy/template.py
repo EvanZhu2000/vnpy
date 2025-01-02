@@ -200,7 +200,7 @@ class StrategyTemplate(ABC):
 
         if not order.is_active() and order.vt_orderid in self.active_orderids:
             self.active_orderids.remove(order.vt_orderid)
-            self.symbol_status[symb].is_active = False
+            self.symbol_status[symb].active_orderids_list.remove(order.vt_orderid)
         
         if (order.type == OrderType.FAK or order.type == OrderType.FOK):
             if order.status == Status.REJECTED:
@@ -259,8 +259,7 @@ class StrategyTemplate(ABC):
 
                 for vt_orderid in vt_orderids:
                     self.active_orderids.add(vt_orderid)
-                    self.symbol_status[vt_symbol].is_active = True
-                    self.symbol_status[vt_symbol].order_list.append(vt_orderid)
+                    self.symbol_status[vt_symbol].active_orderids_list.add(vt_orderid)
 
                 return vt_orderids
             except Exception as e:
@@ -282,8 +281,8 @@ class StrategyTemplate(ABC):
         """全撤活动委托"""
         for vt_orderid in list(self.active_orderids):
             self.cancel_order(vt_orderid)
-        for k,_ in self.symbol_status.items():
-            self.symbol_status[k].is_active = False
+        # for k,_ in self.symbol_status.items():
+        #     self.symbol_status[k].is_active = False
 
     def get_pos(self, vt_symbol: str) -> PositionInfo:
         """查询当前持仓"""
@@ -326,7 +325,7 @@ class StrategyTemplate(ABC):
     
     def rebalance(self, vt_symbol: str, buy_price:float, sell_price:float, net:bool=False, strategy:str=None, intention:str=None) -> None:
         """基于目标执行调仓交易"""
-        if self.symbol_status[vt_symbol].is_active:
+        if self.symbol_status[vt_symbol].is_active():
             pass
 
         target: PositionInfo = self.get_target(vt_symbol)

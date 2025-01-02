@@ -32,13 +32,15 @@ class BoolDict:
     
 # class to track status for symbols
 class SymbolStatus():
-    is_active = False
     rej_counts = 0
     can_counts = 0
-    order_list = []
+    active_orderids_list: set[str] = set()
     last_tick: Optional[TickData] = None  # for now it is just used to record whether we at least received one tick
     stop_FAK_cancel = False
     alarm_time_since_last_tick = None
+    
+    def is_active(self):
+        return len(self.active_orderids_list) != 0
     
     def is_stop(self):
         return self.stop_FAK_cancel
