@@ -4,6 +4,7 @@ from dateutil.relativedelta import relativedelta
 from datetime import datetime
 from vnpy_self.data_and_db.db_setting import *
 import warnings
+from vnpy_portfoliostrategy.helperclass import *
 warnings.filterwarnings("ignore")
 
 class MysqlService():
@@ -92,11 +93,11 @@ class MysqlService():
         self.mydb.commit()
 
 
-    def update_pos(self,  positions:dict[str, int]):
+    def update_pos(self,  positions:dict[str, PositionInfo]):
         self.mycursor.execute(f"DELETE FROM vnpy.current_pos;")
         self.mydb.commit()
         for symbol,pos in positions.items():
-            self.insert(table = 'current_pos', symbol = symbol, datetime = datetime.now(), pos = pos)
+            self.insert(table = 'current_pos', symbol = symbol, datetime = datetime.now(), pos = pos.__str__())
             
     
     # whenever there is an order update
