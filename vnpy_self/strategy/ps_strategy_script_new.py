@@ -16,6 +16,7 @@ import pandas as pd
 import numpy as np
 import signal
 from vnpy_portfoliostrategy.mysqlservice import MysqlService
+from collections import defaultdict
 db = MysqlService()
 db.init_connection()
 
