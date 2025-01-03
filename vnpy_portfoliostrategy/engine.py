@@ -82,7 +82,7 @@ class StrategyEngine(BaseEngine):
         self.init_datafeed()
         self.load_strategy_class()
         self.load_strategy_setting()
-        self.load_strategy_data()
+        # self.load_strategy_data()
         self.register_event()
         self.write_log("组合策略引擎初始化成功")
 
