@@ -58,7 +58,7 @@ class PositionInfo:
             self.short = abs(min(value, 0))
             
     def __str__(self) -> str:
-        return f"PositionInfo(long={self.long}, short={self.short})"
+        return f"{self.net_pos()}"
     
     @classmethod
     def from_long_short(cls, long: int = 0, short: int = 0) -> "PositionInfo":
