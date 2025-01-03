@@ -90,7 +90,9 @@ class TestStrategy2(unittest.TestCase):
             print("\nTrade records comparison failed:")
             print(e)
             raise
-
+        
+        # print(self.engine.logs)
+        
     def test_strategy_execution2(self):
         self.vt_symbols = ["fu2501.SHFE","cs2501.DCE"]
         current_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))

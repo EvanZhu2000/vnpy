@@ -129,9 +129,11 @@ class StrategyTemplate(ABC):
     @virtual
     def on_stop(self) -> None:
         """策略停止回调"""
-        self.write_log(f"FINAL pos_data {self.nonzero_dict(self.pos_data)}")
-        self.write_log(f"FINAL target_data {self.nonzero_dict(self.target_data)}")
-        self.write_log(f"FINAL diff {pd.concat([pd.Series(self.pos_data),pd.Series(self.target_data)],axis=1,keys=['pos','tar']).query('pos!=tar').to_dict()}")
+        net_pos_data = self.nonzero_dict(self.pos_data)
+        net_target_data = self.nonzero_dict(self.target_data)
+        self.write_log(f"FINAL pos_data {net_pos_data}")
+        self.write_log(f"FINAL target_data {net_target_data}")
+        self.write_log(f"FINAL diff {pd.concat([pd.Series(net_pos_data),pd.Series(net_target_data)],axis=1,keys=['pos','tar']).query('pos!=tar').to_dict()}")
         if self.strategy_engine.engine_type == EngineType.LIVE:
             rows = [
                 (date, tr.datetime, tr.vt_symbol, tr.vt_orderid, tr.direction, tr.offset, tr.price, tr.volume)
@@ -479,7 +481,7 @@ class StrategyTemplate(ABC):
     
     # return nonzero version of a dict (usually refers to dict of positions)      
     def nonzero_dict(self, d) -> dict:
-        non_zero_items = {k: v.__str__() for k, v in d.items() if v.net_pos() != 0}
+        non_zero_items = {k: int(v.__str__()) for k, v in d.items() if v.net_pos() != 0}
         sorted_non_zero_items = dict(sorted(non_zero_items.items()))
         return sorted_non_zero_items
     

@@ -103,3 +103,11 @@ class PositionInfo:
             actions.append((Direction.LONG, Offset.CLOSE, abs(short_diff)))
             
         return actions
+
+    def equals(self, other: Union[int, "PositionInfo"]) -> bool:
+        """
+        Check if two PositionInfo objects are equal in terms of long and short positions.
+        """
+        if isinstance(other, int):
+            other = PositionInfo(other)
+        return self.long == other.long and self.short == other.short
