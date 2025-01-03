@@ -481,7 +481,7 @@ class StrategyTemplate(ABC):
     
     # return nonzero version of a dict (usually refers to dict of positions)      
     def nonzero_dict(self, d) -> dict:
-        non_zero_items = {k: int(v.__str__()) for k, v in d.items() if v.net_pos() != 0}
+        non_zero_items = {k: v.net_pos() for k, v in d.items() if v.net_pos() != 0}
         sorted_non_zero_items = dict(sorted(non_zero_items.items()))
         return sorted_non_zero_items
     
