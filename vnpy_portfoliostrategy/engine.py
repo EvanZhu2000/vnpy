@@ -534,7 +534,7 @@ class StrategyEngine(BaseEngine):
         self.cancel_all(strategy)
 
         # 同步数据状态
-        self.sync_strategy_data(strategy)
+        # self.sync_strategy_data(strategy)
 
         # 推送策略事件通知停止完成状态
         self.put_strategy_event(strategy)
